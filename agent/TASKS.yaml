@@ -30,6 +30,24 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260827-tien-vao-payment-plans
+    title: "M4 Tiền vào: dashboard 'Cần thu tiền' đọc finance_pending_collections (đến hạn = đã giao sản phẩm, một luật với /finance); generator lịch thu chỉ Cọc + Tất toán (bỏ Đợt 1/2 0đ), xoá 119 dòng installment không phân bổ (backup); nhãn Moodie 'đã giao chưa thu'"
+    status: review
+    owner: claude
+    branch: claude/tien-vao-m4 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration ĐÃ ÁP prod; verify local xong → chờ user "merge + push" — spec §5)
+    locks:
+      - lib/api/dashboard.ts (queryPaymentReminders), app/actions/dashboard-cache.ts
+      - components/dashboard/payment-reminders.tsx
+      - supabase/migrations/20260827100000_payment_plans_m4_bo_dot_1_2.sql (mới), docs/reports/backup_2026-08-27_payment_plans_installments.json
+      - lib/moodie/catalog.ts
+      - scripts/verify-reports.mjs, scripts/verify-contracts.mjs, tests/e2e/cashflow-m3.spec.ts
+    spec: agent/HANDOFFS/T-20260827-tien-vao-payment-plans.spec.md
+    verify:
+      - npx eslint · npx tsc --noEmit · npm run build · verify:reports · verify:contracts
+      - "Playwright cashflow-m3 (UI test thêm /dashboard 'Đã giao chưa thu') local rồi prod"
+      - snapshot finance_debt_stats / finance_month_summary(8,2026) trước = sau; contract_payment_health_checks = 0
+    depends_on: [T-20260826-tien-ekip-va-can-thu]
+    notes: "Đo 26-27/08: 240 mốc = 60 HĐ × 4; Đợt 1/2 luôn 0đ/NULL do generator; RPC thu tiền đang chạy vẫn ghi phân bổ (51/51) → không có lỗ hổng toàn vẹn; dashboard 'quá hạn' theo ngày chụp (20 HĐ) trong khi chỉ 1 HĐ còn nợ đã giao."
   - id: T-20260826-thiep-kho-ui
     title: "M3b: thiệp của khách HĐ đi đúng đường Bán thêm HĐ / Xuất HĐ — modal xuất kho gợi ý theo SĐT khách HĐ + ô chọn HĐ tìm SĐT, lối vào 'Thiệp / vật tư' từ trang hợp đồng (modal mở sẵn HĐ), stockOut revalidate trang HĐ/finance; không đụng DB"
     status: done

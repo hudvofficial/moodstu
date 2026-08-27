@@ -76,7 +76,7 @@ Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn
 → phải thu: `finance_debt_stats()` (M3 — đọc **hợp đồng**, không phải bảng `debts` rỗng) hoặc `get_contract_balance` cho 1 HĐ · phải trả: `finance_payable_summary()` (lab · thợ · NCC · **ekip**).
 
 **"HĐ nào đến hạn thu?"** (M3)
-→ **đến hạn = đã giao sản phẩm** (`contract_events` `giao_san_pham` `hoan_thanh`) mà `remaining_amount > 0`; tuổi nợ đếm từ ngày giao (`finance_debt_stats().aging`, `get_receivable_aging().not_delivered` + 4 bucket). Chưa giao = **chờ giao**, không phải quá hạn. Danh sách: `finance_pending_collections(limit)` — HĐ đã giao lên đầu. `finance_month_summary` tách `receivable_due` / `receivable_waiting`. Đo 26/08: phải thu 92.575.000 = đã giao chưa thu 3.300.000 (1 HĐ) + chờ giao 89.275.000 (19 HĐ). `payment_plans` (lịch tự sinh, 65 mốc "quá hạn") **không** phải nguồn đến hạn — dọn ở M4.
+→ **đến hạn = đã giao sản phẩm** (`contract_events` `giao_san_pham` `hoan_thanh`) mà `remaining_amount > 0`; tuổi nợ đếm từ ngày giao (`finance_debt_stats().aging`, `get_receivable_aging().not_delivered` + 4 bucket). Chưa giao = **chờ giao**, không phải quá hạn. Danh sách: `finance_pending_collections(limit)` — HĐ đã giao lên đầu. `finance_month_summary` tách `receivable_due` / `receivable_waiting`. Đo 26/08: phải thu 92.575.000 = đã giao chưa thu 3.300.000 (1 HĐ) + chờ giao 89.275.000 (19 HĐ). `payment_plans` (lịch tự sinh) **không** phải nguồn đến hạn — M4 (27/08/2026): dashboard "Cần thu tiền" cũng đọc `finance_pending_collections`; lịch thu mặc định chỉ còn Cọc + Tất toán (Đợt 1/2 0đ đã bỏ khỏi generator và xoá 119 dòng rỗng).
 
 ## Khoá sổ
 

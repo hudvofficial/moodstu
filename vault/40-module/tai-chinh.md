@@ -84,7 +84,7 @@ Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung c
 
 ## RPC chính
 
-Đọc: `finance_month_summary` (3 khối), `finance_pnl_by_month`, `finance_period_ledger` (sổ kỳ dùng chung), `finance_reports_snapshot`, `finance_cashflow_timeline`, `finance_ledger` / `finance_ledger_range`, `finance_payable_summary` (lab · thợ · NCC · ekip), `payable_items`, `payee_payment_history`, `vendor_cost_report`, `finance_debt_stats` (M3: phải thu = hợp đồng theo mốc giao), `finance_pending_collections`, `get_receivable_aging` (M3: `not_delivered` + tuổi nợ từ ngày giao), `get_finance_intelligence`, `get_cashflow_forecast`, `get_budget_vs_actual`, `get_expense_breakdown`.
+Đọc: `finance_month_summary` (3 khối), `finance_pnl_by_month`, `finance_period_ledger` (sổ kỳ dùng chung), `finance_reports_snapshot`, `finance_cashflow_timeline`, `finance_ledger` / `finance_ledger_range`, `finance_payable_summary` (lab · thợ · NCC · ekip), `payable_items`, `payee_payment_history`, `vendor_cost_report`, `finance_debt_stats` (M3: phải thu = hợp đồng theo mốc giao), `finance_pending_collections` (M3/M4: cả card "Cần thu tiền" trên `/dashboard` — `lib/api/dashboard.ts` `queryPaymentReminders`, service role — đọc hàm này: đã giao lên đầu = đến hạn, còn lại chờ giao), `get_receivable_aging` (M3: `not_delivered` + tuổi nợ từ ngày giao), `get_finance_intelligence`, `get_cashflow_forecast`, `get_budget_vs_actual`, `get_expense_breakdown`.
 
 Ghi: `process_contract_payment_v2`, `void_contract_payment_v2`, `create_sale_receipt_atomic`, `record_payee_payment_atomic`, `void_payee_payment_atomic`, `contribute_to_goal`, `undo_contribution_atomic`, `advance_close_task`.
 

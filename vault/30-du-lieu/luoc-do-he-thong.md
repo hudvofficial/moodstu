@@ -13,7 +13,7 @@ Module liên quan: [[he-thong]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `audit_logs` | 13742 | ✅ | 2 |
+| `audit_logs` | 14226 | ✅ | 2 |
 | `system_settings` | 23 | ✅ | 0 |
 | `studio_info` | 1 | ✅ | 4 |
 | `notifications` | 0 | ✅ | 4 |
@@ -21,13 +21,13 @@ Module liên quan: [[he-thong]]
 | `notification_queue` | 0 | ✅ | 1 |
 | `push_subscriptions` | 0 | ✅ | 4 |
 | `login_attempts` | 2 | ✅ | 4 |
-| `realtime_signals` | 140 | ✅ | 1 |
+| `realtime_signals` | 176 | ✅ | 1 |
 | `google_sync_queue` | 0 | ✅ | 1 |
 | `integrity_reports` | 1 | ✅ | 1 |
 
 ## `audit_logs`
 
-13742 dòng · RLS bật · 2 policy
+14226 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -237,7 +237,7 @@ Module liên quan: [[he-thong]]
 
 ## `realtime_signals`
 
-140 dòng · RLS bật · 1 policy
+176 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

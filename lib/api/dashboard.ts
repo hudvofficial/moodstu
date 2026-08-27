@@ -50,7 +50,6 @@ type DashboardServiceBreakdownRpcRow = {
 
 const DASHBOARD_CHART_MONTHS = 6;
 const UPCOMING_DAYS = 14;
-const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
 const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
 // Granular cache tags for selective invalidation
@@ -187,11 +186,6 @@ function relationObject(value: unknown): QueryRow | null {
 function isCancelledStatus(value: unknown) {
   const status = asString(value).toLowerCase();
   return status === "da_huy" || status === "cancelled" || status === "canceled";
-}
-
-function isPaidPlanStatus(value: unknown) {
-  const status = asString(value).toLowerCase();
-  return status === "paid" || status === "da_thanh_toan" || status === "completed";
 }
 
 function dateKey(value: string) {
@@ -845,123 +839,43 @@ async function queryPaymentReminders(
 ): Promise<PaymentReminderData[]> {
   if (!visibility.canViewFinancials) return [];
 
-  const today = toDateOnly(new Date());
-  const end = toDateOnly(addDays(new Date(), COLLECTION_DAYS));
+  // ADR-016 M4 (T-20260827-tien-vao-payment-plans): một luật với /finance — phải thu ĐẾN HẠN khi đã giao sản phẩm
+  // (mốc giao_san_pham hoàn thành), chưa giao = chờ giao. Trước đây đọc payment_plans.due_date (ngày chụp) → "quá hạn"
+  // cho 20 HĐ trong khi chỉ 1 HĐ đã giao. RPC finance_pending_collections đã xếp: đã giao trước (ngày giao), rồi chờ giao (ngày chụp).
+  const { data, error } = await supabase.rpc("finance_pending_collections", { p_limit: LIST_LIMIT });
+  assertQueryOk("Lỗi tải danh sách cần thu", error);
 
-  const { data: planRows, error: planError } = await supabase
-    .from("payment_plans")
-    .select("id, amount, due_date, stage_name, status, contract_id, contracts!inner(id, contract_code, remaining_amount, status, deleted_at, customers(full_name))")
-    .not("due_date", "is", null)
-    .lte("due_date", end)
-    .is("contracts.deleted_at", null)
-    .neq("contracts.status", "da_huy")
-    .gt("contracts.remaining_amount", 0)
-    .order("due_date", { ascending: true })
-    .limit(LIST_LIMIT * 3);
-
-  assertQueryOk("Lỗi tải đợt cần thu", planError);
-
-  // Internal type với planAmount để track từng đợt
-  type PlanReminderInternal = PaymentReminderData & { planAmount?: number };
-
-  const planReminders: PlanReminderInternal[] = ((planRows || []) as QueryRow[])
-    .filter((row) => !isPaidPlanStatus(row.status))
-    .map((row) => {
-      const contract = relationObject(row.contracts);
-      const contractId = asString(contract?.id) || asString(row.contract_id);
-      const dueDate = asString(row.due_date, "") || null;
-
-      return {
-        id: `payment-plan:${asString(row.id)}`,
-        contractId,
-        contractCode: asString(contract?.contract_code),
-        customerName: relationText(contract?.customers, "full_name") || "Khách hàng",
-        stageName: asString(row.stage_name, "Đợt thanh toán"),
-        remainingAmount: asNumber(contract?.remaining_amount), // ✅ Fix: Luôn lấy tổng nợ của HĐ
-        planAmount: asNumber(row.amount), // Track đợt amount riêng để hiển thị milestone detail
-        dueDate,
-        source: "payment_plans" as const,
-        isOverdue: !!dueDate && dueDate < today,
-        href: `/contracts/${contractId}`,
-      };
-    })
-    .sort((left, right) => compareDateAsc(left.dueDate, right.dueDate));
-
-  const planContractIds = new Set(planReminders.map((row) => row.contractId));
-
-  const { data: contractRows, error: contractError } = await supabase
-    .from("contracts")
-    .select("id, contract_code, remaining_amount, work_date, contract_date, customers(full_name)")
-    .is("deleted_at", null)
-    .neq("status", "da_huy")
-    .gt("remaining_amount", 0)
-    .order("work_date", { ascending: true, nullsFirst: false })
-    .order("contract_date", { ascending: false })
-    .limit(LIST_LIMIT * 2);
-
-  assertQueryOk("Lỗi tải danh sách cần thu", contractError);
-
-  const fallbackReminders: PlanReminderInternal[] = ((contractRows || []) as QueryRow[])
-    .filter((row) => !planContractIds.has(asString(row.id)))
-    .map((row) => {
-      const dueDate = asString(row.work_date, "") || asString(row.contract_date, "") || null;
-      return {
-        id: `contract:${asString(row.id)}`,
-        contractId: asString(row.id),
-        contractCode: asString(row.contract_code),
-        customerName: relationText(row.customers, "full_name") || "Khách hàng",
-        stageName: "Công nợ còn lại",
-        remainingAmount: asNumber(row.remaining_amount),
-        dueDate,
-        source: "contracts" as const,
-        isOverdue: !!dueDate && dueDate < today,
-        href: `/contracts/${asString(row.id)}`,
-      };
-    });
-
-  const grouped = new Map<string, PaymentReminderData>();
-
-  for (const item of [...planReminders, ...fallbackReminders].sort((left, right) =>
-    compareDateAsc(left.dueDate, right.dueDate),
-  )) {
+  return ((data || []) as QueryRow[]).map((row) => {
+    const contractId = asString(row.id);
+    const deliveredAt = asString(row.delivered_at, "") || null;
+    const workDateRaw = asString(row.work_date, "");
+    const workDate = workDateRaw ? toDateOnly(new Date(workDateRaw)) : null;
+    const isOverdue = Boolean(deliveredAt);
     const milestone = {
-      id: item.id,
-      stageName: item.stageName,
-      amount: item.planAmount || item.remainingAmount, // Use planAmount for milestones detail
-      dueDate: item.dueDate,
-      source: item.source,
-      isOverdue: item.isOverdue,
+      id: `contract:${contractId}`,
+      stageName: isOverdue ? "Đã giao chưa thu" : "Chờ giao",
+      amount: asNumber(row.remaining_amount),
+      dueDate: deliveredAt ?? workDate,
+      source: "contracts" as const,
+      isOverdue,
     };
-    const existing = grouped.get(item.contractId);
 
-    if (!existing) {
-      grouped.set(item.contractId, {
-        ...item,
-        milestones: [milestone],
-        installmentCount: 1,
-        overdueCount: item.isOverdue ? 1 : 0,
-      });
-      continue;
-    }
-
-    // ✅ Fix: KHÔNG cộng dồn remainingAmount - giữ nguyên tổng nợ HĐ từ lần đầu
-    // remainingAmount đã là contract.remaining_amount (SSOT) rồi
-    existing.isOverdue = existing.isOverdue || item.isOverdue;
-    existing.installmentCount = (existing.installmentCount || 1) + 1; // ✅ Fix: đếm đúng số đợt
-
-    // Push milestone để UI có thể hiển thị detail các đợt
-    existing.milestones = [...(existing.milestones || []), milestone];
-
-    // Đếm số đợt quá hạn
-    if (item.isOverdue) {
-      existing.overdueCount = (existing.overdueCount || 0) + 1;
-    }
-  }
-
-  return Array.from(grouped.values())
-    .filter((item) => item.remainingAmount > 0)
-    .sort((left, right) => compareDateAsc(left.dueDate, right.dueDate))
-    .slice(0, LIST_LIMIT);
+    return {
+      id: milestone.id,
+      contractId,
+      contractCode: asString(row.contract_code),
+      customerName: asString(row.customer_name, "Khách hàng"),
+      stageName: milestone.stageName,
+      remainingAmount: asNumber(row.remaining_amount),
+      dueDate: milestone.dueDate,
+      source: "contracts" as const,
+      isOverdue,
+      href: `/contracts/${contractId}`,
+      milestones: [milestone],
+      installmentCount: 1,
+      overdueCount: isOverdue ? 1 : 0,
+    };
+  });
 }
 
 const getDashboardAccess = cache(async () =>

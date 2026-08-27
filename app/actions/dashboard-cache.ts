@@ -31,6 +31,7 @@ const TABLE_TO_TAGS: Record<string, string[]> = {
   ],
   contract_events: [
     DASHBOARD_EVENTS_CACHE_TAG,
+    DASHBOARD_PAYMENTS_CACHE_TAG, // M4: mốc giao_san_pham đổi → card "Cần thu tiền" (đến hạn = đã giao) phải tươi
   ],
   schedules: [
     DASHBOARD_EVENTS_CACHE_TAG,

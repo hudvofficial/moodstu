@@ -19,8 +19,8 @@ export const MOODIE_CAPABILITY_CATALOG: MoodieCapabilityConfig[] = [
   {
     id: "debt_summary",
     label: "Công nợ",
-    description: "Phải thu, phải trả, nợ quá hạn và bucket tuổi nợ hiện tại.",
-    prompts: ["Công nợ hiện tại thế nào?", "Khoản nào đang quá hạn?", "Phải thu và phải trả hôm nay là bao nhiêu?"],
+    description: "Phải thu (đã giao chưa thu · chờ giao), phải trả và bucket tuổi nợ hiện tại.",
+    prompts: ["Công nợ hiện tại thế nào?", "Hợp đồng nào đã giao mà chưa thu?", "Phải thu và phải trả hôm nay là bao nhiêu?"],
     requiredModule: "finance",
   },
   {

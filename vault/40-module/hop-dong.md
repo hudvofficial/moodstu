@@ -46,6 +46,8 @@ Lược đồ đầy đủ: [[luoc-do-hop-dong]]
 
 `contracts` · `contract_items` (hạng mục) · `contract_events` (sự kiện: chuẩn bị / ngày chụp / ngày tổ chức / hậu kỳ / giao sản phẩm) · `contract_checklists` + `checklist_templates` · `contract_notes` · `event_templates` · `addon_history` · `documents` · `approval_requests`
 
+**Lịch thu (`payment_plans`, M4 27/08/2026):** `create_default_payment_schedule_v2` sinh **2 đợt** — Cọc (số cọc lúc tạo, hạn = ngày ký) + Tất toán (còn lại, hạn = ngày chụp); thu ngoài lịch → `process_contract_payment_v2` tự tạo đợt `outside`; phân bổ phiếu thu ở `payment_plan_allocations` (SSOT trạng thái đợt qua `sync_payment_plan_statuses_v2`). Là **kế hoạch**, không phải tiền, **không phải nguồn "đến hạn"** — đến hạn = đã giao sản phẩm (xem [[luong-tien]]). Đợt 1/Đợt 2 cũ (0đ) đã bỏ; backup `docs/reports/backup_2026-08-27_payment_plans_installments.json`.
+
 ## Action
 
 | File | Vai trò | RPC |

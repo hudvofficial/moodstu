@@ -213,7 +213,16 @@ assertClose(asNumber(debtStats[0].overdue), asNumber(monthSummary[0].receivable_
 console.log("- finance_debt_stats: ok (phải thu = hợp đồng, quá hạn = đã giao chưa thu)");
 const pending = assertArray(await assertRpc(serviceClient, "finance_pending_collections", { p_limit: 5 }), "finance_pending_collections");
 if (pending.length > 5) throw new Error("finance_pending_collections ignored p_limit");
-console.log("- finance_pending_collections: ok");
+// M4: dashboard "Cần thu tiền" đọc RPC này — đã giao (delivered_at) phải đứng trước chờ giao
+{
+  let seenWaiting = false;
+  for (const row of pending) {
+    const delivered = row.delivered_at !== null && row.delivered_at !== undefined;
+    if (!delivered) seenWaiting = true;
+    else if (seenWaiting) throw new Error("finance_pending_collections: HĐ đã giao đứng sau HĐ chờ giao");
+  }
+}
+console.log("- finance_pending_collections: ok (đã giao trước, chờ giao sau)");
 assertArray(await assertRpc(serviceClient, "vendor_cost_report", rpcArgs.vendor_cost_report), "vendor_cost_report");
 console.log("- vendor_cost_report: ok");
 

@@ -13,7 +13,7 @@ Module liên quan: [[nhan-su]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `employees` | 13 | ✅ | 4 |
+| `employees` | 12 | ✅ | 4 |
 | `employee_salaries` | 2 | ✅ | 4 |
 | `monthly_salaries` | 2 | ✅ | 4 |
 | `salary_adjustments` | 0 | ✅ | 0 |
@@ -26,7 +26,7 @@ Module liên quan: [[nhan-su]]
 
 ## `employees`
 
-13 dòng · RLS bật · 4 policy
+12 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

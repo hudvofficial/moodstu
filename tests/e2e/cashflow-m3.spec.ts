@@ -259,5 +259,20 @@ test.describe.serial("ADR-016 M3 — trả ekip theo task + cần thu theo mốc
 
     await page.goto("/finance", { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/Đã giao chưa thu/).first()).toBeVisible({ timeout: 20_000 });
+
+    // M4 (T-20260827-tien-vao-payment-plans): dashboard "Cần thu tiền" cùng luật — HĐ seed đã giao (B) còn nợ 5.000.000
+    // phải hiện "Đã giao chưa thu" (không còn "quá hạn" theo ngày chụp của payment_plans)
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    const collectCard = page.locator(".card-base", { hasText: "Cần thu tiền" }).first();
+    await expect(collectCard).toBeVisible({ timeout: 20_000 });
+    const seedRow = collectCard.locator("a", { hasText: s.contractCode }).first();
+    await expect(seedRow).toBeVisible({ timeout: 20_000 });
+    await expect(seedRow.getByText("Đã giao chưa thu").first()).toBeVisible();
+    await expect(seedRow.getByText(/5\.000\.000/).first()).toBeVisible();
+    await expect(collectCard.getByText(/quá hạn/i)).toHaveCount(0);
+    if (process.env.DRAWER_SHOTS) {
+      await collectCard.scrollIntoViewIfNeeded();
+      await collectCard.screenshot({ path: "test-results/m4/dashboard-can-thu-1366.png" });
+    }
   });
 });

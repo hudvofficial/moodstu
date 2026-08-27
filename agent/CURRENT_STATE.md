@@ -3,7 +3,11 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `72617f8` (+ commit docs sau merge) · kế tiếp: spec M4 `payment_plans`.
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `381b898` · đang review: `claude/tien-vao-m4` (M4).
+
+## 2026-08-27 — M4 TIỀN VÀO (`payment_plans`): **CODE + DB XONG, CHỜ USER "merge + push"** (`T-20260827-tien-vao-payment-plans`, nhánh `claude/tien-vao-m4`)
+- Khảo sát (agent Explore + đo prod) sửa hai giả định: RPC thu tiền **đang chạy** vẫn ghi phân bổ (51/51) — file migration 27/05 trong repo là bản cũ hơn DB; Đợt 1/2 luôn 0đ/NULL do generator, không phải drift. Nhiễu thật: dashboard "Cần thu tiền" cảnh báo "quá hạn" theo `payment_plans.due_date` = ngày chụp (20 HĐ) trong khi `/finance` theo mốc giao nói 1 HĐ (3.300.000).
+- Làm: dashboard đọc `finance_pending_collections` (đến hạn = đã giao; nhãn "Đã giao chưa thu"/"Chờ giao", chấm đỏ khi đã giao); generator lịch thu chỉ Cọc + Tất toán; migration `20260827100000` **đã áp prod** (xoá 119 dòng installment rỗng, backup JSON, 240 → 121 dòng, health 8/8 = 0, phải thu trước = sau); Moodie catalog; `verify-reports`/`verify-contracts` thêm check; `cashflow-m3` UI test thêm `/dashboard`. ADR-016 phụ lục M4 ghi DECISIONS; vault hop-dong/tai-chinh/luong-tien; design §9 M4 ✅. Gate: eslint/tsc 0, verify reports/contracts ✓, build + Playwright local đang chạy. Không màn hình mới; card dashboard đổi nhãn. Sau merge: `cashflow-m3` prod. Còn lại: **M5 lương cứng** (số đo bên dưới).
 
 ## 2026-08-27 — M3b THIỆP & KHO UI: **MERGED `72617f8` + VERIFIED PRODUCTION 3/3** (`T-20260826-thiep-kho-ui`)
 - User xem artifact https://claude.ai/code/artifact/0ec0353e-3b92-4a55-8f60-849db90a6989 → "merge + push" → ff `b1f0cc8 → 72617f8`, Vercel lên sau 3,5 phút, `inventory-contract-sale` prod 3/3, seed sạch. Còn lại theo lệnh "tiến hành triển khai" 26/08: **M4 `payment_plans`** (đang khảo sát code, số đo bên dưới) → M5 lương cứng.

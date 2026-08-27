@@ -161,6 +161,24 @@ if (url && serviceKey && anonKey) {
     "set_gallery_password",
     { p_gallery_id: fakeGallery, p_password: "verify" },
   );
+
+  // M4 (T-20260827-tien-vao-payment-plans): lịch thu mặc định chỉ Cọc + Tất toán — không còn dòng
+  // installment_* rỗng (0đ, không phân bổ); mọi check sức khoẻ thanh toán = 0.
+  {
+    const { data: plans, error: planErr } = await serviceClient
+      .from("payment_plans")
+      .select("id, payment_plan_allocations(id)")
+      .in("stage_key", ["installment_1", "installment_2"]);
+    if (planErr) fail(`payment_plans installment check failed: ${planErr.message}`);
+    const orphans = (plans || []).filter((row) => !(row.payment_plan_allocations || []).length);
+    if (orphans.length > 0) fail(`payment_plans still has ${orphans.length} installment rows without allocation (M4)`);
+
+    const { data: health, error: healthErr } = await serviceClient.rpc("contract_payment_health_checks");
+    if (healthErr) fail(`contract_payment_health_checks failed: ${healthErr.message}`);
+    for (const row of health || []) {
+      if (Number(row.issue_count) !== 0) fail(`contract_payment_health_checks: ${row.check_name} = ${row.issue_count}`);
+    }
+  }
 } else {
   console.warn("Skipping remote Supabase checks; env vars are missing.");
 }

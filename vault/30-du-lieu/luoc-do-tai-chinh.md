@@ -14,7 +14,7 @@ Module liên quan: [[tai-chinh]]
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
 | `payments` | 51 | ✅ | 4 |
-| `payment_plans` | 240 | ✅ | 6 |
+| `payment_plans` | 121 | ✅ | 6 |
 | `payment_plan_allocations` | 51 | ✅ | 2 |
 | `expenses` | 81 | ✅ | 4 |
 | `expense_allocations` | 40 | ✅ | 0 |
@@ -88,7 +88,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payment_plans`
 
-240 dòng · RLS bật · 6 policy
+121 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

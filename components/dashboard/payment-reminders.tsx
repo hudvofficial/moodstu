@@ -62,10 +62,8 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
                     isOverdue: item.isOverdue,
                   },
                 ];
-            const installmentCount = item.installmentCount || milestones.length;
-            const overdueCount = item.overdueCount || (item.isOverdue ? 1 : 0);
+            // M4: mỗi HĐ một dòng (đến hạn = đã giao sản phẩm) — không còn nhiều đợt/HĐ
             const visibleMilestones = milestones.slice(0, 2);
-            const hiddenCount = Math.max(installmentCount - visibleMilestones.length, 0);
 
             return (
               <Link
@@ -77,18 +75,11 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
               >
-                <div className="h-2 w-2 shrink-0 rounded-full bg-warning" />
+                <div className={cn("h-2 w-2 shrink-0 rounded-full", item.isOverdue ? "bg-error" : "bg-warning")} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <p className="truncate text-body-sm font-medium">{item.customerName}</p>
-                    {installmentCount > 1 && (
-                      <span className="text-tiny shrink-0 rounded-full bg-warning/10 px-2 py-0.5 font-semibold text-warning">
-                        {installmentCount} đợt
-                      </span>
-                    )}
-                  </div>
+                  <p className="truncate text-body-sm font-medium">{item.customerName}</p>
                   <p className="truncate text-caption">
-                    {`${item.contractCode} · ${visibleMilestones.map(formatMilestone).join(", ")}${hiddenCount > 0 ? ` +${hiddenCount}` : ""}`}
+                    {`${item.contractCode} · ${visibleMilestones.map(formatMilestone).join(", ")}`}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
@@ -96,9 +87,7 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
                     {formatVnd(item.remainingAmount)}
                   </p>
                   {item.isOverdue ? (
-                    <p className="text-caption font-semibold text-error">
-                      {overdueCount > 1 ? `${overdueCount} quá hạn` : "Quá hạn"}
-                    </p>
+                    <p className="text-caption font-semibold text-error">Đã giao chưa thu</p>
                   ) : null}
                 </div>
               </Link>
