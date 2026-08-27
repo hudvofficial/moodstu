@@ -25,7 +25,7 @@ import { FAB } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TierSwitch } from "@/components/ui/tier-switch";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
-import { cacheKeys, mutate, useSWR } from "@/lib/swr";
+import { cacheKeys, mutate, revalidateByPrefixes, useSWR } from "@/lib/swr";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
 
@@ -123,6 +123,8 @@ export function SalariesClient({
     toast.success("Thanh toán lương thành công.", { id: toastId });
     setPaying(null);
     refresh();
+    // M5: phiếu chi lương phân bổ vào dòng lương → màn Phải trả › Ekip đổi số
+    void revalidateByPrefixes(["finance-payables"]);
   };
 
   const { data, error, isLoading } = useSWR<SalaryPageData>(

@@ -47,6 +47,8 @@ Công việc giao **nhà cung cấp ngoài** hay **ekip nội bộ** đều là 
 
 **ADR-016 M3 (2026-08-26):** công theo hợp đồng của ekip **không** đi qua sheet lương nữa — `generateMonthlySalaries` đặt `product_salary = 0`; từng task hoàn thành là một khoản **phải trả** ở `/finance/payables` › Ekip (`payable_items('employee')` đọc `work_tasks.assigned_to`), trả bằng phiếu chi `payee_type='employee'` + `expense_allocations(work_task)`. Sheet lương tháng chỉ còn lương cứng (`employees.salary_info.base_salary`) — Mood chưa có → tạm không dùng; dòng test 100.000.000 T6/2026 đã xoá. Chi tiết: [[luong-tien]].
 
+**ADR-016 M5 (2026-08-27):** sheet chỉ sinh dòng cho người có `salary_info.base_salary > 0` (`generateMonthlySalaryAction`); `total_salary` (cơ bản + thưởng − phạt) là **overhead accrual** `cost_salary_base` của sổ kỳ (cột `monthly_salary` bỏ dùng — không code nào ghi). Trả lương (`payEmployeeSalaryAction` hoặc `/finance/payables › Ekip`) đi qua `record_payee_payment_atomic('employee')` → phiếu chi + `expense_allocations(employee_salary)`; `paid_amount/remaining_amount` của dòng lương **dẫn xuất** từ phân bổ (`sync_employee_salary_paid`) — huỷ phiếu chi thì nợ quay lại; thưởng/phạt đổi thực nhận thì còn lại đi theo. Cấu hình lương test `base_salary` 100tr ở tài khoản Admin: user quyết xoá.
+
 ## Năng suất
 
 `productivity-actions.ts` chỉ gọi RPC, không chạm bảng: `get_employee_productivity`, `get_my_employee_productivity`, `get_employee_job_details`, `get_my_employee_job_details`.

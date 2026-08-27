@@ -46,16 +46,13 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
       .lt("receipt_date", range.end),
     supabase
       .from("expenses")
-      .select("amount, description")
+      .select("amount, description, payee_type")
       .is("deleted_at", null)
       .gte("expense_date", range.start)
       .lt("expense_date", range.end),
-    supabase
-      .from("monthly_salaries")
-      .select("total_salary")
-      .eq("month", range.month)
-      .eq("year", range.year)
-      .maybeSingle(),
+    // ADR-016 M5: tiền lương của kỳ = phiếu chi payee_type='employee' (đã nằm trong expenses) — không đọc sheet
+    // monthly_salaries (kế hoạch/accrual) rồi cộng chồng lên phiếu chi như trước.
+    Promise.resolve({ data: null, error: null }),
     supabase
       .from("fixed_costs")
       .select("monthly_amount, start_date, end_date")
@@ -87,7 +84,10 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     if (row.description?.startsWith("[Auto-Fixed]")) return sum;
     return sum + (Number(row.amount) || 0);
   }, 0);
-  const salaryCost = Number((salaryResult.data as { total_salary?: unknown } | null)?.total_salary) || 0;
+  void salaryResult;
+  const salaryCost = (expensesResult.data || []).reduce((sum, row) => {
+    return (row as { payee_type?: string | null }).payee_type === "employee" ? sum + (Number(row.amount) || 0) : sum;
+  }, 0);
   const fixedCost = (fixedCostsResult.data || []).reduce((sum, row) => {
     const amount = Number(row.monthly_amount) || 0;
     if (!amount) return sum;
@@ -96,7 +96,8 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     return sum + amount;
   }, 0);
   const totalInflow = paymentRevenue + standaloneReceiptRevenue;
-  const totalOutflow = operatingOutflow + salaryCost + fixedCost;
+  // M5: operatingOutflow đã gồm phiếu chi lương → không cộng salaryCost lần nữa (salaryCost chỉ để hiển thị)
+  const totalOutflow = operatingOutflow + fixedCost;
   const netCashflow = totalInflow - totalOutflow;
 
   // Khấu hao đường thẳng — cùng công thức investmentBookValue() (finance-operations-queries.ts),

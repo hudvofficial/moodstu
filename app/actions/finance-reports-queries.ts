@@ -242,7 +242,7 @@ async function calculateFallbackSnapshot(
       .lte("receipt_date", range.endDate),
     supabase
       .from("expenses")
-      .select("contract_id, amount, description")
+      .select("contract_id, amount, description, payee_type")
       .is("deleted_at", null)
       .gte("expense_date", range.startDate)
       .lte("expense_date", range.endDate),
@@ -430,8 +430,15 @@ async function calculateFallbackSnapshot(
     range.endDate,
   );
 
+  // ADR-016 M5: sheet lương (salaryCost, accrual) chỉ vào lãi/lỗ; TIỀN lương = phiếu chi payee_type='employee'
+  // đã nằm trong operatingOutflow → không cộng sheet lên dòng tiền lần nữa.
+  const salaryPaid = (operationsResult.data as ExpenseRow[]).reduce(
+    (sum: number, row: ExpenseRow) =>
+      (row as { payee_type?: string | null }).payee_type === "employee" ? sum + asNumber(row.amount) : sum,
+    0,
+  );
   const totalCost = directCost + operatingCost + salaryCost + fixedCost;
-  const totalOutflow = operatingOutflow + salaryCost + fixedCost;
+  const totalOutflow = operatingOutflow + fixedCost;
   const netProfit = reportRevenue - totalCost;
 
   return {
@@ -472,7 +479,7 @@ async function calculateFallbackSnapshot(
     cashflowSummary: {
       totalInflow: cashInflow,
       totalOutflow,
-      salaryCost,
+      salaryCost: salaryPaid,
       fixedCost,
       operatingNet: cashInflow - operatingOutflow,
       netAfterOverhead: cashInflow - totalOutflow,

@@ -43,7 +43,7 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
 
   const { data: currentSalary } = await supabase
     .from("employee_salaries")
-    .select("id, base_salary, product_salary, advance_payment, monthly_salary_id")
+    .select("id, base_salary, product_salary, advance_payment, monthly_salary_id, paid_amount")
     .eq("id", employeeSalaryId)
     .single();
 
@@ -52,6 +52,7 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
   const base = currentSalary.base_salary || 0;
   const product = currentSalary.product_salary || 0;
   const advance = currentSalary.advance_payment || 0;
+  const paid = Number(currentSalary.paid_amount) || 0;
   const newTotal = base + product + totalBonus - totalPenalty;
   const newNet = newTotal - advance;
 
@@ -62,6 +63,8 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
       penalty: totalPenalty,
       total_salary: newTotal,
       net_salary: newNet,
+      // M5: còn lại đi theo thực nhận mới (trước đây thưởng/phạt đổi net mà remaining đứng yên)
+      remaining_amount: Math.max(0, newNet - paid),
       updated_at: new Date().toISOString()
     })
     .eq("id", employeeSalaryId);
@@ -172,43 +175,22 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number, 
       throw new Error("So tien thanh toan vuot qua so tien con lai.");
     }
 
-    const newPaid = currentPaid + amount;
-    const newRemaining = Math.max(0, currentRemaining - amount);
-
-    const { error: updateError } = await supabase
-      .from("employee_salaries")
-      .update({
-        paid_amount: newPaid,
-        remaining_amount: newRemaining,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", salaryId);
-
-    if (updateError) throw updateError;
-
-    // Phiếu chi lương = tiền thật rời két (đúng ADR-016). Gắn payee để vào sổ công nợ/hợp nhất;
-    // phân bổ vào employee_salaries (expense_allocations) → M5.
+    // ADR-016 M5 (T-20260827-luong-cung-m5): trả lương = phiếu chi thật + phân bổ 'employee_salary' vào dòng lương,
+    // đi qua RPC atomic dùng chung với trả task ekip (trước: 2 bước không atomic, không phân bổ).
+    // paid_amount/remaining_amount của dòng lương do RPC dẫn xuất từ phân bổ (sync_employee_salary_paid).
     const employeeName = salaryRecord.employees?.full_name || "Nhân viên";
-    const { data: salaryCategory } = await supabase
-      .from("transaction_categories")
-      .select("id")
-      .eq("type", "chi")
-      .eq("name", "Chi lương nhân viên")
-      .maybeSingle();
-    const { error: expenseError } = await supabase.from("expenses").insert({
-      expense_date: new Date().toISOString().split("T")[0],
-      amount: amount,
-      payment_method: paymentMethod,
-      recipient: employeeName,
-      description: `[Auto-Salary] Thanh toán lương tháng ${salaryRecord.month}/${salaryRecord.year} - ${employeeName}`,
-      payee_type: "employee",
-      payee_id: salaryRecord.employee_id,
-      category_id: salaryCategory?.id ?? null,
-      approved_by: userId,
-      created_by: userId
+    const { error: rpcError } = await supabase.rpc("record_payee_payment_atomic", {
+      p_payee_type: "employee",
+      p_payee_id: salaryRecord.employee_id,
+      p_amount: amount,
+      p_payment_method: paymentMethod,
+      p_payment_date: new Date().toISOString().split("T")[0],
+      p_note: `[Auto-Salary] Thanh toán lương tháng ${salaryRecord.month}/${salaryRecord.year} - ${employeeName}`,
+      p_allocations: [{ target_id: salaryId, amount }],
+      p_actor_id: userId,
     });
-
-    if (expenseError) throw new Error(`Đã thanh toán lương nhưng lỗi tạo Phiếu chi: ${expenseError.message}`);
+    if (rpcError) throw new Error(`Không thể thanh toán lương: ${rpcError.message}`);
+    const newPaid = currentPaid + amount;
 
     await writeAuditLog({
       action: "UPDATE",
@@ -420,11 +402,16 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
         .join(", ");
       console.log(`[Salary Generation] Processing ${employees.length} employees (${roleBreakdownLog})`);
 
-      const newRecords = employees.map((emp) => {
-        // Parse JSONB salary_info for V2 compliance
-        const salaryInfoObj = typeof emp.salary_info === "string"
-          ? JSON.parse(emp.salary_info)
-          : (emp.salary_info || {});
+      // ADR-016 M5: sheet chỉ có dòng cho người có lương cơ bản > 0 — CTV/ekip công theo HĐ trả theo task
+      // ở Phải trả › Ekip, không sinh dòng 0đ.
+      const parseSalaryInfo = (raw: unknown) => (typeof raw === "string" ? JSON.parse(raw) : (raw || {})) as { base_salary?: unknown };
+      const salaried = employees.filter((emp) => (Number(parseSalaryInfo(emp.salary_info)?.base_salary) || 0) > 0);
+      if (salaried.length === 0) {
+        throw new Error("Chưa nhân viên nào có lương cơ bản (Nhân viên › Thông tin lương). Ekip công theo hợp đồng trả ở Phải trả › Ekip.");
+      }
+
+      const newRecords = salaried.map((emp) => {
+        const salaryInfoObj = parseSalaryInfo(emp.salary_info);
 
         const totalBase = Number(salaryInfoObj?.base_salary) || 0;
         // ADR-016 M3 (T-20260826-tien-ekip-va-can-thu): công theo hợp đồng (work_tasks.cost) trả theo TỪNG TASK

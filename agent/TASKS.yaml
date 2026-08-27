@@ -30,6 +30,23 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260827-luong-cung-m5
+    title: "M5 Lương cứng: sổ kỳ cộng employee_salaries.total_salary (cột monthly_salary không ai ghi); trả lương qua record_payee_payment_atomic + phân bổ employee_salary (paid/remaining dẫn xuất, huỷ → nợ quay lại); payable_items employee gồm lương; sheet chỉ người có lương cơ bản; 3 RPC intelligence/forecast + close snapshot không cộng sheet lên tiền"
+    status: review
+    owner: claude
+    branch: claude/luong-cung-m5 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration ĐÃ ÁP prod; verify local xong → chờ user "merge + push" + quyết salary_info Admin — spec §6)
+    locks:
+      - supabase/migrations/20260827130000_luong_cung_m5.sql (mới)
+      - app/actions/salary-actions.ts, app/actions/finance-close-actions.ts, app/actions/finance-reports-queries.ts
+      - components/finance/salaries/salaries-client.tsx (revalidate payables sau trả lương)
+      - scripts/verify-reports.mjs, tests/e2e/cashflow-m5.spec.ts (mới)
+    spec: agent/HANDOFFS/T-20260827-luong-cung-m5.spec.md
+    verify:
+      - npx eslint · npx tsc --noEmit · npm run build · verify:reports · verify:contracts
+      - "Playwright cashflow-m5 (RPC + UI trả lương) local rồi prod; cashflow-m3 prod"
+      - cost_salary_base(8,2026) trước = sau (0); user quyết salary_info.base_salary 100tr của Admin
+    depends_on: [T-20260826-tien-ekip-va-can-thu]
+    notes: "Khảo sát 27/08 (agent Explore): employee_salaries.monthly_salary không code nào ghi → cost_salary_base luôn 0; payEmployeeSalaryAction 2 bước không phân bổ; 6 công thức phụ cộng sheet chồng phiếu chi."
   - id: T-20260827-tien-vao-payment-plans
     title: "M4 Tiền vào: dashboard 'Cần thu tiền' đọc finance_pending_collections (đến hạn = đã giao sản phẩm, một luật với /finance); generator lịch thu chỉ Cọc + Tất toán (bỏ Đợt 1/2 0đ), xoá 119 dòng installment không phân bổ (backup); nhãn Moodie 'đã giao chưa thu'"
     status: done
