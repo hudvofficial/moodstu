@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import useSWR, { mutate } from "swr";
+import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
 import { Camera, CircleCheck, Image as ImageIcon, Heart, Download, MessageSquare } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
@@ -419,11 +420,15 @@ export default function PublicGalleryClient({
       }
       if (!clientId) return false;
       const result = await upsertComment(imageId, gallery.id, note, authorName, clientId, accessUrl, accessToken);
-      if (result.success) {
-        await mutate(`gallery-comments-${gallery.id}`);
-        void mutateNotedImages(); // ảnh vào/ra tab GHI CHÚ; key null (chưa vào tab) → no-op
+      if (!result.success) {
+        // Báo khách lý do lưu thất bại (vd deadline gate "Album đã hết hạn chọn ảnh.") — viewer chỉ rollback im lặng.
+        // id cố định: debounce của viewer retry khi fail → toast replace thay vì stack. (Cứu từ worktree trusting-dijkstra, T-20260723-worktree-salvage-prune)
+        toast.error(result.error || "Không thể lưu ghi chú", { id: "gallery-save-note-error" });
+        return false;
       }
-      return result.success;
+      await mutate(`gallery-comments-${gallery.id}`);
+      void mutateNotedImages(); // ảnh vào/ra tab GHI CHÚ; key null (chưa vào tab) → no-op
+      return true;
     },
     [accessToken, accessUrl, clientId, gallery.id, gallery.needsPassword, clientCapability, mutateNotedImages],
   );
