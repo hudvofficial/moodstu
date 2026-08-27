@@ -3,9 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `381b898` · đang review: `claude/tien-vao-m4` (M4).
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `6405ec6` (+ commit docs sau merge) · kế tiếp: spec M5 lương cứng (đang khảo sát code).
 
-## 2026-08-27 — M4 TIỀN VÀO (`payment_plans`): **CODE + DB XONG, CHỜ USER "merge + push"** (`T-20260827-tien-vao-payment-plans`, nhánh `claude/tien-vao-m4`)
+## 2026-08-27 — M4 TIỀN VÀO (`payment_plans`): **MERGED `6405ec6` + VERIFIED PRODUCTION 3/3** (`T-20260827-tien-vao-payment-plans`)
+- User "merge + push" → ff `381b898 → 6405ec6`, Vercel lên sau 3,5 phút, `cashflow-m3` prod 3/3 (card dashboard "Đã giao chưa thu" đúng HĐ đã giao), seed sạch. Prod: 121 mốc thu, phải thu đến hạn 3.300.000 / chờ giao 89.275.000, 35 phiếu chi. Còn lại theo lệnh 26/08: **M5 lương cứng** (số đo bên dưới; cần user xác nhận xoá `salary_info.base_salary` 100tr của Admin).
 - Khảo sát (agent Explore + đo prod) sửa hai giả định: RPC thu tiền **đang chạy** vẫn ghi phân bổ (51/51) — file migration 27/05 trong repo là bản cũ hơn DB; Đợt 1/2 luôn 0đ/NULL do generator, không phải drift. Nhiễu thật: dashboard "Cần thu tiền" cảnh báo "quá hạn" theo `payment_plans.due_date` = ngày chụp (20 HĐ) trong khi `/finance` theo mốc giao nói 1 HĐ (3.300.000).
 - Làm: dashboard đọc `finance_pending_collections` (đến hạn = đã giao; nhãn "Đã giao chưa thu"/"Chờ giao", chấm đỏ khi đã giao); generator lịch thu chỉ Cọc + Tất toán; migration `20260827100000` **đã áp prod** (xoá 119 dòng installment rỗng, backup JSON, 240 → 121 dòng, health 8/8 = 0, phải thu trước = sau); Moodie catalog; `verify-reports`/`verify-contracts` thêm check; `cashflow-m3` UI test thêm `/dashboard`. ADR-016 phụ lục M4 ghi DECISIONS; vault hop-dong/tai-chinh/luong-tien; design §9 M4 ✅. Gate: eslint/tsc 0, verify reports/contracts ✓, build + Playwright local đang chạy. Không màn hình mới; card dashboard đổi nhãn. Sau merge: `cashflow-m3` prod. Còn lại: **M5 lương cứng** (số đo bên dưới).
 

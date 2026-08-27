@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260827-tien-vao-payment-plans
     title: "M4 Tiền vào: dashboard 'Cần thu tiền' đọc finance_pending_collections (đến hạn = đã giao sản phẩm, một luật với /finance); generator lịch thu chỉ Cọc + Tất toán (bỏ Đợt 1/2 0đ), xoá 119 dòng installment không phân bổ (backup); nhãn Moodie 'đã giao chưa thu'"
-    status: review
+    status: done
     owner: claude
-    branch: claude/tien-vao-m4 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration ĐÃ ÁP prod; verify local xong → chờ user "merge + push" — spec §5)
+    branch: claude/tien-vao-m4 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration áp prod; user "merge + push" → ff main 6405ec6, Vercel lên, cashflow-m3 prod 3/3 — spec §5)
     locks:
       - lib/api/dashboard.ts (queryPaymentReminders), app/actions/dashboard-cache.ts
       - components/dashboard/payment-reminders.tsx
