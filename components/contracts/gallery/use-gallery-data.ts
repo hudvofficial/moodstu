@@ -12,6 +12,7 @@ import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-h
 import { type SortOption } from "./gallery-sort-dropdown";
 import { useNetworkQuality } from "@/hooks/use-network-quality";
 import { usePrefetchGallery } from "@/hooks/use-gallery-prefetch";
+import { toast } from "sonner";
 
 // ═══════════════════════════════════════════
 // useGalleryData — All state + data logic for GalleryFullPage
@@ -476,7 +477,13 @@ export function useGalleryData(
     if (!activeGalleryId) return [];
     const { getAllSelectedImagesForAction } = await import("@/app/actions/gallery-image-helpers");
     const res = await getAllSelectedImagesForAction(activeGalleryId);
-    if (!res.success || !res.data) return [];
+    if (!res.success || !res.data) {
+      // Surface lỗi server — nuốt im lặng làm Download Manager hiện "0 file" giống hệt "chưa chọn ảnh nào"
+      const message = (!res.success && res.error) || "Lỗi tải danh sách ảnh đã chọn";
+      console.error("[useGalleryData] fetchAllSelectedDownloadFiles:", message);
+      toast.error(message);
+      return [];
+    }
     return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
   }, [activeGalleryId]);
 
@@ -484,7 +491,12 @@ export function useGalleryData(
     if (!activeGalleryId) return [];
     const { getAllHeartedImagesForAction } = await import("@/app/actions/gallery-image-helpers");
     const res = await getAllHeartedImagesForAction(activeGalleryId);
-    if (!res.success || !res.data) return [];
+    if (!res.success || !res.data) {
+      const message = (!res.success && res.error) || "Lỗi tải danh sách ảnh được thả tim";
+      console.error("[useGalleryData] fetchAllHeartedDownloadFiles:", message);
+      toast.error(message);
+      return [];
+    }
     return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
   }, [activeGalleryId]);
 
@@ -492,7 +504,12 @@ export function useGalleryData(
     if (!activeGalleryId) return [];
     const { getAllImagesForAction } = await import("@/app/actions/gallery-image-helpers");
     const res = await getAllImagesForAction(activeGalleryId);
-    if (!res.success || !res.data) return [];
+    if (!res.success || !res.data) {
+      const message = (!res.success && res.error) || "Lỗi tải danh sách ảnh";
+      console.error("[useGalleryData] fetchAllDownloadFiles:", message);
+      toast.error(message);
+      return [];
+    }
     return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
   }, [activeGalleryId]);
 
