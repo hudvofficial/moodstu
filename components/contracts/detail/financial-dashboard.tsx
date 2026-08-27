@@ -130,6 +130,9 @@ export default function FinancialDashboard({
           {discountAmount > 0 && subtotal != null && (
             <p className="mt-1 text-caption">
               Tạm tính: {formatCurrency(subtotal)} · Giảm: −{formatCurrency(discountAmount)}
+              {subtotal > 0 && Math.round((discountAmount / subtotal) * 100) >= 1
+                ? ` (${Math.round((discountAmount / subtotal) * 100)}%)`
+                : ""}
             </p>
           )}
         </div>

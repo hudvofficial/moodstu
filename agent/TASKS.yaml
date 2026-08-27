@@ -30,6 +30,21 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260827-contract-discount-percent
+    title: "Hợp đồng: giảm giá nhập theo % bị lưu discount_amount = số thô (50) → form gửi số tiền đã quy đổi; data-fix 2 HĐ (0060, 0062); Tài chính hiện 'Giảm: −475.000 (50%)'"
+    status: review
+    owner: claude
+    branch: claude/contract-discount-percent (user báo bug 27/08 → trace + code trực tiếp; migration data-fix ĐÃ ÁP prod; render local OK → chờ user "merge + push" — spec §3)
+    locks:
+      - components/contracts/form/hooks/useContractForm.ts
+      - components/contracts/detail/financial-dashboard.tsx
+      - supabase/migrations/20260827160000_contract_discount_percent_datafix.sql (mới)
+    spec: agent/HANDOFFS/T-20260827-contract-discount-percent.spec.md
+    verify:
+      - npx eslint 2 file · npx tsc --noEmit · npm run build · npm run verify:contracts
+      - "DB: 0060/0062 discount_amount = 475.000/850.000, total không đổi; render /contracts/<0060> 'Giảm: −475.000 (50%)' local rồi prod"
+    depends_on: []
+    notes: "Không phải lỗi: hạng mục trùng = dòng cũ soft-deleted (RPC đúng). Ngoài scope: HĐ-0064/0047 tổng nhập tay lệch hạng mục."
   - id: T-20260827-luong-cung-m5
     title: "M5 Lương cứng: sổ kỳ cộng employee_salaries.total_salary (cột monthly_salary không ai ghi); trả lương qua record_payee_payment_atomic + phân bổ employee_salary (paid/remaining dẫn xuất, huỷ → nợ quay lại); payable_items employee gồm lương; sheet chỉ người có lương cơ bản; 3 RPC intelligence/forecast + close snapshot không cộng sheet lên tiền"
     status: done

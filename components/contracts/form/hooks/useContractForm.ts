@@ -383,7 +383,9 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         paymentInfo: financials.paymentForm,
         financials: {
           total_amount: financials.totalAmount,
-          discount_amount: financials.discount,
+          // T-20260827-contract-discount-percent: DB chỉ có discount_amount (số tiền) — gửi số đã quy đổi
+          // (percent → subtotal × d / 100), KHÔNG gửi giá trị ô nhập (từng lưu "50" khi chọn 50%)
+          discount_amount: financials.discountAmount,
           paid_amount: financials.paidAmount,
           remaining_amount: financials.remainingAmount,
         },
