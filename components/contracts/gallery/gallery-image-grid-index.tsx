@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * Gallery Grid Wrapper - Switch between implementations
+ * Gallery Grid Wrapper
  *
- * USE_PINTEREST=true: Pinterest-style with pre-calculated positions (requires width/height in DB)
- * USE_PINTEREST=false: Original CSS Grid masonry (works without dimensions)
+ * Chỉ còn một bản: CSS Grid masonry (./gallery-image-grid).
+ * Bản Pinterest (positions tính sẵn, cần width/height trong DB) đã gỡ 2026-08-27
+ * (T-20260723-gallery-dead-code-cleanup): cờ USE_PINTEREST để false nên nó chưa từng chạy,
+ * nhưng câu import vẫn kéo nó vào bundle client (đo được ở chunk 7260-*.js trước khi gỡ).
  */
 
 import GalleryImageGridOriginal from "./gallery-image-grid";
-import GalleryImageGridPinterest from "./gallery-image-grid-pinterest";
 
-const USE_PINTEREST = false; // Using CSS Grid (better width calculation)
-
-export default USE_PINTEREST ? GalleryImageGridPinterest : GalleryImageGridOriginal;
+export default GalleryImageGridOriginal;
