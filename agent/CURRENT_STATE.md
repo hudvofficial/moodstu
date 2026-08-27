@@ -3,7 +3,11 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `ce7f405` (+ commit docs) · lệnh "tiến hành triển khai" 26/08 xong toàn bộ; việc dở trước 26/08 đã dọn — chỉ còn Task 3 gỡ worktree chờ user.
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `5ea6645` (+ commit docs/migration cuối) · **sạch hoàn toàn:** lệnh 26/08 xong, việc dở trước 26/08 dọn xong, worktree gỡ, `salary_info` Admin bỏ số test. Việc user còn lại duy nhất: 8,55tr ekip đã trả ngoài sổ chưa (tự ghi ở Phải trả › Ekip). Không có task nào chờ gật.
+
+## 2026-08-27 — USER "ok cho phép tiến hành": **gỡ 2 worktree (5,2 GB) + bỏ `base_salary` 100tr test của Admin**
+- Worktree: kiểm lại 2 diff đã trên `origin/main`, worktree không còn gì khác → `git worktree remove --force` (trusting-dijkstra phải `rmdir /s /q "\\?\…"` vì Windows *Filename too long*), `prune`, xoá 2 nhánh; `git worktree list` chỉ còn repo chính.
+- Migration `20260827150000_admin_salary_info_bo_so_test.sql` đã áp prod: Admin `salary_info` chỉ còn ngân hàng; 0 nhân viên có lương cơ bản > 0 (sheet lương sẽ báo cần cấu hình khi user bắt đầu trả lương cứng).
 
 ## 2026-08-27 — DỌN VIỆC DỞ TRƯỚC 26/08 (user "tiếp tục bản đang dở"): **6 task đóng sổ · 2 diff worktree cứu (`d96f00f`, `8001648`) · 5 file gallery chết gỡ (`ce7f405`) · 13 nhánh xoá — push, prod smoke**
 - Build sạch: 2 marker cũ của spec không còn riêng Pinterest (giờ ở `gallery-image-tile.tsx`) → dò 8 chuỗi chỉ có trong chuỗi Pinterest = 0 chunk, đối chứng lưới sống còn → dead code đã rời bundle. Smoke local: album công khai 30 ảnh/0 lỗi, admin gallery 19 ảnh/0 lỗi. Sự cố tự gây: `git rm` stage sớm làm 5 file lọt vào commit A → viết lại 3 commit; lúc reset nhầm mốc `7df067d` (trước M5 đã push) và `cherry-pick -q` sai cú pháp → khôi phục bằng `reset --hard origin/main` + cherry-pick 3 hash + áp patch docs; kiểm `git diff origin/main` chỉ còn gallery + docs.

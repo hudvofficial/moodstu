@@ -34,7 +34,7 @@ active:
     title: "M5 Lương cứng: sổ kỳ cộng employee_salaries.total_salary (cột monthly_salary không ai ghi); trả lương qua record_payee_payment_atomic + phân bổ employee_salary (paid/remaining dẫn xuất, huỷ → nợ quay lại); payable_items employee gồm lương; sheet chỉ người có lương cơ bản; 3 RPC intelligence/forecast + close snapshot không cộng sheet lên tiền"
     status: done
     owner: claude
-    branch: claude/luong-cung-m5 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration áp prod; user "merge + push" → ff main 436ff01, Vercel lên, cashflow-m5 + m3 prod 6/6 — spec §6; salary_info Admin 100tr: user CHƯA quyết, giữ nguyên)
+    branch: claude/luong-cung-m5 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration áp prod; user "merge + push" → ff main 436ff01, Vercel lên, cashflow-m5 + m3 prod 6/6 — spec §6; salary_info Admin 100tr: user "ok cho phép tiến hành" 27/08 → migration 20260827150000 bỏ khoá base_salary, giữ ngân hàng)
     locks:
       - supabase/migrations/20260827130000_luong_cung_m5.sql (mới)
       - app/actions/salary-actions.ts, app/actions/finance-close-actions.ts, app/actions/finance-reports-queries.ts
@@ -286,9 +286,9 @@ active:
     notes: "ĐO ĐƯỢC: ID action 78f6308c… không có trong manifest build hiện tại → skew sau 2 lần push main 2026-08-24. StaleServerActionRecovery toàn cục chỉ nghe unhandledrejection; 66 chỗ catch→toast nuốt lỗi (React Query onError, runOptimisticMutation, try/catch). Fix additive 2 dòng ở lib/toast-manager.ts error(): recoverFromStaleServerAction(message) (helper sẵn, reload 1 lần/build). Lock không giao 2 task gallery active. Ngoài phạm vi: Vercel Skew Protection (plan Pro), ignoreCommand cho commit chỉ đụng agent/**."
   - id: T-20260723-gallery-dead-code-cleanup
     title: "Gỡ 5 file gallery chết — chuỗi Pinterest 3 file ĐANG nằm trong bundle gửi khách"
-    status: review
+    status: done
     owner: claude
-    branch: main (user "tiếp tục bản đang dở" 27/08 → Claude làm trực tiếp, commit 86990fc; chờ build sạch đo marker bundle + smoke render rồi push — spec §8)
+    branch: main (user "tiếp tục bản đang dở" 27/08 → commit ce7f405; build sạch: chuỗi riêng Pinterest 0 chunk; smoke local + prod (album công khai 29–30 ảnh/0 lỗi, admin 19/0); push 5ea6645, Vercel success — spec §8)
     locks:
       - scripts/test-url-helper.mjs
       - components/gallery/gallery-virtual-grid.tsx
@@ -304,9 +304,9 @@ active:
     notes: "Gốc rễ: logic dựng URL ảnh có 3 bản sao ở 3 nơi → vá bẫy ?size ở 01a2ca8+1477090 vẫn còn 2 bản ngoài tầm vá; task này rút còn 1. ĐO ĐƯỢC (không suy đoán): chuỗi class riêng của Pinterest nằm trong .next/static/chunks/7260-0e8f77e05f9ea258.js (20 KB) dù USE_PINTEREST=false nên chưa từng chạy. Chuỗi chết: pinterest → use-masonry-pinterest → app/actions/gallery-masonry-layout, mỗi mắt xích chỉ có 1 nơi gọi là mắt xích trước. resolveThumbnailSize là bản CỤC BỘ trong chính 2 file bị xoá → không mồ côi ai. @tanstack/react-virtual còn 2 consumer khác → KHÔNG đụng lockfile. Rủi ro thật: mất đường lùi bật lại Pinterest (lấy lại từ git history nếu cần)."
   - id: T-20260723-worktree-salvage-prune
     title: "Cứu 2 thay đổi chưa commit trong worktree cũ, rồi mới gỡ (thu hồi 5.2 GB)"
-    status: review
+    status: done
     owner: claude
-    branch: main (27/08: Task 1 commit 876ff7b, Task 2 commit 6a92174 (ráp tay vì patch lệch import) — Task 3 GỠ WORKTREE CHỜ USER XÁC NHẬN RIÊNG "gỡ đi"; spec §8)
+    branch: main (27/08: Task 1 d96f00f, Task 2 8001648 (ráp tay vì patch lệch import); Task 3 user "ok cho phép tiến hành" → gỡ 2 worktree (trusting-dijkstra phải rmdir \\?\ vì Filename too long) + 2 nhánh, git worktree list chỉ còn repo chính; spec §8)
     locks:
       - components/contracts/gallery/use-gallery-data.ts
       - components/gallery/public-gallery-client.tsx
