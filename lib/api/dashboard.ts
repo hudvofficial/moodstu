@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, subMonths } from "date-fns";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
@@ -245,6 +246,10 @@ async function safeSection<T>(
     return await loader();
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown dashboard error";
+    Sentry.captureException(error, {
+      tags: { area: "dashboard-section" },
+      extra: { label },
+    });
     errors.push(`${label}: ${message}`);
     return fallback;
   }
@@ -994,9 +999,14 @@ export async function revalidateDashboardAfterMutation(table: string) {
 }
 
 const getCachedRevenueChart = unstable_cache(
-  async (userId: string): Promise<DashboardSectionResult<RevenueChartData[]>> => {
-    void userId; // Part of cache key
-    const access = await getDashboardAccess();
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardSectionResult<RevenueChartData[]>> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
+    void userId;
+    const access = dashboardAccessFromArgs(employeeId, role);
     const supabase = await createAdminClient();
 
     return loadDashboardSection(
@@ -1016,14 +1026,23 @@ const getCachedRevenueChart = unstable_cache(
 export const getDashboardRevenueChartSection = cache(
   async (): Promise<DashboardSectionResult<RevenueChartData[]>> => {
     const access = await getDashboardAccess();
-    return getCachedRevenueChart(access.userId);
+    return getCachedRevenueChart(
+      access.userId,
+      access.employeeId ?? "",
+      access.role,
+    );
   },
 );
 
 const getCachedServiceBreakdown = unstable_cache(
-  async (userId: string): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
     void userId;
-    const access = await getDashboardAccess();
+    const access = dashboardAccessFromArgs(employeeId, role);
     const supabase = await createAdminClient();
 
     return loadDashboardSection(
@@ -1043,14 +1062,23 @@ const getCachedServiceBreakdown = unstable_cache(
 export const getDashboardServiceBreakdownSection = cache(
   async (): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
     const access = await getDashboardAccess();
-    return getCachedServiceBreakdown(access.userId);
+    return getCachedServiceBreakdown(
+      access.userId,
+      access.employeeId ?? "",
+      access.role,
+    );
   },
 );
 
 const getCachedUpcomingEvents = unstable_cache(
-  async (userId: string): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
     void userId;
-    const access = await getDashboardAccess();
+    const access = dashboardAccessFromArgs(employeeId, role);
     const supabase = await createAdminClient();
 
     return loadDashboardSection(
@@ -1070,14 +1098,23 @@ const getCachedUpcomingEvents = unstable_cache(
 export const getDashboardUpcomingEventsSection = cache(
   async (): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
     const access = await getDashboardAccess();
-    return getCachedUpcomingEvents(access.userId);
+    return getCachedUpcomingEvents(
+      access.userId,
+      access.employeeId ?? "",
+      access.role,
+    );
   },
 );
 
 const getCachedPaymentReminders = unstable_cache(
-  async (userId: string): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
     void userId;
-    const access = await getDashboardAccess();
+    const access = dashboardAccessFromArgs(employeeId, role);
     const supabase = await createAdminClient();
 
     return loadDashboardSection(
@@ -1097,7 +1134,11 @@ const getCachedPaymentReminders = unstable_cache(
 export const getDashboardPaymentRemindersSection = cache(
   async (): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
     const access = await getDashboardAccess();
-    return getCachedPaymentReminders(access.userId);
+    return getCachedPaymentReminders(
+      access.userId,
+      access.employeeId ?? "",
+      access.role,
+    );
   },
 );
 

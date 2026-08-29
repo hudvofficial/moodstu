@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { CalendarClock, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -38,6 +39,9 @@ export function WidgetUpcoming({ reminders }: WidgetUpcomingProps) {
           setEvents(data || []);
         }
       } catch (error) {
+        Sentry.captureException(error, {
+          tags: { area: "crm-widget-upcoming" },
+        });
         console.error("Failed to fetch upcoming events:", error);
       } finally {
         if (isMounted) setIsLoading(false);
