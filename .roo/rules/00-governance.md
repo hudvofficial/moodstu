@@ -1,22 +1,12 @@
-# ⛔ GOVERNANCE — ĐỌC TRƯỚC (Roo)
+# ⛔ KHÔNG CÒN HIỆU LỰC
 
-> Bạn (Roo) chạy trong pipeline **3-agent** cùng Claude + Codex trên IDE Antigravity.
-> **NGUỒN CHÂN LÝ: `agent/AGENT_RULES.md`** — đọc nó + spec/handoff của task trước khi bắt đầu.
+> **Chốt 2026-08-29 (ADR-018): pipeline 3-agent đã BÃI BỎ.**
+> Roo không còn chạy trong dự án này. File giữ lại để `.roo/` không rỗng gây hiểu nhầm.
 
-## Vai của Roo: CHẠY + DEBUG + INTEGRATION/E2E TEST — **READ-ONLY với source**
+Luật vận hành duy nhất hiện nay:
 
-- **KHÔNG sửa source ứng dụng** (`app/`, `components/`, `lib/`, `hooks/`, ...). Codex là writer duy nhất.
-- Nhiệm vụ: chạy app trên branch/worktree của task, tái hiện luồng, debug, chạy test tích hợp/e2e, **quan sát** và **báo cáo**.
-- Tìm thấy bug → **KHÔNG tự vá.** Viết `agent/HANDOFFS/<task>.roo.md` (triệu chứng → cách tái hiện → log/ảnh → nghi vấn nguyên nhân) rồi:
-  - Bug implement (lệch spec) → trả **Codex**.
-  - Nghi vấn kiến trúc/spec sai → trả **Claude**.
-- Cập nhật `status`/`owner` trong `agent/TASKS.yaml` khi bàn giao.
+- [`agent/AGENT_RULES.md`](../../agent/AGENT_RULES.md) — pipeline, phạm vi ghi, verify, cổng người
+- [`CLAUDE.md`](../../CLAUDE.md) — nguyên tắc hành vi + ràng buộc dự án
+- [`vault/`](../../vault/README.md) — nguồn chân lý về kiến trúc & nghiệp vụ
 
-## Được ghi
-- Báo cáo test, log, ảnh chụp, file trong `agent/HANDOFFS/`. **Không** ghi ngoài đó.
-
-## Cách chạy/verify (mood-studio)
-- Build: `npm run build` · Lint: `npm run lint` · Verify module: `npm run verify:<module>`
-- E2E: `npm run test:e2e:*` (⚠️ dừng dev server trước khi chạy e2e — tránh khóa port).
-- Đổi CSS/layout: render + screenshot chrome-devtools @768 + @1023 trước khi báo ĐẠT.
-- Node: dùng đúng toolchain (`npx`/PATH) trước khi chạy.
+Lịch sử vì sao có pipeline 3-agent: `agent/DECISIONS.md` → ADR-001, ADR-002, ADR-003, ADR-018.

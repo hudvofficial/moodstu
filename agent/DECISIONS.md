@@ -7,17 +7,23 @@
 ---
 
 ## ADR-001 — Áp dụng pipeline 3-agent (Claude / Codex / Roo)
+> ⚠️ **SUPERSEDED bởi ADR-018 (2026-08-29)** — pipeline 3-agent đã bãi bỏ, chỉ còn Claude Code. Giữ lại làm lịch sử.
+
 - **Ngày:** 2026-07-14 · **Trạng thái:** Accepted
 - **Bối cảnh:** Chạy trên IDE Antigravity với 3 agent (Roo Code, Claude, Codex). Rủi ro: 3 agent cùng tự quyết kiến trúc + cùng sửa 1 vùng code.
 - **Quyết định:** Pipeline tuyến tính có cổng người (xem `AGENT_RULES.md §1`); bộ docs chung bắt buộc trong `agent/`.
 - **Hệ quả:** Mọi việc phải qua spec (Claude) → duyệt (user) → implement (Codex) → test (Roo) → review (Claude) → CI → merge.
 
 ## ADR-002 — Single-writer: chỉ Codex ghi source; Roo read-only
+> ⚠️ **SUPERSEDED bởi ADR-018 (2026-08-29)** — pipeline 3-agent đã bãi bỏ, chỉ còn Claude Code. Giữ lại làm lịch sử.
+
 - **Ngày:** 2026-07-14 · **Trạng thái:** Accepted
 - **Quyết định:** Codex là WRITER DUY NHẤT của source ứng dụng, chỉ trong `locks` của task + worktree riêng. Roo chỉ chạy/debug/test + báo cáo, **không sửa source**; tìm bug → HANDOFF trả Codex.
 - **Lý do:** Khớp ràng buộc user "không cho 3 agent cùng chỉnh một vùng code".
 
 ## ADR-003 — Giữ subagent Claude (coder/reviewer) làm FALLBACK
+> ⚠️ **SUPERSEDED bởi ADR-018 (2026-08-29)** — pipeline 3-agent đã bãi bỏ, chỉ còn Claude Code. Giữ lại làm lịch sử.
+
 - **Ngày:** 2026-07-14 · **Trạng thái:** Accepted
 - **Quyết định:** `.claude/agents/coder.md` + `reviewer.md` giữ lại, chỉ dùng khi chạy Claude một mình (không có Codex/Roo). Có Codex/Roo → theo pipeline 3-agent.
 
@@ -170,3 +176,19 @@
 - **Vì sao không hoãn hẳn:** khác với các đề xuất "dọn dẹp" thông thường, cái này **đã bắt được bug thật ngay trong lần đo đầu tiên**. Không phải suy đoán theo tinh thần ADR-005 — có bằng chứng đo được.
 - **Vì sao không làm ngay toàn bộ:** vi phạm "1 task / 1 module" (CLAUDE.md) và không có cổng tự động nào chặn nữa (ADR-007) → PR 68 file là rủi ro thật.
 - **Chưa quyết:** có gắn generic cho `createClient()` (client vai người dùng, dùng ở SSR/browser) hay chỉ `createAdminClient()`. Quyết khi làm tới module đầu tiên.
+
+## ADR-018 — Bãi bỏ pipeline 3-agent; chỉ còn Claude Code + 2 cổng người
+- **Ngày:** 2026-08-29 · **Trạng thái:** Accepted
+- **Bối cảnh:** ADR-001/002/003 dựng pipeline `Claude spec → Codex implement → Roo test → Claude review`. Thực tế đã trôi khỏi mô tả từ lâu:
+  - `git log -40 --format="%an"` → **40/40 commit cùng một tác giả**.
+  - **6/8 spec gần nhất** ghi `Owner: claude (spec + code trực tiếp — đường lùi)`; `CURRENT_STATE.md:153` ghi Codex CLI lỗi credential `404 No active credentials` tái hiện 2/2.
+  - Tức "FALLBACK" ở AGENT_RULES §2 đã thành **đường duy nhất**, còn luật `locks`/worktree/handoff giữa agent mô tả những agent không có mặt.
+- **Chi phí của việc để tài liệu trôi:** đầu phiên 28/08, trước khi sửa 2 file, Claude phải dừng đọc ADR-002 + CLAUDE.md để xem mình *có được phép viết code không* — xin phép một cái cổng đã tháo. Cùng loại trôi với `vault/70-quyet-dinh/adr-index.md` dừng ở ADR-013 trong khi file này đã có 17.
+- **Quyết định:**
+  1. **Bãi bỏ** pipeline 3-agent. Chỉ còn **Claude Code**. Gỡ luật `locks`/worktree/handoff-giữa-agent; rút gọn vòng đời status còn `spec → approved → implementing → verifying → merged`.
+  2. **Giữ nguyên ADR-004 (khóa kiến trúc):** đổi data-flow / thêm lib / đổi state pattern / đổi schema / RLS → DỪNG, mở ADR, user duyệt. Ràng buộc này KHÔNG bị bãi bỏ cùng pipeline.
+  3. **Hai cổng người thay cho review chéo đã mất:** (1) user duyệt spec trước khi code — như cũ; (2) **user xem diff trước khi push** — MỚI. Claude không tự push khi user chưa xem, trừ khi user nói rõ.
+  4. Thêm **AGENT_RULES §2b** (trước mọi hành động có tác dụng phụ, phải trả lời "chạm vào gì" + "dự án đã quy định gì" bằng tài liệu) và **§2c** (đối chứng hợp lệ: cùng cỡ mẫu, cùng môi trường, đổi một biến, so danh sách không so tổng).
+- **Vì sao cần §2b/§2c — ca thật 28/08:** Claude chạy full suite e2e trên **prod build** trong khi `playwright.config.ts:84` chỉ định `npm run dev` → 41 fail vô nghĩa, rồi so "41 fail của 28 spec" với "3 fail của 3 spec" và kết luận "cùng nhóm fail". Hệ quả thật: **rò 11 dòng seed vào DB production** (2 lần chạy), trong khi `.github/workflows/ci.yml` dòng 10 đã ghi sẵn *"e2e từng rò seed vào prod"* — file 40 dòng ở gốc repo, đọc sau khi đã phá. Đã dọn sạch bằng `sweepStaleE2EOrphans` (0/0/0, `contracts` về 64). Lỗi không nằm ở thiếu năng lực mà ở **hành động trước khi hỏi nó chạm vào cái gì**.
+- **Rủi ro được ghi nhận, chưa xử lý:** giờ Claude vừa viết vừa tự review vừa tự verify — không còn mắt thứ hai. Cộng `push main` = deploy thẳng (ADR-007) và **dev/prod dùng chung 1 Supabase project** → giữa Claude và production gần như không còn lưới nào. Hai cổng người là biện pháp tạm; biện pháp thật là **tách DB riêng cho e2e** (cần ADR riêng, chưa làm).
+- **Phạm vi sửa:** `CLAUDE.md` §0 · `agent/AGENT_RULES.md` (§1, §2, §2b, §2c, §5, §6) · `AGENTS.md` (gỡ block governance Codex, giữ skill Vercel React) · `.roo/rules/00-governance.md` (đánh dấu hết hiệu lực). Không đụng source ứng dụng.

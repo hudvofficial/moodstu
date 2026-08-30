@@ -1,23 +1,22 @@
 # TASKS.yaml — Hàng đợi việc + bảng khóa/quyền sở hữu
 #
-# LUẬT (xem agent/AGENT_RULES.md §3):
-#   - Mỗi task 1 `owner` tại một thời điểm. Chỉ owner được ghi trong `locks`.
-#   - Hai task chưa `merged` KHÔNG được có `locks` giao nhau.
-#   - Đổi status/owner = đồng thời viết 1 file trong HANDOFFS/.
+# LUẬT (xem agent/AGENT_RULES.md §1–§2):
+#   - Đổi status = cập nhật ở đây; task có spec thì trỏ tới file trong HANDOFFS/.
+#   - Hai cổng người: user duyệt spec (spec -> approved) và user xem diff (trước push).
 #
-# status: spec | approved | implementing | testing | review | fixing | ci | merged | blocked
-# owner theo status: spec/review/ci -> claude ; implementing/fixing -> codex ; testing -> roo
+# CẬP NHẬT 2026-08-29 (ADR-018): pipeline 3-agent đã BÃI BỎ — chỉ còn Claude Code.
+#   - `owner` luôn là claude (trừ khi chờ user ở 2 cổng trên).
+#   - `locks` / `branch: codex/*` / `worktree` → KHÔNG còn bắt buộc (chỉ còn 1 writer
+#     nên không có va chạm giữa agent). Các task cũ giữ nguyên field để lưu vết lịch sử.
+#
+# status: spec | approved | implementing | verifying | merged | blocked
+#   (các status cũ testing/review/fixing/ci đã bỏ — chúng tồn tại để chuyển tay giữa 3 agent)
 #
 # ---- SCHEMA 1 task ----
 # - id: T-YYYYMMDD-<slug>          # định danh duy nhất
 #   title: <mô tả ngắn>
 #   status: spec
 #   owner: claude
-#   branch: codex/<slug>           # branch/worktree Codex làm
-#   worktree: .worktrees/<slug>    # (nếu dùng worktree riêng)
-#   locks:                         # vùng độc quyền của task — KHÔNG chồng task khác
-#     - components/<module>/**
-#     - app/actions/<module>-*.ts
 #   spec: agent/HANDOFFS/T-YYYYMMDD-<slug>.spec.md
 #   verify:                        # gate phải xanh trước merge
 #     - npm run build

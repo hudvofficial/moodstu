@@ -1,7 +1,7 @@
 # ARCHITECTURE.md — Bất biến kiến trúc (mood-studio)
 
 > Đây là những thứ **CẤM đổi khi chưa có entry trong `DECISIONS.md` + user duyệt**.
-> Codex/Roo gặp chỗ buộc phải đổi một trong các mục dưới → **DỪNG**, viết HANDOFF trả Claude.
+> Gặp chỗ buộc phải đổi một trong các mục dưới → **DỪNG**, ghi ADR vào `DECISIONS.md`, **user duyệt** rồi mới làm (ADR-004; vẫn hiệu lực sau ADR-018).
 > `CLAUDE.md → "Ràng buộc dự án (cứng)"` là canonical; file này là bản đồ + đánh dấu mục nào cần DECISION.
 >
 > 📚 **Chi tiết hệ thống đã chuyển sang [`vault/`](../vault/README.md)** — bắt đầu ở [`vault/00-INDEX.md`](../vault/00-INDEX.md).

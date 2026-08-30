@@ -10,18 +10,18 @@ Nguyên tắc hành vi + ràng buộc dự án. **Đọc trước khi code.**
 Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multica-ai/andrej-karpathy-skills.
 **Tradeoff:** thiên về *cẩn trọng hơn tốc độ* cho việc non-trivial. Typo/one-liner hiển nhiên → dùng judgment.
 
-## 0. Phân công vai trò (Orchestration 3-agent)
-> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md).** Đọc nó + `agent/CURRENT_STATE.md` trước khi bắt đầu. Mục này là bản tóm tắt vai trò của Claude.
+## 0. Vai trò + cổng an toàn
+> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md).** Đọc nó + `agent/CURRENT_STATE.md` trước khi bắt đầu.
 
-*Chạy trên IDE Antigravity với 3 agent: **Claude** (spec+review+điều phối) · **Codex** (writer duy nhất của source) · **Roo** (chạy/test, read-only).*
+**Chỉ có Claude Code.** (Chốt 2026-08-29 — ADR-018. Pipeline 3-agent Claude/Codex/Roo đã **bãi bỏ**: Codex + Roo không còn chạy, 40/40 commit gần nhất cùng một tác giả, "đường lùi" đã thành đường duy nhất.)
 
-**Pipeline:** Claude spec → **user duyệt** → Codex implement (branch/worktree riêng) → Roo chạy+test → Claude review-vs-spec → Codex fix → CI gate (Actions `lint`+`build` + verify local) → merge.
+**Pipeline:** Claude spec → **user duyệt** → Claude code → Claude verify (build/lint/render/đo) → **user xem diff** → push.
 
-- **Claude (mình):** phân tích + viết **specification** (`agent/HANDOFFS/<task>.spec.md`) + **review diff so với spec** + cập nhật `agent/*` + điều phối. **KHÔNG** tự viết source ứng dụng trong luồng 3-agent.
-- **Khóa kiến trúc:** chỉ Claude đề xuất kiến trúc, ghi `agent/DECISIONS.md`, user duyệt. Codex/Roo cấm tự đổi kiến trúc.
-- **Chống va chạm:** 1 task = 1 `owner`; `locks` không chồng nhau (`agent/TASKS.yaml`); mỗi lần chuyển bước = ghi `agent/HANDOFFS/` + update status.
-- **FALLBACK (chỉ có Claude, không Codex/Roo):** được dùng subagent `coder` (`.claude/agents/coder.md`) + `reviewer` (`.claude/agents/reviewer.md`) để tự code+review. Đây là đường lùi.
-- Phạm vi "code" = source ứng dụng (Codex, hoặc coder-subagent khi fallback). Claude VẪN làm: spec/docs, sửa config (CLAUDE.md, `agent/*`, agent định nghĩa), verify/git, phân tích — không phải "code".
+- Claude làm toàn bộ: spec → code → verify → cập nhật `agent/*`. Được dùng subagent `.claude/agents/coder.md` + `reviewer.md` khi việc lớn.
+- **Khóa kiến trúc (giữ nguyên):** đổi data-flow / thêm thư viện / đổi state pattern / đổi schema / RLS → **DỪNG**, mở ADR trong `agent/DECISIONS.md`, **user duyệt** rồi mới làm.
+- **Cổng người — quan trọng nhất:** mất review chéo của agent khác thì **user xem diff trước khi push** là lưới an toàn duy nhất còn lại. Claude **không tự push** khi user chưa xem, trừ khi user nói rõ "cứ đẩy".
+- **Trước mọi hành động có tác dụng phụ** (chạy test, chạm DB, build, deploy) — trả lời 2 câu bằng **tài liệu**, không bằng suy đoán: **(1)** việc này chạm vào gì (DB thật? prod? file chung?) — **(2)** dự án đã quy định gì về nó (grep `agent/`, `.github/`, `vault/`, config liên quan). *Đợt 28/08: chạy full e2e sai môi trường (`playwright.config.ts` chỉ định `npm run dev`) → rò 11 dòng seed vào DB thật, trong khi `ci.yml` dòng 10 đã cảnh báo đúng điều đó.*
+- ⚠️ **E2E chạm DB PRODUCTION** (dev/prod chung 1 Supabase). Chỉ chạy khi thật sự cần; chạy xong **kiểm + dọn rác** bằng `sweepStaleE2EOrphans` (`tests/e2e/e2e-sweep.ts`, ngưỡng 30 phút), không tự viết SQL xóa.
 
 ## 1. Think Before Coding
 *Đừng giả định. Đừng giấu chỗ bối rối. Nêu tradeoff.*

@@ -7,32 +7,26 @@ metadata:
   version: "1.0.0"
 ---
 
-# ⛔ GOVERNANCE — ĐỌC TRƯỚC (Codex)
+# ⛔ GOVERNANCE — file này KHÔNG còn hiệu lực điều phối
 
-> Bạn (Codex) chạy trong pipeline **3-agent** cùng Claude + Roo trên IDE Antigravity.
-> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md)** — đọc nó + `agent/ARCHITECTURE.md` + spec của task trước khi code.
+> **Chốt 2026-08-29 (ADR-018): pipeline 3-agent đã BÃI BỎ.** Codex + Roo không còn chạy.
+> Luật vận hành duy nhất: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md) + [`CLAUDE.md`](CLAUDE.md).
+>
+> Phần dưới giữ lại làm **skill tham chiếu** khi viết/refactor React/Next (nguồn: Vercel Engineering, MIT).
 
-**Vai của Codex:** người thực thi — **WRITER DUY NHẤT của source ứng dụng**.
-- Chỉ code khi task có `status: approved` (user đã duyệt spec). Không tự bắt đầu.
-- Chỉ ghi **trong `locks` của task** (xem `agent/TASKS.yaml`) và **trong branch/worktree riêng của task**. Chạm file ngoài `locks` = vi phạm → DỪNG.
-- **CẤM tự đổi kiến trúc** (đổi data-flow, thêm thư viện, đổi state pattern, đổi schema, chuyển client-direct). Gặp chỗ cần đổi → DỪNG, viết `agent/HANDOFFS/<task>.codex.md` trả Claude mở ADR.
-- Xong bước = ghi HANDOFF (`agent/HANDOFFS/<task>.codex.md`) + cập nhật `status`/`owner` trong `agent/TASKS.yaml` → chuyển Roo test.
-- Giữ ràng buộc cứng: **Finance giữ `revalidatePath`**, không patch optimistic số server-computed, tái dùng `runOptimisticMutation` (đừng viết helper mới). Chi tiết: `agent/ARCHITECTURE.md`.
+## 🪟 Windows file-editing protocol (VẪN HIỆU LỰC — ADR-006)
 
-## 🪟 Windows file-editing protocol (BẮT BUỘC — nếu không sẽ hỏng)
+Kinh nghiệm kỹ thuật, không phải luật điều phối → **giữ lại**. Máy này là **Windows**;
+patch qua PowerShell heredoc **bể UTF-8/CRLF (mojibake)** và làm hỏng edit.
 
-Máy này là **Windows + PowerShell 5.1**. `apply_patch` qua PowerShell heredoc **BỂ UTF-8/CRLF (mojibake)** và làm hỏng edit. Vì vậy khi sửa file trong repo này:
-
-- **CẤM `apply_patch`.** Không patch qua PowerShell here-string.
-- **Ưu tiên MCP `filesystem` → `write_file`** (ghi CẢ file, root đã trỏ đúng `mood-studio` trong `.codex/config.toml`). Đọc file bằng `read_file`, sửa nội dung trong đầu, rồi `write_file` lại toàn bộ.
-- **Nếu `write_file` không dùng được → Node script UTF-8:** `node -e "const fs=require('fs');fs.writeFileSync('<path>', <content>, 'utf8')"` — Node ghi UTF-8 trực tiếp, không qua encoding PowerShell.
-- Sửa **nhỏ, ít file** để mỗi lần `write_file` gọn (tránh chậm → dính timeout 10' của harness).
-- Sau khi ghi: verify bằng `npx eslint <file>` + `npm run build` như spec yêu cầu.
-
-## Effort theo độ khó task
-Task cơ học/spec rõ (lint, rename, wire nhỏ) → làm nhanh, không suy luận thừa. Task khó/mơ hồ/debug → suy luận kỹ. (Claude giao việc sẽ set `--effort` tương ứng; đừng tự nâng effort cho việc đơn giản.)
-
-Phần dưới (Vercel React Best Practices) là **skill tham chiếu** khi viết/refactor React/Next — không thay thế governance trên.
+- **Ghi CẢ file bằng UTF-8 tường minh**, đừng patch qua PowerShell here-string.
+  Node: `node -e "require('fs').writeFileSync('<path>', <content>, 'utf8')"` — hoặc
+  Python `io.open(p, 'w', encoding='utf-8')`.
+- Sửa **nhỏ, ít file** mỗi lần ghi.
+- Sau khi ghi: verify `npx eslint <file>` + `npm run build`.
+- **Kiểm mojibake cho đúng:** grep `"Ã"` trần sẽ báo động giả (khớp chữ Việt hoa
+  trong "BÃI BỎ"). Dùng mẫu `Ã` + byte Latin-1 theo sau, `â€`, `U+FFFD` — hoặc
+  đơn giản là đọc lại file bằng UTF-8 strict, hỏng thì nó ném lỗi ngay.
 
 ---
 

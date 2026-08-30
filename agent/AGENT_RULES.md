@@ -1,8 +1,13 @@
-# AGENT_RULES.md — Luật vận hành 3-agent (mood-studio)
+# AGENT_RULES.md — Luật vận hành (mood-studio)
 
-> **NGUỒN CHÂN LÝ DUY NHẤT cho phối hợp đa-agent.** Mọi agent (Claude / Codex / Roo)
-> đọc file này TRƯỚC khi làm bất cứ việc gì. Xung đột giữa file này và hướng dẫn
-> riêng của từng tool → **file này thắng**. Chỉ user được sửa luật ở đây.
+> **NGUỒN CHÂN LÝ DUY NHẤT cho cách làm việc.** Đọc file này TRƯỚC khi làm bất cứ
+> việc gì. Xung đột giữa file này và hướng dẫn riêng của tool → **file này thắng**.
+> Chỉ user được sửa luật ở đây.
+>
+> **Chốt 2026-08-29 (ADR-018): pipeline 3-agent ĐÃ BÃI BỎ.** Chỉ còn **Claude Code**.
+> Codex + Roo không còn chạy (bằng chứng: 40/40 commit gần nhất cùng một tác giả;
+> 6/8 spec gần nhất ghi `Owner: claude (spec + code trực tiếp — đường lùi)`).
+> Luật cũ về `locks`/worktree/handoff giữa agent → **bỏ**. Lịch sử: xem ADR-001/002/003.
 
 ---
 
@@ -13,46 +18,66 @@ Bạn (user)
   ↓  yêu cầu
 Claude  — phân tích + viết SPECIFICATION (agent/HANDOFFS/<task>.spec.md)
   ↓
-Bạn duyệt specification  ← CỔNG NGƯỜI: không code khi chưa duyệt
+Bạn duyệt specification  ← CỔNG NGƯỜI 1: không code khi chưa duyệt
   ↓
-Codex   — triển khai trên branch/worktree RIÊNG (chỉ trong lock của task)
+Claude  — code (đúng phạm vi spec, không mở rộng)
   ↓
-Roo     — chạy app + debug + integration test (READ-ONLY, không sửa source)
+Claude  — verify: build + lint file đổi + render/đo (§6). Ghi SỐ THẬT vào spec §Kết quả
   ↓
-Claude  — review diff SO VỚI spec (không so ý thích cá nhân)
+Bạn xem diff            ← CỔNG NGƯỜI 2: lưới an toàn DUY NHẤT còn lại
   ↓
-Codex   — sửa theo review
-  ↓
-CI gate — bộ verify local + build phải XANH (xem §6)
-  ↓
-Merge   — vào main (Vercel auto-deploy)
+push main               (= deploy thẳng Vercel, không có cổng tự động)
 ```
 
-Vòng lặp `Claude review ↔ Codex fix` lặp tới khi **ĐẠT**. Roo test lại sau mỗi lần Codex sửa nếu review chạm runtime.
+**Vì sao 2 cổng người:** pipeline cũ có Codex viết → Claude review chéo → Roo chạy.
+Giờ Claude vừa viết vừa tự review vừa tự verify — **không còn mắt thứ hai**. Cộng với
+`push main` = deploy và dev/prod chung 1 DB, giữa Claude và production **không còn gì**.
+Hai cổng người là thứ thay thế.
 
 ---
 
-## 2. Phân vai + PHẠM VI GHI (quan trọng nhất)
+## 2. Phạm vi ghi + luật cứng
 
-| Agent | Vai | ĐƯỢC ghi | CẤM ghi |
-|---|---|---|---|
-| **Claude** | Phân tích, spec, review, điều phối, cập nhật docs | `agent/**`, `plans/**`, spec, `CLAUDE.md`/config, git | **KHÔNG** ghi source ứng dụng (`app/`, `components/`, `lib/`, `hooks/`) trong luồng 3-tool |
-| **Codex** | Người thực thi — **WRITER DUY NHẤT của source** | source ứng dụng, **chỉ trong `locks` của task**, **chỉ trong worktree/branch của task** | file ngoài `locks`; `agent/**` governance; kiến trúc mới |
-| **Roo** | Chạy app, debug, integration/e2e test, quan sát | báo cáo test, log, HANDOFF trả lại | **KHÔNG sửa source** — tìm bug thì viết HANDOFF, không tự vá |
+| Vai | ĐƯỢC ghi | Ràng buộc |
+|---|---|---|
+| **Claude** | Toàn bộ: source ứng dụng, `agent/**`, `plans/**`, spec, config, git | Xem 5 luật dưới |
 
-**Fallback (chỉ Claude, không có Codex/Roo):** Claude được dùng subagent `.claude/agents/coder.md` + `reviewer.md` để tự code+review. Đây là ĐƯỜNG LÙI, không phải mặc định. Khi có Codex/Roo → theo pipeline §1.
+1. **Khóa kiến trúc (giữ nguyên từ ADR-004):** đổi data-flow / thêm thư viện / đổi state pattern / đổi schema / RLS / client-direct → **DỪNG**, ghi ADR vào `DECISIONS.md`, **user duyệt** rồi mới làm. Đây là ràng buộc **không** bị bãi bỏ cùng pipeline.
+2. **Surgical:** mỗi dòng đổi phải trace thẳng về yêu cầu user. Không "tiện tay" sửa lân cận. Dead code không liên quan → **mention, đừng xóa**.
+3. **Grep trước khi viết mới:** helper/util đã tồn tại thì tái dùng (`runOptimisticMutation`, `dashboardAccessFromArgs`, `sweepStaleE2EOrphans`…). Tự viết trùng = vi phạm LESSONS A2.
+4. **File shared** (`lib/swr.ts`, `components/layout/bottom-nav.tsx`, `lib/server-cache-invalidation.ts`): chỉ **additive**, hoặc phải verify đa module.
+5. **Không tự push khi user chưa xem diff** — trừ khi user nói rõ "cứ đẩy".
 
 ---
 
-## 3. Luật cứng chống va chạm
+## 2b. Trước mọi hành động có tác dụng phụ — BẮT BUỘC
 
-1. **Single-writer / task:** mỗi task có đúng **1 `owner`** tại một thời điểm (xem `TASKS.yaml`). Chỉ `owner` được ghi trong vùng `locks` của task đó.
-2. **Lock không chồng nhau:** hai task chưa `merged` **KHÔNG được** có `locks` giao nhau (cùng file/thư mục/module). Claude kiểm điều này khi tạo task; giao nhau → tách task hoặc xếp hàng.
-3. **Khóa kiến trúc:** **CHỈ Claude** đề xuất kiến trúc, và mọi quyết định kiến trúc phải ghi vào `DECISIONS.md` + user duyệt. Codex/Roo **CẤM** tự đổi kiến trúc (đổi data-flow, thêm lib, đổi pattern state, đổi schema). Gặp chỗ cần đổi kiến trúc → **DỪNG**, viết HANDOFF trả Claude.
-4. **Worktree cô lập:** Codex làm trong worktree/branch riêng của task (`.worktrees/<task>` hoặc `codex/<task>`). Không đụng cây làm việc chính khi task chưa merge.
-5. **Handoff bắt buộc:** mỗi lần chuyển bước trong pipeline = **(a)** ghi 1 file trong `HANDOFFS/` + **(b)** cập nhật `status` + `owner` trong `TASKS.yaml`. Không "chuyển miệng".
-6. **Không nhảy cổng người:** Codex không bắt đầu khi spec chưa được user duyệt (`status: approved`).
-7. **File shared** (`lib/swr.ts`, `components/layout/bottom-nav.tsx`, `lib/server-cache-invalidation.ts`): chỉ **additive** hoặc task phải khai báo `verify: multi-module`.
+Trước khi chạy test / chạm DB / build / deploy, trả lời 2 câu bằng **tài liệu**, không bằng suy đoán:
+
+1. **Việc này chạm vào gì?** (DB thật? prod? file chung? port?)
+2. **Dự án đã quy định gì về nó?** → grep `agent/`, `.github/`, `vault/`, config liên quan.
+
+> **Ca thật 28/08/2026:** chạy full suite e2e trên **prod build** trong khi
+> `playwright.config.ts:84` chỉ định `npm run dev` → 41 fail vô nghĩa, và **rò 11 dòng
+> seed vào DB thật**. `ci.yml` dòng 10 đã ghi sẵn *"e2e từng rò seed vào prod"* —
+> file 40 dòng ở gốc repo, đọc sau khi đã phá. Lỗi không nằm ở thiếu năng lực mà ở
+> **hành động trước khi hỏi nó chạm vào cái gì**.
+
+⚠️ **E2E chạm DB PRODUCTION** (dev/prod chung 1 Supabase project):
+- Chỉ chạy khi thật sự cần. Ưu tiên spec lẻ, tránh full suite.
+- Chạy xong **luôn kiểm rác**: `node scripts/db-q.mjs "SELECT (SELECT count(*) FROM contracts WHERE contract_code LIKE 'E2E%') hd, (SELECT count(*) FROM employees WHERE department='E2E') ns"`
+- Dọn bằng **`sweepStaleE2EOrphans`** (`tests/e2e/e2e-sweep.ts`) — nó xóa bảng con đúng thứ tự FK. **Không tự viết SQL xóa.** Ngưỡng `STALE_MS` = 30 phút (cố ý, tránh xóa nhầm run song song) → phải chờ rác đủ tuổi.
+
+---
+
+## 2c. Đối chứng hợp lệ (khi so trước/sau)
+
+Sai lệch ở đây làm mọi kết luận vô giá trị. Bắt buộc:
+- **Cùng cỡ mẫu**: full suite so full suite, không so "41 fail của 28 spec" với "3 fail của 3 spec".
+- **Cùng môi trường**: cùng máy, cùng build, cùng server (dev hay prod build — theo đúng config).
+- **Chỉ đổi MỘT biến** (`git stash` phần thay đổi để lấy baseline HEAD).
+- **So danh sách, không so con số tổng**: `comm` hai danh sách spec fail — mới biết cái nào *chỉ* fail sau khi sửa.
+- Số tích lũy dài hạn (vd `pg_stat_statements` 166 ngày) **không phải** số hiện tại.
 
 ---
 
@@ -73,12 +98,12 @@ Vòng lặp `Claude review ↔ Codex fix` lặp tới khi **ĐẠT**. Roo test l
 ## 5. Vòng đời status (TASKS.yaml)
 
 ```
-spec → approved → implementing → testing → review → fixing → ci → merged
-                                     ↑__________________|   (lặp review↔fix)
-   blocked  (bất cứ lúc nào; ghi lý do + agent cần gỡ)
+spec → approved → implementing → verifying → merged
+   blocked  (bất cứ lúc nào; ghi lý do + cần gì để gỡ)
 ```
 
-`owner` theo status: `spec/review`=Claude · `implementing/fixing`=Codex · `testing`=Roo · `ci/merged`=Claude(hoặc user).
+`owner` luôn là **claude**, trừ khi chờ user (`approved` ở cổng duyệt spec, `merged` ở cổng xem diff).
+Các status cũ `testing`/`review`/`fixing`/`ci` (buộc chuyển tay giữa 3 agent) đã **bỏ** theo ADR-018.
 
 ---
 
@@ -92,11 +117,15 @@ spec → approved → implementing → testing → review → fixing → ci → 
 - Lưới an toàn thật cho prod là **Vercel**: build hỏng → **không deploy**, prod giữ bản cũ. Nhưng Vercel chỉ bắt lỗi *build*, không bắt lỗi *hành vi*.
 
 **Tầng 2 — verify local** (KHÔNG đưa lên CI vì nối thẳng Supabase + rủi ro e2e-seed-leak), chạy **trước khi push**:
-- `npm run verify:<module>` của module bị đụng — **bắt buộc** (Claude/Roo chạy)
-- `npm run test:e2e:<x>` nếu task chạm runtime — Roo chạy (dừng dev server trước, tránh khóa port)
-- Đổi CSS/layout → render + screenshot chrome-devtools **trước** push
+- `npm run build` + `npx eslint <file đổi>` — **bắt buộc**. Lint đỏ → `git stash` rồi lint lại HEAD để tách nợ cũ (LESSONS A4).
+- `npm run verify:<module>` của module bị đụng — **bắt buộc**.
+- Đổi CSS/layout → render + screenshot chrome-devtools @768 + @1023 **trước** push.
+- `npm run test:e2e:<x>` **chỉ khi thật sự cần** — xem cảnh báo DB prod ở §2b. Đúng môi trường `playwright.config.ts` chỉ định (`npm run dev`, port 3000), dừng server cũ trước để tránh khóa port.
 
-**Thứ duy nhất bắt được lỗi hành vi là review của Claude** (diff vs spec) — không tự động, không thay thế được. Task dogfood đầu tiên đã chứng minh: heart mất `fill-` → lint xanh, build xanh, chỉ review bắt được. Vì vậy §4 (review-vs-spec) là bắt buộc, kể cả khi CI xanh.
+**Thứ bắt được lỗi hành vi là MẮT NGƯỜI đọc diff** — không tự động, không thay thế được.
+Task dogfood đầu tiên đã chứng minh: heart mất `fill-` → lint xanh, build xanh, chỉ review bắt được.
+Trước đây mắt đó là Claude review code của Codex; **giờ Claude tự viết nên mắt đó là user**.
+Vì vậy cổng "user xem diff" (§1) là bắt buộc, kể cả khi CI xanh.
 
 ---
 
