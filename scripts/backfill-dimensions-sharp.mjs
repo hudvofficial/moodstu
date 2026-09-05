@@ -8,6 +8,8 @@ import { config } from 'dotenv';
 import sharp from 'sharp';
 import https from 'https';
 import http from 'http';
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("backfill-dimensions-sharp.mjs", "update kích thước ảnh gallery_images"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 config({ path: '.env.local' });
 

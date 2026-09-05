@@ -12,6 +12,8 @@ import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { encode, decode } from "blurhash";
 import sharp from "sharp";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("backfill-blurhash.mjs", "update gallery_images.blurhash"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 // Load environment variables from .env.local
 config({ path: ".env.local" });

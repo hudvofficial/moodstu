@@ -7,7 +7,12 @@ const config = {
     '**/__tests__/**/*.+(ts|tsx|js)',
     '**/?(*.)+(spec|test).+(ts|tsx|js)',
   ],
-  testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/e2e/',
+    // S3 #10: test "live" tạo user/dữ liệu trên DB production (dev = prod) — chỉ chạy khi bật cờ cố ý.
+    ...(process.env.ALLOW_PROD_WRITE === '1' ? [] : ['/tests/integration/.*-live\.test\.ts$']),
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: {

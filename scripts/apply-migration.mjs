@@ -6,6 +6,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import pg from "pg";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("apply-migration.mjs", "chạy SQL tuỳ ý từ file migration — DDL/DML"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const { Client } = pg;
 const root = process.cwd();

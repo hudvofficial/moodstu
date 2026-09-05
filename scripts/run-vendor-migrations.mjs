@@ -8,6 +8,8 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("run-vendor-migrations.mjs", "chạy SQL qua RPC exec_sql (hàm không tồn tại — script chết)"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

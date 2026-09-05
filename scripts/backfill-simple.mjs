@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 import sharp from 'sharp';
 import https from 'https';
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("backfill-simple.mjs", "update gallery_images"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 config({ path: '.env.local' });
 

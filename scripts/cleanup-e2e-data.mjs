@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("cleanup-e2e-data.mjs", "xoá hợp đồng/khách/nhân sự E2E"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 function loadEnvFile(filePath) {
   if (!existsSync(filePath)) return;

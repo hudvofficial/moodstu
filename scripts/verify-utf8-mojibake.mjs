@@ -14,6 +14,7 @@ const EXCLUDED_PREFIXES = [
   "tmp/",
 ];
 const INTENTIONAL_SIGNATURE_FILES = new Set([
+  "AGENTS.md", // dòng 28 liệt kê mẫu mojibake để nhận diện (S3 #10: gate pre-push chạy script này)
   "plans/260711-fix-historical-mojibake/plan.md",
   "plans/260711-moodie-voice/PHASE1-TASK.md",
   "plans/260711-moodie-voice/PHASE2-TASK.md",

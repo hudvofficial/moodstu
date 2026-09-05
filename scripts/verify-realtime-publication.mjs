@@ -9,6 +9,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("verify-realtime-publication.mjs", "tạo user + nhân sự tạm, insert dữ liệu thử"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const TABLES = [
   "contracts",

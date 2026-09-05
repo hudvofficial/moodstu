@@ -21,7 +21,7 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - **Khóa kiến trúc (giữ nguyên):** đổi data-flow / thêm thư viện / đổi state pattern / đổi schema / RLS → **DỪNG**, mở ADR trong `agent/DECISIONS.md`, **user duyệt** rồi mới làm.
 - **Cổng người — quan trọng nhất:** mất review chéo của agent khác thì **user xem diff trước khi push** là lưới an toàn duy nhất còn lại. Claude **không tự push** khi user chưa xem, trừ khi user nói rõ "cứ đẩy".
 - **Trước mọi hành động có tác dụng phụ** (chạy test, chạm DB, build, deploy) — trả lời 2 câu bằng **tài liệu**, không bằng suy đoán: **(1)** việc này chạm vào gì (DB thật? prod? file chung?) — **(2)** dự án đã quy định gì về nó (grep `agent/`, `.github/`, `vault/`, config liên quan). *Đợt 28/08: chạy full e2e sai môi trường (`playwright.config.ts` chỉ định `npm run dev`) → rò 11 dòng seed vào DB thật, trong khi `ci.yml` dòng 10 đã cảnh báo đúng điều đó.*
-- ⚠️ **E2E chạm DB PRODUCTION** (dev/prod chung 1 Supabase). Chỉ chạy khi thật sự cần; chạy xong **kiểm + dọn rác** bằng `sweepStaleE2EOrphans` (`tests/e2e/e2e-sweep.ts`, ngưỡng 30 phút), không tự viết SQL xóa.
+- ⚠️ **E2E chạm DB PRODUCTION** (dev/prod chung 1 Supabase). Chỉ chạy khi thật sự cần; chạy xong **kiểm + dọn rác** bằng `sweepStaleE2EOrphans` (`tests/e2e/e2e-sweep.ts`, ngưỡng 30 phút), không tự viết SQL xóa. **Script ghi + Playwright + jest live chỉ chạy khi `ALLOW_PROD_WRITE=1`** (chuẩn S3, bước #10 — `scripts/lib/prod-guard.mjs`); thiếu cờ = dừng ngay, không phải lỗi. Hook `pre-push` tĩnh bật bằng `npm run hooks:install`.
 
 ## 1. Think Before Coding
 *Đừng giả định. Đừng giấu chỗ bối rối. Nêu tradeoff.*

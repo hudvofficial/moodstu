@@ -9,6 +9,8 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
 import pg from 'pg';
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("migrate-direct.mjs", "chạy SQL tuỳ ý — DDL/DML"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

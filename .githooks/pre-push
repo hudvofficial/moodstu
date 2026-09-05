@@ -1,0 +1,37 @@
+#!/bin/sh
+# pre-push — kiem tinh < 2 phut, KHONG cham DB (chuan S3, buoc #10 — agent/HANDOFFS/T-20260905-s3-ky-luat-ghi-prod.spec.md)
+# Bat: npm run hooks:install   (git config core.hooksPath .githooks)
+# Bo qua khi that can: git push --no-verify  (ghi ly do vao commit message)
+set -e
+start=$(date +%s)
+base="origin/main"
+git rev-parse --verify -q "$base" >/dev/null 2>&1 || base="HEAD~1"
+
+echo "[pre-push] 1/5 tsc --noEmit"
+npx tsc --noEmit -p tsconfig.json
+
+changed=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' | tr '\n' ' ')
+if [ -n "$changed" ]; then
+  echo "[pre-push] 2/5 eslint (file doi so voi $base): $changed"
+  npx eslint $changed
+else
+  echo "[pre-push] 2/5 eslint — khong co file JS/TS doi, bo qua"
+fi
+
+echo "[pre-push] 3/5 mojibake UTF-8"
+node scripts/verify-utf8-mojibake.mjs
+
+echo "[pre-push] 4/5 khong .only trong tests/"
+if git grep -nE "\b(test|it|describe)\.only\(" -- tests >/dev/null 2>&1; then
+  echo "[pre-push] X con .only(:"; git grep -nE "\b(test|it|describe)\.only\(" -- tests
+  exit 1
+fi
+
+echo "[pre-push] 5/5 khong file .env* trong commit sap day"
+if git diff --name-only "$base"...HEAD | grep -E '(^|/)\.env' >/dev/null 2>&1; then
+  echo "[pre-push] X co file .env trong commit:"; git diff --name-only "$base"...HEAD | grep -E '(^|/)\.env'
+  exit 1
+fi
+
+end=$(date +%s)
+echo "[pre-push] OK — $((end - start))s"

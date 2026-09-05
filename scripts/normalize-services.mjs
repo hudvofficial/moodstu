@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("normalize-services.mjs", "update services hàng loạt"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 

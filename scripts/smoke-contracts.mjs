@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("smoke-contracts.mjs", "seed hợp đồng/khách rồi dọn"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const root = process.cwd();
 const timestamp = Date.now();

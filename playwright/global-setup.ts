@@ -330,6 +330,14 @@ async function runSeed(admin: SupabaseClient): Promise<GlobalSeedIds> {
 const SEED_FILE = path.join(os.tmpdir(), "e2e-seed-ids.json");
 
 export default async function globalSetup(): Promise<void> {
+  // S3 #10 (agent/HANDOFFS/T-20260905-s3-ky-luat-ghi-prod.spec.md): E2E seed vào DB PRODUCTION (dev = prod).
+  // Không có cờ → dừng cả run tại đây, 0 dòng ghi. Bật cố ý: $env:ALLOW_PROD_WRITE="1"
+  if (process.env.ALLOW_PROD_WRITE !== "1") {
+    throw new Error(
+      '⛔ E2E seed vào DB production. Bật cố ý: $env:ALLOW_PROD_WRITE="1" rồi chạy lại. ' +
+        "Chạy xong kiểm rác: node scripts/db-q.mjs \"SELECT count(*) FROM contracts WHERE contract_code LIKE 'E2E%'\"",
+    );
+  }
   console.log("[global-setup] 🚀 Starting E2E global setup…");
   console.log(`[global-setup] Seed file → ${SEED_FILE}`);
 

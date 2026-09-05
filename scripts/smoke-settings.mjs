@@ -6,6 +6,8 @@ import net from "node:net";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import WebSocket from "ws";
+import { requireProdWrite } from "./lib/prod-guard.mjs";
+requireProdWrite("smoke-settings.mjs", "seed nhân sự/cài đặt rồi dọn"); // S3 #10: không có ALLOW_PROD_WRITE=1 thì dừng
 
 const root = process.cwd();
 const marker = `smoke-settings-${Date.now()}`;
