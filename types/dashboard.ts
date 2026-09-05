@@ -16,8 +16,17 @@ export interface DashboardAccess {
 }
 
 export interface DashboardKPIs {
+  /** Doanh thu theo ngày CHỤP (ADR-016) — finance_pnl_by_month.revenue, không phải tiền thu */
   totalRevenue: number;
   revenueChange: number | null;
+
+  /** Két: tiền vào theo ngày phiếu (payments + receipts lẻ) — finance_pnl_by_month.cash_in */
+  cashIn: number;
+  cashInChange: number | null;
+
+  /** Lãi/lỗ tháng theo luật ngày ADR-016 — finance_pnl_by_month.profit */
+  profit: number;
+  profitChange: number | null;
 
   newContracts: number;
   contractsChange: number | null;

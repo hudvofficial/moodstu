@@ -29,22 +29,22 @@ export function RevenueChart({
     <div
       className="card-base h-full p-5 entrance entrance-3 chart-container"
       role="img"
-      aria-label="Biểu đồ doanh thu theo tháng"
+      aria-label="Biểu đồ tiền thu theo tháng"
     >
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-primary/10">
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-h3">Doanh thu theo tháng</h3>
+          <h3 className="text-h3">Tiền thu theo tháng (két)</h3>
         </div>
         <span className="shrink-0 text-caption">{periodLabel}</span>
       </div>
 
       {!canView ? (
-        <EmptyState message="Vai trò hiện tại không có quyền xem dữ liệu doanh thu." />
+        <EmptyState message="Vai trò hiện tại không có quyền xem dữ liệu tiền thu." />
       ) : data.length === 0 || data.every((item) => item.revenue === 0) ? (
-        <EmptyState message="Chưa có doanh thu trong kỳ hiển thị." />
+        <EmptyState message="Chưa có tiền thu trong kỳ hiển thị." />
       ) : (
         <div className="chart-focus-reset h-64 lg:h-72 w-full pb-4">
           <SafeResponsiveContainer width="100%" height="100%">
@@ -71,7 +71,7 @@ export function RevenueChart({
               />
               <Tooltip
                 cursor={{ fill: "var(--color-bg-hover)" }}
-                formatter={(value) => [formatVnd(Number(value)), "Doanh thu"]}
+                formatter={(value) => [formatVnd(Number(value)), "Tiền thu"]}
                 contentStyle={{
                   backgroundColor: "var(--color-bg-card)",
                   borderColor: "var(--color-border)",

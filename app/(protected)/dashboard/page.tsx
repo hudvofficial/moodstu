@@ -4,6 +4,8 @@ import {
   CheckCircle,
   DollarSign,
   FileText,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { PaymentReminders } from "@/components/dashboard/payment-reminders";
 import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
@@ -42,7 +44,9 @@ function formatTrend(value: number | null) {
 
 function KpiSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+      <SkeletonCard className="h-24 lg:h-28" />
+      <SkeletonCard className="h-24 lg:h-28" />
       <SkeletonCard className="h-24 lg:h-28" />
       <SkeletonCard className="h-24 lg:h-28" />
       <SkeletonCard className="h-24 lg:h-28" />
@@ -141,8 +145,9 @@ function DashboardKpiGrid({
   kpis: DashboardKPIs;
   visibility: DashboardVisibility;
 }) {
+  // ADR-016 / C8: ba số tiền đọc một sổ kỳ — doanh thu (ngày chụp) ≠ đã thu (két) ≠ lãi/lỗ
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
       <KPICard
         label="Doanh thu tháng"
         value={visibility.canViewFinancials ? formatMoney(kpis.totalRevenue) : "Ẩn"}
@@ -153,8 +158,34 @@ function DashboardKpiGrid({
           visibility.canViewFinancials ? formatTrend(kpis.revenueChange) : undefined
         }
         trendUp={(kpis.revenueChange ?? 0) >= 0}
-        href={visibility.canViewFinancials ? "/finance" : undefined}
+        href={visibility.canViewFinancials ? "/finance/dashboard" : undefined}
         className="entrance entrance-1"
+      />
+      <KPICard
+        label="Đã thu (két)"
+        value={visibility.canViewFinancials ? formatMoney(kpis.cashIn) : "Ẩn"}
+        icon={Wallet}
+        iconBg="bg-success/10"
+        iconColor="text-success"
+        trend={
+          visibility.canViewFinancials ? formatTrend(kpis.cashInChange) : undefined
+        }
+        trendUp={(kpis.cashInChange ?? 0) >= 0}
+        href={visibility.canViewFinancials ? "/finance/receipts" : undefined}
+        className="entrance entrance-2"
+      />
+      <KPICard
+        label="Lãi/lỗ tháng"
+        value={visibility.canViewFinancials ? formatMoney(kpis.profit) : "Ẩn"}
+        icon={TrendingUp}
+        iconBg="bg-primary/10"
+        iconColor="text-primary"
+        trend={
+          visibility.canViewFinancials ? formatTrend(kpis.profitChange) : undefined
+        }
+        trendUp={(kpis.profitChange ?? 0) >= 0}
+        href={visibility.canViewFinancials ? "/finance/dashboard" : undefined}
+        className="entrance entrance-3"
       />
       <KPICard
         label="Hợp đồng mới"
@@ -167,7 +198,7 @@ function DashboardKpiGrid({
         }
         trendUp={(kpis.contractsChange ?? 0) >= 0}
         href={visibility.canViewContracts ? "/contracts" : undefined}
-        className="entrance entrance-2"
+        className="entrance entrance-4"
       />
       <KPICard
         label="Tổng công nợ"
@@ -180,7 +211,7 @@ function DashboardKpiGrid({
         }
         trendUp={(kpis.debtChange ?? 0) >= 0}
         href={visibility.canViewFinancials ? "/finance" : undefined}
-        className="entrance entrance-3"
+        className="entrance entrance-5"
       />
       <KPICard
         label="Hoàn thành"
@@ -195,7 +226,7 @@ function DashboardKpiGrid({
         href={
           visibility.canViewContracts ? "/contracts?status=hoan_thanh" : undefined
         }
-        className="entrance entrance-4"
+        className="entrance entrance-6"
       />
     </div>
   );

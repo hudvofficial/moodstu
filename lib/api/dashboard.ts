@@ -29,9 +29,8 @@ import type {
 
 type QueryError = { message?: string } | null;
 type QueryRow = Record<string, unknown>;
+// current_revenue/previous_revenue của RPC vẫn tồn tại trên DB nhưng không đọc nữa (bước #8, gỡ cột ở #29)
 type DashboardCriticalKpiRpcRow = {
-  current_revenue?: unknown;
-  previous_revenue?: unknown;
   total_debt?: unknown;
   current_contracts?: unknown;
   previous_contracts?: unknown;
@@ -161,10 +160,26 @@ function percentChange(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
+// Lãi/lỗ có thể âm: chia cho |kỳ trước| để "lỗ 5tr → lãi 2tr" ra +140% chứ không phải −140%
+function signedPercentChange(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? 100 : current < 0 ? -100 : null;
+  return Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
+}
+
+// asNumber kẹp sàn 0 (không dùng được cho lãi/lỗ) — giữ trần 10 tỷ, cho phép âm
+function asSignedNumber(value: unknown): number {
+  const num = Number(value) || 0;
+  return Math.max(-10_000_000_000, Math.min(10_000_000_000, num));
+}
+
 function emptyKpis(): DashboardKPIs {
   return {
     totalRevenue: 0,
     revenueChange: null,
+    cashIn: 0,
+    cashInChange: null,
+    profit: 0,
+    profitChange: null,
     newContracts: 0,
     contractsChange: null,
     totalDebt: 0,
@@ -255,40 +270,52 @@ async function safeSection<T>(
   }
 }
 
-async function sumPaymentsAndReceipts(
+// ADR-016 M2 / bước #8: doanh thu, két, lãi/lỗ đọc một sổ kỳ (finance_period_ledger) qua
+// finance_pnl_by_month — KHÔNG còn cộng payments + receipts rồi gọi là "doanh thu".
+// dashboard_critical_kpis.current_revenue/previous_revenue vẫn tồn tại trên DB nhưng không đọc nữa.
+type LedgerKpis = Pick<
+  DashboardKPIs,
+  "totalRevenue" | "revenueChange" | "cashIn" | "cashInChange" | "profit" | "profitChange"
+>;
+
+async function queryLedgerKpis(
   supabase: SupabaseClient,
-  start: string,
-  end: string,
-) {
-  const [paymentsResult, receiptsResult] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("amount")
-      .is("deleted_at", null)
-      .gte("payment_date", start)
-      .lt("payment_date", end),
-    supabase
-      .from("receipts")
-      .select("receipt_amount")
-      .is("deleted_at", null)
-      .is("contract_id", null)
-      .gte("receipt_date", start)
-      .lt("receipt_date", end),
-  ]);
-
-  assertQueryOk("Lỗi tải thanh toán hợp đồng", paymentsResult.error);
-  assertQueryOk("Lỗi tải phiếu thu độc lập", receiptsResult.error);
-
-  const payments = (paymentsResult.data || []).reduce(
-    (sum, row) => sum + asNumber(row.amount),
-    0,
+  month: number,
+  year: number,
+): Promise<LedgerKpis> {
+  // Tháng 1 cần thêm năm trước để lấy tháng 12 cho xu hướng
+  const years = month === 1 ? [year, year - 1] : [year];
+  const results = await Promise.all(
+    years.map((p_year) => supabase.rpc("finance_pnl_by_month", { p_year })),
   );
-  const receipts = (receiptsResult.data || []).reduce(
-    (sum, row) => sum + asNumber(row.receipt_amount),
-    0,
+  const rows = results.flatMap((result, index) => {
+    if (result.error) {
+      throw new Error(`Lỗi tải sổ kỳ ${years[index]}: ${result.error.message}`);
+    }
+    return ((result.data || []) as QueryRow[]).map((row) => ({
+      year: years[index],
+      month: asNumber(row.raw_month),
+      revenue: asNumber(row.revenue),
+      cashIn: asNumber(row.cash_in),
+      profit: asSignedNumber(row.profit),
+    }));
+  });
+
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  const current = rows.find((row) => row.year === year && row.month === month);
+  const previous = rows.find(
+    (row) => row.year === previousYear && row.month === previousMonth,
   );
 
-  return payments + receipts;
+  return {
+    totalRevenue: current?.revenue ?? 0,
+    revenueChange: percentChange(current?.revenue ?? 0, previous?.revenue ?? 0),
+    cashIn: current?.cashIn ?? 0,
+    cashInChange: percentChange(current?.cashIn ?? 0, previous?.cashIn ?? 0),
+    profit: current?.profit ?? 0,
+    profitChange: signedPercentChange(current?.profit ?? 0, previous?.profit ?? 0),
+  };
 }
 
 function mapDashboardKpisFromAggregate(
@@ -298,11 +325,6 @@ function mapDashboardKpisFromAggregate(
   const kpis = emptyKpis();
 
   if (visibility.canViewFinancials) {
-    const currentRevenue = asNumber(row?.current_revenue);
-    const previousRevenue = asNumber(row?.previous_revenue);
-
-    kpis.totalRevenue = currentRevenue;
-    kpis.revenueChange = percentChange(currentRevenue, previousRevenue);
     kpis.totalDebt = asNumber(row?.total_debt);
   }
 
@@ -335,21 +357,15 @@ async function queryKpisFallback(
   const kpis = emptyKpis();
 
   if (visibility.canViewFinancials) {
-    const [currentRevenue, previousRevenue, debtRows] = await Promise.all([
-      sumPaymentsAndReceipts(supabase, current.start, current.end),
-      sumPaymentsAndReceipts(supabase, previous.start, previous.end),
-      supabase
-        .from("contracts")
-        .select("remaining_amount")
-        .is("deleted_at", null)
-        .neq("status", "da_huy")
-        .gt("remaining_amount", 0),
-    ]);
+    const debtRows = await supabase
+      .from("contracts")
+      .select("remaining_amount")
+      .is("deleted_at", null)
+      .neq("status", "da_huy")
+      .gt("remaining_amount", 0);
 
     assertQueryOk("Lỗi tải công nợ", debtRows.error);
 
-    kpis.totalRevenue = currentRevenue;
-    kpis.revenueChange = percentChange(currentRevenue, previousRevenue);
     kpis.totalDebt = (debtRows.data || []).reduce(
       (sum, row) => sum + asNumber(row.remaining_amount),
       0,
@@ -409,19 +425,16 @@ async function queryKpisFallback(
   return kpis;
 }
 
-async function queryKpis(
+async function queryCriticalKpis(
   supabase: SupabaseClient,
   visibility: DashboardVisibility,
+  month: number,
+  year: number,
 ): Promise<DashboardKPIs> {
-  if (!visibility.canViewFinancials && !visibility.canViewContracts) {
-    return emptyKpis();
-  }
-
-  const now = currentPeriod();
   const { data, error } = await supabase
     .rpc("dashboard_critical_kpis", {
-      p_month: now.month,
-      p_year: now.year,
+      p_month: month,
+      p_year: year,
     })
     .single();
 
@@ -434,6 +447,36 @@ async function queryKpis(
     (data || null) as DashboardCriticalKpiRpcRow | null,
     visibility,
   );
+}
+
+async function queryKpis(
+  supabase: SupabaseClient,
+  visibility: DashboardVisibility,
+  errors: string[],
+): Promise<DashboardKPIs> {
+  if (!visibility.canViewFinancials && !visibility.canViewContracts) {
+    return emptyKpis();
+  }
+
+  const now = currentPeriod();
+  const [critical, ledger] = await Promise.all([
+    queryCriticalKpis(supabase, visibility, now.month, now.year),
+    // Sổ kỳ không có fallback két-gọi-là-doanh-thu (ADR-016 M2): lỗi → 3 số tiền = 0 + thông báo,
+    // KHÔNG kéo hợp đồng/công nợ về 0 theo.
+    visibility.canViewFinancials
+      ? queryLedgerKpis(supabase, now.month, now.year).catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : "Unknown ledger error";
+          Sentry.captureException(error, {
+            tags: { area: "dashboard-section" },
+            extra: { label: "KPI.ledger" },
+          });
+          errors.push(`KPI sổ kỳ: ${message}`);
+          return null;
+        })
+      : null,
+  ]);
+
+  return ledger ? { ...critical, ...ledger } : critical;
 }
 
 async function queryRevenueChartFallback(
@@ -899,11 +942,11 @@ async function loadDashboardSection<T>(
   label: string,
   profileLabel: string,
   fallback: T,
-  loader: () => Promise<T>,
+  loader: (errors: string[]) => Promise<T>,
 ): Promise<DashboardSectionResult<T>> {
   const errors: string[] = [];
   const data = await safeSection(label, errors, fallback, () =>
-    profileDashboardSection(profileLabel, loader),
+    profileDashboardSection(profileLabel, () => loader(errors)),
   );
 
   return { data, errors };
@@ -926,7 +969,7 @@ const getCachedDashboardCritical = unstable_cache(
         "KPI",
         "dashboard.kpis",
         emptyKpis(),
-        () => queryKpis(supabase, access.visibility),
+        (sectionErrors) => queryKpis(supabase, access.visibility, sectionErrors),
       );
 
       return {
@@ -937,7 +980,7 @@ const getCachedDashboardCritical = unstable_cache(
       };
     });
   },
-  ["dashboard-critical-v1"],
+  ["dashboard-critical-v2"],
   {
     revalidate: DASHBOARD_CRITICAL_CACHE_SECONDS,
     tags: [DASHBOARD_CRITICAL_CACHE_TAG],
@@ -1163,7 +1206,7 @@ const getCachedDashboardBootstrap = unstable_cache(
   const [kpis, revenueChart, serviceBreakdown, upcomingEvents, paymentReminders] =
     await Promise.all([
       safeSection("KPI", errors, emptyKpis(), () =>
-        queryKpis(supabase, access.visibility),
+        queryKpis(supabase, access.visibility, errors),
       ),
       safeSection("Biểu đồ doanh thu", errors, [], () =>
         queryRevenueChart(supabase, access.visibility),

@@ -87,8 +87,8 @@ export default function DashboardLoading() {
       <QuickAccessSkeleton />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
           <KPICardSkeleton key={index} />
         ))}
       </div>
