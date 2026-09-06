@@ -149,10 +149,10 @@ const TabletTableRow = memo(function TabletTableRow({
               e.stopPropagation();
               onViewProfit?.(id);
             }}
-            className={`mt-1 cursor-pointer truncate text-xs font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}
+            className={`mt-1 cursor-pointer truncate text-xs font-semibold ${getNum(c, "total_cost") === 0 ? "text-text-muted" : profit >= 0 ? "text-success" : "text-error"}`}
+            title={getNum(c, "total_cost") === 0 ? "Chưa ghi chi phí — lợi nhuận chưa xác định" : undefined}
           >
-            Lợi nhuận {profit >= 0 ? "+" : ""}
-            {fmt(profit)}
+            {getNum(c, "total_cost") === 0 ? "Lợi nhuận —" : `Lợi nhuận ${profit >= 0 ? "+" : ""}${fmt(profit)}`}
           </div>
         )}
       </TD>

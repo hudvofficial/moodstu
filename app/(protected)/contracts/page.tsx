@@ -21,7 +21,7 @@ export default async function ContractsPage(props: {
   // client so initialFilters với filters hiện tại bằng JSON.stringify, lệch là
   // initialData bị bỏ qua (rơi về client fetch như cũ, không vỡ gì).
   const initialFilters = {
-    status: sp.status || "all",
+    status: sp.status || "dang_thuc_hien", // #30a: vào /contracts là thấy việc đang chạy; "Tất cả" vẫn là tab (khớp CONTRACT_FILTER_DEFAULTS)
     search: sp.q || sp.search || "",
     time: sp.time || "all",
     service: sp.service || "all",

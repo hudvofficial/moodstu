@@ -9,6 +9,10 @@ interface TableWrapperProps {
   containerClassName?: string;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   footer?: React.ReactNode;
+  /** Hiện thanh cuộn ngang khi bảng tràn (mặc định ẩn — bảng có cột ghim tự dẫn đường). #30a */
+  showScrollbar?: boolean;
+  /** Đặt `@container` lên vùng cuộn để cột con tự co theo bề rộng KHUNG (Tailwind v4). #30a */
+  containerQuery?: boolean;
 }
 
 /**
@@ -21,13 +25,22 @@ export function TableWrapper({
   containerClassName,
   scrollRef,
   footer,
+  showScrollbar = false,
+  containerQuery = false,
 }: TableWrapperProps) {
   return (
     <div className={cn(
       "card-base overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0",
       containerClassName
     )}>
-      <div ref={scrollRef} className="overflow-x-auto scrollbar-hide lg:overflow-y-auto lg:flex-1 lg:min-h-0">
+      <div
+        ref={scrollRef}
+        className={cn(
+          "overflow-x-auto lg:overflow-y-auto lg:flex-1 lg:min-h-0",
+          !showScrollbar && "scrollbar-hide",
+          containerQuery && "@container",
+        )}
+      >
         <table className={cn("w-full border-collapse text-left", className)}>
           {children}
         </table>

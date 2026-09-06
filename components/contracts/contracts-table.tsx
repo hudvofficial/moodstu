@@ -19,7 +19,7 @@ import {
 import type { ContractChecklistSummary, ContractStatus, Contract } from "@/types/contract";
 import MissingInfoBadge from "@/components/contracts/missing-info-badge";
 import type { ContractChecklistForBadge } from "@/components/contracts/missing-info-badge";
-import ProgressBadge from "@/components/contracts/progress-badge";
+import ProgressBadge, { getProgressInfo } from "@/components/contracts/progress-badge";
 import { ContractMilestones } from "@/components/contracts/contract-milestones";
 
 // ─── HELPERS ─────────────────────────────────────
@@ -107,6 +107,41 @@ function getChecklistSummary(
 
 // ─── DESKTOP TABLE ───────────────────────────────
 
+// #30a — bảng desktop tự co theo bề rộng KHUNG (container query, TableWrapper containerQuery):
+//   < 880px: 6 cột (ẩn Sự kiện) · 880–1079: 7 cột · ≥ 1080: 8 cột (thêm Lợi nhuận).
+//   Mọi cột đều có bề rộng cơ sở border-box: 228+100+132+136+136+132+44 = 908px ≤ 912px (khung 1280 sidebar mở); 8 cột = 1.044 < 1.080;
+//   6 cột = 772 < 880. Màn rộng hơn → table-fixed chia phần dư THEO TỶ LỆ cho
+//   mọi cột (pill w-full giãn theo, tiền căn phải, chip căn giữa) — không để một cột auto nuốt hết khoảng trống.
+const CELL = "px-3 2xl:px-3";
+const CELL_PILL = "px-2 2xl:px-2"; // pill có min-w-30 (120px) → cột 136 border-box vừa khít
+const COL_EVENTS = "hidden @min-[880px]:table-cell";
+const COL_PROFIT = "hidden @min-[1080px]:table-cell";
+const NO_COST_TITLE = "Chưa ghi chi phí — lợi nhuận chưa xác định (bấm để xem/ghi chi phí)";
+
+/** HĐ đã xong: pill MẢNH 1 dòng cùng bề rộng với pill đang chạy (cùng ngôn ngữ hình khối, hàng thấp hơn nhưng ô không "trống") */
+function DoneMark({ done, total, label }: { done: number; total: number; label: string }) {
+  if (total === 0) {
+    return (
+      <div className="flex w-full items-center justify-center rounded-md bg-bg-hover/60 px-2 py-1 text-tiny italic text-text-muted">
+        Không có {label}
+      </div>
+    );
+  }
+  const allDone = done === total;
+  return (
+    <div
+      className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-tiny font-semibold ${allDone ? "bg-success/10 text-success" : "bg-bg-hover text-text-secondary"}`}
+      title={`${done}/${total} ${label} hoàn tất`}
+    >
+      <span className="inline-flex items-center gap-1 truncate">
+        <CheckCircle className="size-3 shrink-0" />
+        {allDone ? "Hoàn tất" : `Còn ${total - done} ${label}`}
+      </span>
+      <span className="shrink-0 tabular-nums">{done}/{total}</span>
+    </div>
+  );
+}
+
 const DesktopTableRow = memo(function DesktopTableRow({
   c,
   onView,
@@ -129,6 +164,15 @@ const DesktopTableRow = memo(function DesktopTableRow({
   const svcBadge = getServiceBadgeColor(serviceType);
   const profit = getNum(c, "profit");
   const totalCost = getNum(c, "total_cost");
+  const contractCode = getStr(c, "contract_code");
+  const workDate = getStr(c, "work_date");
+  const checklist = getChecklistSummary(c);
+  const remaining = getNum(c, "remaining_amount");
+  // #30a đợt 2: HĐ đã xong/huỷ → pill co thành 1 dòng "✓ n/n"; chi phí = 0 → lợi nhuận chưa xác định
+  const isClosed = status === "hoan_thanh" || isCancelled;
+  const events = getArr(c, "contract_events").filter((e: any) => e?.status !== "da_huy");
+  const eventsDone = events.filter((e: any) => e?.status === "hoan_thanh").length;
+  const progress = getProgressInfo(getArr(c, "work_tasks") as ProgressTask[]);
 
   return (
     <TR
@@ -137,77 +181,106 @@ const DesktopTableRow = memo(function DesktopTableRow({
       onPointerDown={() => onHover?.(id)}
       className={isCancelled ? "opacity-50" : ""}
     >
-      <TD>
-        <span className="font-semibold text-text-main">
-          {getStr(c, "contract_code")}
-        </span>
-      </TD>
-      <TD>
-        <div className="flex items-center gap-2">
+      {/* 1. Khách hàng — tên là danh tính; mã HĐ lùi xuống dòng phụ (#30a) */}
+      <TD className={CELL}>
+        <div className="flex min-w-0 items-center gap-2">
           <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(serviceType)}`}>
             {getInitials(customerName)}
           </div>
-          <span className={`font-medium text-text-main group-hover:underline underline-offset-4 decoration-primary/30 ${isCancelled ? "line-through" : ""}`}>
-            {customerName}
-          </span>
-          <span className={`text-xs px-2 py-0.5 rounded-md shrink-0 ${svcBadge.bg} ${svcBadge.text}`}>
-            {getServiceLabel(serviceType as import("@/types/contract").ServiceType)}
-          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className={`truncate font-semibold text-text-main group-hover:underline underline-offset-4 decoration-primary/30 ${isCancelled ? "line-through" : ""}`}
+                title={customerName}
+              >
+                {customerName}
+              </span>
+              <span className={`text-tiny px-1.5 py-0.5 rounded-md shrink-0 ${svcBadge.bg} ${svcBadge.text}`}>
+                {getServiceLabel(serviceType as import("@/types/contract").ServiceType)}
+              </span>
+            </div>
+            <div className="mt-0.5 flex min-w-0 items-center gap-2">
+              <span className="truncate text-tiny tabular-nums text-text-muted" title={contractCode}>
+                {contractCode}
+              </span>
+              {checklist && checklist.missing > 0 && (
+                <MissingInfoBadge
+                  summary={checklist}
+                  items={getArr(c, "contract_checklists") as unknown as ContractChecklistForBadge[]}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </TD>
-      <TD className="text-text-secondary">
-        {fmtDate(getStr(c, "contract_date") || null)}
+      {/* 2. Ngày chụp — mốc vận hành (C0); chưa có ngày chụp → ngày ký, đánh dấu "ký" */}
+      <TD className={`${CELL} text-text-secondary tabular-nums`}>
+        {workDate ? (
+          fmtDate(workDate)
+        ) : (
+          <span className="text-text-muted" title="Chưa có ngày chụp — hiện ngày ký">
+            <span className="text-tiny">ký </span>
+            {fmtDate(getStr(c, "contract_date") || null)}
+          </span>
+        )}
       </TD>
-      <TD>
-        <ContractMilestones contract={c} compact />
+      {/* 3. Trạng thái — luôn nằm trong khung; badge cỡ tiny như bảng tablet để "ĐANG THỰC HIỆN" nằm gọn 136px */}
+      <TD className={`${CELL} text-center [&_.badge]:px-2 [&_.badge]:py-1 [&_.badge]:text-tiny`}>
+        <Badge variant={getStatusVariant(status)} dot>
+          {getStatusLabel(status)}
+        </Badge>
       </TD>
-
-      <TD className="text-right font-semibold text-text-main">
-        {fmt(getNum(c, "total_amount"))}
+      {/* 4. Sự kiện — ẩn khi khung bảng < 880px (mốc vẫn xem trong drawer) */}
+      <TD className={`${CELL_PILL} ${COL_EVENTS}`}>
+        {isClosed ? (
+          <DoneMark done={eventsDone} total={events.length} label="mốc" />
+        ) : (
+          <ContractMilestones contract={c} compact />
+        )}
       </TD>
+      {/* 5. Tiến độ */}
+      <TD className={CELL_PILL}>
+        {isClosed ? (
+          <DoneMark done={progress?.completed ?? 0} total={progress?.total ?? 0} label="việc" />
+        ) : (
+          <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
+        )}
+      </TD>
+      {/* 6. Còn nợ / Tổng — gộp như bảng tablet */}
+      <TD className={`${CELL} text-right`}>
+        {remaining > 0 ? (
+          <div className="font-semibold text-error">{fmt(remaining)}</div>
+        ) : (
+          <Badge variant="success">Đủ</Badge>
+        )}
+        <div className="mt-0.5 text-tiny text-text-muted tabular-nums">Tổng {fmt(getNum(c, "total_amount"))}</div>
+      </TD>
+      {/* 7. Lợi nhuận — chỉ khi có quyền finance và khung bảng ≥ 1080px */}
       {showFinancials && (
         <TD
-          className="text-right"
+          className={`${CELL} ${COL_PROFIT} text-right`}
           onClick={(e) => {
             e.stopPropagation();
             onViewProfit?.(id);
           }}
         >
-          <div className="cursor-pointer">
-            <div className="text-xs text-text-muted">Chi phí {fmt(totalCost)}</div>
-            <div className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
-              {profit >= 0 ? "+" : ""}
-              {fmt(profit)}
+          {totalCost === 0 ? (
+            <div className="cursor-pointer text-tiny leading-tight text-text-muted" title={NO_COST_TITLE}>
+              — chưa ghi<br />chi phí
             </div>
-          </div>
+          ) : (
+            <div className="cursor-pointer">
+              <div className="text-xs text-text-muted">Chi phí {fmt(totalCost)}</div>
+              <div className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
+                {profit >= 0 ? "+" : ""}
+                {fmt(profit)}
+              </div>
+            </div>
+          )}
         </TD>
       )}
-      <TD className="text-right">
-        {getNum(c, "remaining_amount") > 0 ? (
-          <span className="font-semibold text-error">
-            {fmt(getNum(c, "remaining_amount"))}
-          </span>
-        ) : (
-          <Badge variant="success">Đầy đủ</Badge>
-        )}
-      </TD>
-      <TD className="text-center">
-        <MissingInfoBadge
-          summary={getChecklistSummary(c)}
-          items={
-            getArr(c, "contract_checklists") as unknown as ContractChecklistForBadge[]
-          }
-        />
-      </TD>
-      <TD>
-        <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
-      </TD>
-      <TD>
-        <Badge variant={getStatusVariant(status)} dot>
-          {getStatusLabel(status)}
-        </Badge>
-      </TD>
-      <TD className="text-right">
+      {/* 8. Mở chi tiết */}
+      <TD className={`${CELL} text-right`}>
         <div className="h-8 w-8 inline-flex items-center justify-center rounded-md shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
           <ChevronRight className="w-4 h-4" />
         </div>
@@ -255,6 +328,9 @@ const DesktopTable = memo(function DesktopTable({
         // ôm sát hàng cuối, không ghim đáy viewport để lại khoảng trống; hàng nhiều vẫn
         // bị cap bởi parent (min-h-0) → cuộn trong bảng như cũ.
         containerClassName="lg:flex-initial"
+        className="table-fixed"
+        showScrollbar
+        containerQuery
         footer={
           totalPages !== undefined && totalPages > 1 && onPageChange ? (
             <div className="bg-bg-card border-t border-border px-5 py-3.5 flex items-center justify-between shrink-0">
@@ -275,17 +351,14 @@ const DesktopTable = memo(function DesktopTable({
       >
         <THead>
           <tr>
-            <TH>Mã HĐ</TH>
-            <TH>Khách hàng</TH>
-            <TH>Ngày ký</TH>
-            <TH>Sự kiện</TH>
-            <TH className="text-right">Tổng cộng</TH>
-            {showFinancials && <TH className="text-right">Lợi nhuận</TH>}
-            <TH className="text-right">Còn nợ</TH>
-            <TH className="text-center">Thông tin</TH>
-            <TH>Tiến độ</TH>
-            <TH>Trạng thái</TH>
-            <TH className="text-right">Thao tác</TH>
+            <TH className={`${CELL} w-[228px]`}>Khách hàng</TH>
+            <TH className={`${CELL} w-[100px]`}>Ngày chụp</TH>
+            <TH className={`${CELL} w-[132px] text-center`}>Trạng thái</TH>
+            <TH className={`${CELL_PILL} w-[136px] ${COL_EVENTS}`}>Sự kiện</TH>
+            <TH className={`${CELL_PILL} w-[136px]`}>Tiến độ</TH>
+            <TH className={`${CELL} w-[132px] text-right`}>Còn nợ</TH>
+            {showFinancials && <TH className={`${CELL} w-[136px] ${COL_PROFIT} text-right`}>Lợi nhuận</TH>}
+            <TH className={`${CELL} w-11`} aria-label="Mở chi tiết" />
           </tr>
         </THead>
         <TBody>
@@ -406,10 +479,14 @@ const MobileCardRow = memo(function MobileCardRow({
           className="mb-2 flex cursor-pointer items-center justify-between text-tiny"
         >
           <span className="text-text-muted">Lợi nhuận</span>
-          <span className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
-            {profit >= 0 ? "+" : ""}
-            {fmt(profit)}
-          </span>
+          {getNum(c, "total_cost") === 0 ? (
+            <span className="text-text-muted" title={NO_COST_TITLE}>— chưa ghi chi phí</span>
+          ) : (
+            <span className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
+              {profit >= 0 ? "+" : ""}
+              {fmt(profit)}
+            </span>
+          )}
         </div>
       )}
 

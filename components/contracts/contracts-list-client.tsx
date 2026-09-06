@@ -431,8 +431,9 @@ const ContractsListInner = memo(function ContractsListInner({
             </div>
           }
           desktop={
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* #30a: không overflow-hidden — hẹp thì nhóm dropdown xuống dòng, tab không bao giờ bị cắt chữ */}
+              <div className="min-w-0 flex-1 basis-[560px] overflow-x-auto scrollbar-hide">
                 <TabsFilter
                   tabs={tabsWithCounts}
                   activeTab={filters.status}

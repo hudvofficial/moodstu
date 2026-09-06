@@ -32,7 +32,7 @@ export interface ContractFilterState {
 
 // ── Default values ────────────────────────────────────────────
 const CONTRACT_FILTER_DEFAULTS = {
-  status: "all",
+  status: "dang_thuc_hien", // #30a: mặc định việc đang chạy — PHẢI khớp app/(protected)/contracts/page.tsx
   q: "",
   search: "",
   time: "all",
