@@ -1,6 +1,6 @@
 # T-20260905-s3-ky-luat-ghi-prod — Chuẩn S3: kỷ luật ghi production (cờ `ALLOW_PROD_WRITE` + pre-push tĩnh)
 
-**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** 🔍 CHỜ XEM DIFF — chủ "DUYỆT" 06/09 · code + verify xong 06/09 06:10 · **Chương trình:** GĐ1 Nền móng, bước #10 (`agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — không đổi data-flow/schema/lib; thêm 1 module guard + 1 hook git + sửa 2 config test.
+**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — duyệt 06/09 · code+verify 06/09 · `/buoc done` → commit `04665cd` (chưa push) · **Chương trình:** GĐ1 Nền móng, bước #10 (`agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — không đổi data-flow/schema/lib; thêm 1 module guard + 1 hook git + sửa 2 config test.
 
 ## 0. Vì sao — bằng chứng trong 24 giờ qua
 
@@ -102,7 +102,7 @@ In thời gian chạy ở cuối. Bỏ qua khi thật cần: `git push --no-veri
 | tsc / eslint | `npx tsc --noEmit` 0 lỗi · eslint 27 file đổi: 0 lỗi (26 cảnh báo "file ignored" vì `scripts/` nằm trong ignore của eslint config — có sẵn) |
 
 **Phát hiện & xử lý ngoài dự kiến**
-- `scripts/verify-utf8-mojibake.mjs` báo dương tính giả ở `AGENTS.md:28` (dòng liệt kê mẫu `â€` để nhận diện) → thêm `AGENTS.md` vào `INTENTIONAL_SIGNATURE_FILES` (cơ chế sẵn có, 1 dòng) — nếu không, hook chặn mọi lần push.
+- `scripts/verify-utf8-mojibake.mjs` báo dương tính giả ở `AGENTS.md:28` (dòng liệt kê chính các chuỗi mojibake mẫu để nhận diện — không chép lại ở đây kẻo gate bắt) → thêm `AGENTS.md` vào `INTENTIONAL_SIGNATURE_FILES` (cơ chế sẵn có, 1 dòng) — nếu không, hook chặn mọi lần push.
 - `tests/unit/ledger-fallback-sort.test.ts` **chập chờn**: đỏ 2/3 lần dưới tải song song, xanh khi chạy riêng và ở lần chạy thứ 3 — có sẵn, không do thay đổi này (chỉ đụng `testPathIgnorePatterns`). Ghi sổ đối chiếu 🟡.
 - CI (`.github/workflows/ci.yml`) chỉ lint + build, không e2e/jest → rủi ro §5 không xảy ra.
 
