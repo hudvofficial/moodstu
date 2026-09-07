@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-07
 giai_doan_hien_tai: 1
-buoc_hien_tai: 12
+buoc_hien_tai: 13
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần · 0 HĐ kẹt huỷ · nợ lab xác nhận", trang_thai: mo }
@@ -148,9 +148,11 @@ buoc:
     ten: "Vá R2 — hoàn tiền không phải chi phí: finance_period_ledger + contract_financials loại phiếu danh mục contract_refund khỏi cost_direct"
     hinh_thuc: db
     gate: [7, 10]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-07
     ngay_duyet: 2026-09-07
     ngay_ap_db: 2026-09-07
+    bang_chung: "ĐÃ ÁP prod 07/09 (migrate-direct, cờ S3) · commit 138882a (chưa push) · local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp byte · EXPLAIN 9,4→11,6ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert không liên quan (0058 mốc giao thiếu ngày → sổ #26/#30)"
     spec: agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.spec.md
     verify: "local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp 100% · EXPLAIN +2ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert KHÔNG liên quan (0058 mốc giao thiếu ngày → ghi sổ #26/#30)"
     diff: "supabase/migrations/20260907090000_r2_ledger_hoan_tien_khong_phai_chi_phi.sql · agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.{spec.md,revert.sql} · agent/DB-CHANGELOG.md · vault/30-du-lieu/than-ham/hop-dong.md (sinh lại) · agent/inventory/00-lech-thiet-ke.md"
