@@ -1,0 +1,233 @@
+# GOALS.yaml — SỔ 32 BƯỚC của chương trình tối ưu (nguồn: agent/PHUONG-AN.md · bảng kiến trúc §21)
+# Lệnh /buoc đọc & ghi file này (tên /goal bị Claude Code chiếm). Việc KHÔNG có trong sổ = KHÔNG làm (chống lệch hướng).
+#
+# status: todo | spec | cho-duyet | dang-lam | verify | cho-xem-diff | done | hoan | bo
+# hinh_thuc: spec (📄 spec→duyệt→code→diff) | db (🗄️ = spec + ADR + dump + revert + CHANGELOG)
+#            doc (👁 chỉ đọc, Claude tự làm) | chu (👤 chủ thao tác) | chung (🤝 phiên chung)
+# gate: danh sách id phải done trước (hoặc "G1"/"G2"/"G3" = cổng giai đoạn)
+# done chỉ hợp lệ khi có `bang_chung` (lệnh verify + kết quả số) và `ngay_done`.
+
+version: 1
+updated: 2026-09-07
+giai_doan_hien_tai: 1
+buoc_hien_tai: 12
+
+cong:
+  G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần · 0 HĐ kẹt huỷ · nợ lab xác nhận", trang_thai: mo }
+  G2: { dieu_kien: "0 công thức ngoài ledger · 100% khu nhạy cảm role-gate · audit ≥95% · Mồ côi = 0 · CHECK validated · 5 cửa khoá", trang_thai: dong }
+  G3: { dieu_kien: "chấm lại điểm bằng thước cũ: không trục < C · Số-hiển-thị ≥ B · ⬛ ≤3 · tiền kẹt ≤46tr · HĐ>30d ≤5", trang_thai: dong }
+
+buoc:
+  # ───────── GIAI ĐOẠN 1 · NỀN MÓNG ─────────
+  - id: 1
+    gd: 1
+    tuan: 1
+    ten: "Chủ duyệt chương trình"
+    hinh_thuc: chu
+    gate: []
+    status: done
+    ngay_done: 2026-09-02
+    bang_chung: "user 'đồng ý'"
+  - id: 2
+    gd: 1
+    tuan: 1
+    ten: "Dump catalog DB↔repo · DISTINCT status · đếm ảnh vượt gói · lập DB-CHANGELOG"
+    hinh_thuc: doc
+    gate: [1]
+    status: done
+    ngay_done: 2026-09-02
+    bang_chung: "agent/inventory/18-diff-db-repo.md (149/148 hàm · 217/81 policy · sổ Supabase dừng 20260621, 113 bản ghi) · agent/DB-CHANGELOG.md baseline · status 3 cột sạch · selection_limit 0/90"
+  - id: 3
+    gd: 1
+    tuan: 1
+    ten: "Chốt 10 luật vận hành C0–C9"
+    hinh_thuc: chung
+    gate: [2]
+    status: done
+    ngay_done: 2026-09-02
+    bang_chung: "vault/90-van-hanh-thuc-te/quyet-dinh-C0-C9.md — user 'ok' bản 3"
+  - id: 4
+    gd: 1
+    tuan: 1
+    ten: "S1 — backup đêm + runbook sự cố"
+    hinh_thuc: spec
+    spec: agent/HANDOFFS/T-20260902-s1-backup-runbook.spec.md
+    gate: [1]
+    status: done
+    ngay_done: 2026-09-02
+    bang_chung: "dump đầu OK 6MB/93 bảng (pg_restore --list 93 TABLE DATA·158 FUNCTION·217 POLICY·75 TRIGGER) · task MoodStudio-Backup-DB Ready 02:00 · agent/RUNBOOK-SU-CO.md"
+  - id: 5
+    gd: 1
+    tuan: 1
+    ten: "V0 — script 5 số, baseline"
+    hinh_thuc: doc
+    gate: [1]
+    status: done
+    ngay_done: 2026-09-02
+    bang_chung: "scripts/v0-snapshot.mjs → agent/V0-LOG.md dòng 02/09 (29 HĐ · 4 thiếu ngày chụp · kẹt 92.575.000 = RPC · vàng 17 · đỏ 13 · thu-đủ-chưa-đóng 9 · lab 1.905.000)"
+  - id: 6
+    gd: 1
+    tuan: 1
+    ten: "Chủ xác nhận cọc + nhắn 5 khách già nhất còn tiền"
+    hinh_thuc: chu
+    gate: [5]
+    status: hoan
+    ly_do_hoan: "06/09 chủ: HĐ đợi khách thanh toán là trạng thái vận hành bình thường, admin xử lý theo thực tế — không phải việc của chương trình tối ưu. Giữ danh sách làm ghi chú cho admin; không gate, không nhắc trong thẻ."
+    ngay_bat_dau: 2026-09-03
+    phat_hien: "SQL 03/09 - 5 HĐ già nhất (0003·0008·0010·0006·0014, 87-119d) đều còn thu = 0, in xong, giao chưa làm → thuộc #14 đóng hồ sơ, KHÔNG nhắn đòi tiền. 16/29 HĐ đang chạy có paid_amount = 0 (68.275.000đ), 6 HĐ >26d → nghi cọc thu ngoài sổ chưa ghi."
+    danh_sach: "HĐ-2026-0036 Bé Diệc 07666777881 63d 600.000 · HĐ-2026-0034 QUANG HẢO-THỊ BÉ 0961474253 62d 6.900.000 · HĐ-2026-0039 Minh-Duyên 0987556778 51d 5.500.000 · HĐ-2026-0041 Thị Cầm-Nhật Khoan 0326053676 50d 5.500.000 · HĐ-2026-0045 Mỹ Duyên-Tấn Thành 0332388653 41d 13.000.000 (tất cả còn thu = tổng, 0 phiếu thu)"
+    huong_dan: "Chủ làm 2 việc cho mỗi HĐ trong danh_sach - (a) khách ĐÃ đưa cọc ngoài sổ → ghi phiếu thu trên UI đúng ngày nhận; (b) chưa đưa gì → nhắn/gọi. Done khi chủ báo 5/5 đã xử lý (ghi hoặc nhắn). Claude kiểm bằng SQL: paid_amount của 5 HĐ này."
+    verify: "node scripts/db-q.mjs \"SELECT contract_code, paid_amount::bigint, remaining_amount::bigint FROM contracts WHERE contract_code IN ('HĐ-2026-0036','HĐ-2026-0034','HĐ-2026-0039','HĐ-2026-0041','HĐ-2026-0045')\""
+  - id: 7
+    gd: 1
+    tuan: 2
+    ten: "Diễn tập restore 1 lần ra Postgres cục bộ"
+    hinh_thuc: doc
+    ghi_chu: "đổi chu→doc 04/09: binary có sẵn, Claude tự dựng cluster + restore, không cần chủ thao tác"
+    gate: [4]
+    status: done
+    ngay_done: 2026-09-04
+    bang_chung: "scripts/restore-drill.ps1 → restore.log 04/09 13:54: OK mood_20260904_0200.dump 11s bang=93 ham=180(149+31 pg_trgm) policy=217 trigger=75 index=501 lỗi pre/data/post=0/0/0 · scripts/restore-drill-compare.mjs: PASS 93 bảng khớp tên, 45.041/45.055 dòng, lệch 0,03% — 14 dòng lệch đều tạo sau 02:00 (SQL kiểm created_at: audit 4·receipts 1·inventory 1+2·signals 7) · server cục bộ đã tắt"
+    huong_dan: "lặp lại mỗi quý: powershell -File scripts/restore-drill.ps1 rồi node scripts/restore-drill-compare.mjs · PASS = 93 bảng, tổng dòng lệch ≤1%"
+  - id: 8
+    gd: 1
+    tuan: 2
+    ten: "Sửa nhãn thẻ 'Doanh thu' /dashboard → finance_month_summary().revenue + thẻ 'Đã thu (két)'"
+    hinh_thuc: spec
+    gate: [3]
+    status: done
+    spec: agent/HANDOFFS/T-20260904-dashboard-doanh-thu-ket.spec.md
+    ngay_spec: 2026-09-04
+    ngay_duyet: 2026-09-05
+    ngay_code: 2026-09-05
+    ngay_done: 2026-09-05
+    bang_chung: "commit d8d9de0 (6 file +289 −75, push 07/09 b4073b4) · tsc 0 · eslint 0 · build OK · SQL pnl_by_month = month_summary = critical.cash chênh 0đ · Playwright dashboard-kpi-ledger 1/1 (4 viewport, 3 số = RPC) + cashflow-m3 3/3 · jest 65/71 (6 đỏ = HEAD) · màn thật: Doanh thu 720.000 ↓98,4% · Đã thu 720.000 ↓96,1% · Lãi/lỗ 390.000 ↓98,9% (T8 46,325tr/18,35tr/37,13tr) · rác e2e sau chạy = 0"
+    verify: "tsc 0 · eslint 5 file 0 · build OK (xoá .next rồi build) · SQL 4 cặp chênh 0đ · Playwright tests/e2e/dashboard-kpi-ledger.spec.ts PASS: @390 2 cột · @768/1023/1280 3 cột, 6 thẻ, 3 số = finance_pnl_by_month chênh 0đ, seed dọn sạch · jest 65/71 suite xanh, 6 đỏ giống HEAD (worktree riêng) · e2e có sẵn cashflow-m3 3/3 PASS qua /dashboard · verify:dashboard đỏ CÓ SẴN (assert lỗi thời M3, ghi sổ) · review 3 lăng kính: nhận 5 sửa (loading.tsx, lãi âm, trend có dấu, cô lập lỗi sổ kỳ, field chết)"
+    diff: "5 file app +158 −75 (types/dashboard.ts · lib/api/dashboard.ts · dashboard/page.tsx · dashboard/loading.tsx · revenue-chart.tsx) + 1 spec e2e mới tests/e2e/dashboard-kpi-ledger.spec.ts"
+    don_rac: "05/09 khi chạy e2e: rác sự cố 28/08 còn sót — 6 auth @test.local (1 admin active), 4 phiếu chi E2E 1.700.000đ trong T8, 2 phân bổ mồ côi, 1 lab, 2 vendor, 1 vật tư → xoá qua API, T8 cash_out 19.796.400→18.096.400 khớp đối soát 26/08; DB-CHANGELOG có dòng"
+    phat_hien_moi: "asNumber kẹp sàn 0 → /finance/dashboard không hiện tháng lỗ/két âm (🔴 sổ đối chiếu, #29) · currentPeriod theo UTC (🟡) · thẻ Hoàn thành theo updated_at (🟡) · verify:dashboard assert lỗi thời (🟡)"
+    can_cu: "sổ đối chiếu R7 — lệch 27,98tr trên màn mở đầu; chuẩn một-số-một-nguồn. Đo 04/09: T8 thẻ 18.350.000 vs doanh thu 46.325.000; nguồn chọn finance_pnl_by_month (16ms, cùng sổ kỳ) thay finance_month_summary (243ms)"
+  - id: 9
+    gd: 1
+    tuan: 2
+    ten: "Sửa filter lương 'Hoàn thành' → hoan_thanh (salary-actions.ts:259,355) + jest"
+    hinh_thuc: spec
+    gate: [3]
+    status: hoan
+    ly_do_hoan: "C7 (02/09) = không dùng lương cứng, #32b gỡ cả khối lương; 0/13 nhân sự có base_salary; sửa xong cảnh báo nổ 130 task cost 0 hợp lệ (M3). Thẻ quyết trình 06/09; chủ 2 lần gõ /buoc next qua (06/09, 07/09) → ghi hoãn, gộp vào #32b"
+    can_cu: "sổ đối chiếu ⬛ validatePayrollWarningsAction chết lặng"
+  - id: 10
+    gd: 1
+    tuan: 2
+    ten: "S3 — cờ ALLOW_PROD_WRITE cho script ghi + e2e/jest live + hook pre-push tĩnh <2'"
+    hinh_thuc: spec
+    gate: [4]
+    status: done
+    ngay_done: 2026-09-06
+    bang_chung: "commit 04665cd (33 file +481 −3, push 07/09 b4073b4) · không cờ: smoke-contracts exit 2 & 0 dòng, Playwright dừng global-setup 0 dòng, jest bỏ 4 live 0 user sinh · có cờ: guard qua, Playwright 1/1 PASS rác 0 · 22/22 script 🔒 (kiểm kê 22) · hook pre-push 17s OK, chặn test.only exit 1 · tsc 0 eslint 0"
+    spec: agent/HANDOFFS/T-20260905-s3-ky-luat-ghi-prod.spec.md
+    ngay_code: 2026-09-06
+    verify: "không cờ: smoke-contracts exit 2, 0 dòng ghi; Playwright dừng ở global-setup, 0 dòng; jest bỏ 4 live, 4 suite đỏ = có sẵn, 0 user sinh · có cờ: migrate-direct qua guard; Playwright 1/1 PASS rác 0; jest list live 5 · 22/22 script có cờ, kiểm kê 22 🔒 · hook pre-push 17s OK, chặn test.only exit 1, bắt lỗi TS thật · tsc 0 · eslint 0 lỗi"
+    diff: "27 file sửa +63 −3 (22 script +2 dòng · global-setup.ts · jest.config.js · package.json hooks:install · CLAUDE.md · verify-utf8-mojibake.mjs · RUNBOOK) + mới: scripts/lib/prod-guard.mjs · .githooks/pre-push · spec; 16-scripts.md sinh lại (22 🔒)"
+    ngay_spec: 2026-09-05
+    ngay_duyet: 2026-09-06
+    can_cu: "agent/inventory/16-scripts.md ghi 40 (regex); đo lại 05/09 = 22 script thật ghi + playwright/global-setup + 2 jest moodie-*-live; bằng chứng: rác 28/08 còn 1,7tr phiếu chi giả trong T8, jest live tạo user prod 05/09; 3 runner gọi exec_sql không tồn tại (chết)"
+  - id: 11
+    gd: 1
+    tuan: 2
+    ten: "V0 lần 2"
+    hinh_thuc: doc
+    gate: [5]
+    status: done
+    ngay_done: 2026-09-06
+    bang_chung: "agent/V0-LOG.md dòng 2026-09-06 (chạy sớm theo lệnh chủ, 4 ngày sau baseline): 29 HĐ chạy · 4 thiếu ngày chụp · kẹt 92.575.000 · vàng 17 · đỏ 14 (+1) · già nhất 122 (+3) · thu đủ chưa đóng 9 · phải thu 92.575.000 · nợ lab 1.905.000 · 5 đơn in mở — không thay đổi vận hành so 02/09; 5 HĐ #6 vẫn paid=0. Sửa v0-snapshot.mjs ngày theo giờ VN (trước lấy UTC → ghi lùi 1 ngày)"
+    huong_dan: "node scripts/v0-snapshot.mjs — mỗi thứ Hai; lần 3: 15/09 (hoặc 08/09 nếu chủ muốn giữ nhịp thứ Hai)"
+  - id: 12
+    gd: 1
+    tuan: 3
+    ten: "Vá R2 — hoàn tiền không phải chi phí: finance_period_ledger + contract_financials loại phiếu danh mục contract_refund khỏi cost_direct"
+    hinh_thuc: db
+    gate: [7, 10]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-07
+    ngay_ap_db: 2026-09-07
+    spec: agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.spec.md
+    verify: "local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp 100% · EXPLAIN +2ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert KHÔNG liên quan (0058 mốc giao thiếu ngày → ghi sổ #26/#30)"
+    diff: "supabase/migrations/20260907090000_r2_ledger_hoan_tien_khong_phai_chi_phi.sql · agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.{spec.md,revert.sql} · agent/DB-CHANGELOG.md · vault/30-du-lieu/than-ham/hop-dong.md (sinh lại) · agent/inventory/00-lech-thiet-ke.md"
+    revert: agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.revert.sql
+    migration: supabase/migrations/20260907090000_r2_ledger_hoan_tien_khong_phai_chi_phi.sql
+    ngay_spec: 2026-09-07
+    do_duoc: "07/09: 0 phiếu hoàn, 0 HĐ da_huy, 0 phiếu other+contract_id → vá phòng ngừa, số không đổi; app ghi hoàn tiền bằng danh mục contract_refund (contract-refund-actions.ts:63) — DB dùng cùng khoá; backup 07/09 02:13 OK; revert.sql 2 hàm sống"
+    can_cu: "sổ đối chiếu 🟡 hoàn tiền HĐ huỷ; phán quyết hội đồng R2 TRƯỚC R1"
+  - id: 13
+    gd: 1
+    tuan: 3
+    ten: "Sửa R1 — cancel_contract_cascade 'da_huy' → 'huy_don'"
+    hinh_thuc: db
+    gate: [12]
+    status: todo
+    can_cu: "R1 [DB] 5 HĐ kẹt, CHECK validated, 0 đơn mang da_huy"
+  - id: 14
+    gd: 1
+    tuan: 3
+    ten: "Dọn tồn 1 buổi — huỷ 5 HĐ kẹt · đóng 9 HĐ thu đủ · rà 13 HĐ ngoài phân phối (>43d) · bổ sung ngày chụp 4 HĐ"
+    hinh_thuc: chu
+    gate: [13]
+    status: todo
+    huong_dan: "Claude in 4 danh sách từ V0 + SQL chỉ đọc; chủ thao tác trên UI; done khi V0 lần kế: thu-đủ-chưa-đóng = 0, thiếu ngày chụp = 0"
+    tien_do: "06/09 07:30 chủ đóng 7/9 HĐ thu đủ (0016·0028·0043·0014·0010·0006·0030); còn 0003 Mỹ Dơn + 0008 Y Triên (mốc giao đã huỷ, 1 task mở) để mở có chủ đích → thu-đủ-chưa-đóng 9→2. Phát hiện: 4 HĐ đóng mà mốc giao chưa làm/đã huỷ → hệ không ràng buộc (ghi sổ đối chiếu, #30). Còn lại của #14: huỷ 5 HĐ kẹt (sau #13), 13 HĐ >43d, 4 HĐ thiếu ngày chụp"
+  - id: 15
+    gd: 1
+    tuan: 3
+    ten: "Đối soát nợ lab 1,9tr + gắn payee_id cho 3 phiếu 500k thiếu lab"
+    hinh_thuc: chung
+    gate: [4]
+    status: todo
+    can_cu: "đính chính 02/09 — 26 phiếu 7,94tr đã ghi; còn nợ 1.905.000 khớp /printing"
+  - id: 16
+    gd: 1
+    tuan: 3
+    ten: "V0 lần 3 → kiểm CỔNG G1"
+    hinh_thuc: doc
+    gate: [6, 7, 11, 14, 15]
+    status: todo
+    huong_dan: "đủ điều kiện G1 → đổi cong.G1.trang_thai = qua, mở GĐ2"
+
+  # ───────── GIAI ĐOẠN 2 · XƯƠNG ─────────
+  - { id: 17, gd: 2, tuan: 4, ten: "T1 · /finance/goals đọc ledger — diệt R10", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "sổ đối chiếu 🟡 trừ trùng lương+cố định; C7 = không dùng lương → vẫn sửa, hạ ưu tiên" }
+  - { id: 18, gd: 2, tuan: 4, ten: "T1 · health-score thôi đọc debts rỗng → finance_debt_stats", hinh_thuc: db, gate: [G1], status: todo, can_cu: "sổ đối chiếu ⬛ debts 0 dòng; C8 gỡ health-score khỏi màn" }
+  - { id: 19, gd: 2, tuan: 4, ten: "T3 · audit inject actor tại withAuth + nối LOGIN", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "R11 — 169 điểm ghi, 10 có performedBy" }
+  - { id: 20, gd: 2, tuan: 5, ten: "T2 · V4 hàng đợi tuổi đơn (RPC chỉ-đọc + section /contracts)", hinh_thuc: spec, gate: [14], status: todo, can_cu: "cơ chế trung tâm; C0 ngưỡng 26/43/14; chọn = hậu kỳ" }
+  - { id: 21, gd: 2, tuan: 5, ten: "T2 · V5 trang nhịp 15' thứ Hai + chủ chạy nhịp đầu", hinh_thuc: spec, gate: [20], status: todo }
+  - { id: 22, gd: 2, tuan: 6, ten: "T3 · role-gate route-group /admin /settings; gỡ CRM khỏi sale (C1)", hinh_thuc: spec, gate: [3], status: todo }
+  - { id: 23, gd: 2, tuan: 6, ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)", hinh_thuc: db, gate: [G1], status: todo }
+  - { id: 24, gd: 2, tuan: 6, ten: "T3 · gỡ policy OR contracts_authenticated_read + vá R8 lịch WHERE theo vai", hinh_thuc: db, gate: [3, 10], status: todo }
+  - { id: 25, gd: 2, tuan: 7, ten: "T3 · probe → khoá 4 action gallery + /api/drive-download", hinh_thuc: spec, gate: [G1], status: todo }
+  - { id: 26, gd: 2, tuan: 7, ten: "T4 · CHECK cho work_tasks.status + contract_events.status (dữ liệu đã sạch — chỉ NOT VALID → VALIDATE)", hinh_thuc: db, gate: [10], status: todo }
+  - { id: 27, gd: 2, tuan: 7, ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng", hinh_thuc: db, gate: [10], status: todo }
+  - { id: 28, gd: 2, tuan: 7, ten: "T1 · scripts/verify-numbers.mjs → kiểm CỔNG G2", hinh_thuc: doc, gate: [17, 18, 19, 20, 22, 23, 24, 25, 26, 27], status: todo }
+
+  # ───────── GIAI ĐOẠN 3 · MODULES (kém nhất trước) ─────────
+  - id: 30a
+    gd: 1
+    tuan: 3
+    ten: "Danh sách HĐ — desktop 6 cột không cắt · tab trạng thái có số đếm · mã HĐ gọn 3 tầng (kéo lên từ #30 theo lệnh chủ 06/09)"
+    hinh_thuc: spec
+    gate: []
+    status: done
+    ngay_done: 2026-09-07
+    bang_chung: "commit 2a53dd6 (8 file +520 −77, push 07/09 b4073b4) · Playwright contracts-table-desktop 5/5: tràn 0 ở 1280/1366/1440/1536/1920 (trước 815/729/655/647/263) · cột rộng nhất ≤ 40% khung · 7/8/6 cột theo khung, sidebar thu 998→1174 → 8 cột · mặc định /contracts 20/20 chip Đang thực hiện · HĐ xong hàng 48px · 8 hàng lợi nhuận — khi chi phí 0 · tablet 5 cột 832/832, phone card · contract-operational pass · tsc 0 eslint 0 build OK · chủ xem dev 3 vòng, bắt 2 lỗi (cột auto nuốt phần dư; ✓ chữ trôi) đều sửa"
+    spec: agent/HANDOFFS/T-20260906-bang-hd-desktop.spec.md
+    ngay_code: 2026-09-06
+    verify: "Playwright tests/e2e/contracts-table-desktop.spec.ts 4/4: tràn 0 ở 1280/1366/1440/1536/1920 (trước 815/729/655/647/263) · 7 cột ≤1079 khung, 8 cột ≥1080 (1536/1920, 1366 sidebar thu 998→1174) · khung ép 800 → 6 cột · Trạng thái luôn trong khung · tablet 5 cột 832/832, phone card không đổi · contract-operational pass · tablet-ipad: render test pass, 4 lỗi đã biết WebKit (T-20260830) · tsc 0 eslint 0 build OK · CSS @container 880/1080 sinh đúng"
+    diff: "6 file: components/ui/table.tsx (+2 prop) · components/contracts/contracts-table.tsx (DesktopTable 7/8/6 cột container query, mã HĐ dòng 2, HĐ xong ✓ n/n, lợi nhuận — khi chi phí 0) · contracts-tablet-table.tsx (lợi nhuận —) · contracts-list-client.tsx (thanh lọc flex-wrap) · app/(protected)/contracts/page.tsx + hooks/useContractFilters.ts (mặc định status=dang_thuc_hien) · tests/e2e/contracts-table-desktop.spec.ts (mới, 5 test)"
+    dot_2: "chủ 06/09 'tối ưu 10/10': mặc định tab đang chạy · HĐ xong hàng 48px ✓ n/n · lợi nhuận — khi chưa chi phí · tab không cắt @1280 — 5/5 PASS; đợt 1 chủ bắt lỗi cột auto nuốt phần dư → mọi cột có width, chia đều (assert max cột ≤ 40%)"
+    ngay_spec: 2026-09-06
+    ngay_duyet: 2026-09-06
+    do_duoc: "Playwright 06/09: bảng desktop 1.727px vs khung 912 (1280) → cắt 815px; 1366 cắt 729; 1920 vẫn cắt 263 — không màn nào vừa; Mã HĐ 204px. Tab trạng thái có số đếm ĐÃ CÓ; tablet 5 cột vừa 832/832; 0/62 HĐ thiếu checklist"
+    can_cu: "chủ 06/09: bảng desktop mất cột Trạng thái (overflow-x + scrollbar-hide, 11 cột nowrap), mã HĐ chiếm chỗ; đối chiếu thị trường (pipeline theo trạng thái, 1 ô tiền, mã không phải danh tính). Phần còn lại của #30 (luật đóng HĐ, C6, mốc giao, pipeline đầy đủ) giữ ở GĐ3"
+  - { id: 29, gd: 3, tuan: 8, ten: "Module Đọc số (D): dashboard/reports → ledger · V9 ngưỡng theo trạm · total_amount về server", hinh_thuc: spec, gate: [G2], status: todo }
+  - { id: 30, gd: 3, tuan: 9, ten: "Module Lịch (D+): hiện mốc HĐ + việc (C9) · tắt/sửa Google sync (76 failed) · xoá checkEmployeeAvailability (C3)", hinh_thuc: spec, gate: [G2], status: todo }
+  - { id: 31, gd: 3, tuan: 10, ten: "Module Nền tảng (C): luật audit thành văn · bộ lọc nhật ký · bucket avatars · 3 cache tag", hinh_thuc: spec, gate: [G2], status: todo }
+  - { id: 32a, gd: 3, tuan: 11, ten: "Module CRM (C+): ownership + ma trận mọi đường ghi · nhắc lead đến hạn · warnings→việc tồn (C2)", hinh_thuc: spec, gate: [G2], status: todo }
+  - { id: 32b, gd: 3, tuan: 12, ten: "Module Nhân sự + In ấn: gỡ khối lương/cố định (C7) · luật ngày · recompute khi huỷ đơn · nhắc lab trong checklist chốt sổ (C5) → kiểm CỔNG G3", hinh_thuc: spec, gate: [G2], status: todo }
