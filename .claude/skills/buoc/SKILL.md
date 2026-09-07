@@ -70,6 +70,11 @@ Thẻ duyệt tối đa 6 dòng. Chủ không cần đọc spec để quyết �
 4. `mem_save` một dòng tiến độ.
 5. In thẻ trạng thái. **Không** tự chạy bước kế — chờ chủ gõ `/buoc next`.
 
+## Luật vận hành ≠ kỹ thuật (chủ chốt 06–07/09)
+- HĐ đang chạy, khách chưa trả, mốc chưa đánh, đơn in đang mở = **vận hành thật**, không phải dữ liệu bẩn. Chương trình chỉ sửa **hệ thống** (bug, hàm, ràng buộc, màn hình). Không bao giờ đặt "chủ phải dọn/đóng/huỷ/thu" làm điều kiện cổng hay bước gate.
+- Thấy dữ liệu "lệch" do thao tác người → đó là **lỗ của hệ** (thiếu CHECK, thiếu nhắc, cho đóng khi chưa xong) → ghi sổ đối chiếu cho bước kỹ thuật (#26/#30…), không giao việc tay.
+- Nhắc việc vận hành: **chỉ** trong V0 thứ Hai, 1 dòng, không gate.
+
 ## Cấm
 - Gộp nhiều bước vào một lần chạy.
 - Mở trang/artifact/tài liệu mới ngoài: spec của bước, sửa hồ sơ hiện có, GOALS.yaml.

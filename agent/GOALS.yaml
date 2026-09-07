@@ -10,10 +10,10 @@
 version: 1
 updated: 2026-09-07
 giai_doan_hien_tai: 1
-buoc_hien_tai: 14
+buoc_hien_tai: 22
 
 cong:
-  G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần · 0 HĐ kẹt huỷ · nợ lab xác nhận", trang_thai: mo }
+  G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
   G2: { dieu_kien: "0 công thức ngoài ledger · 100% khu nhạy cảm role-gate · audit ≥95% · Mồ côi = 0 · CHECK validated · 5 cửa khoá", trang_thai: dong }
   G3: { dieu_kien: "chấm lại điểm bằng thước cũ: không trục < C · Số-hiển-thị ≥ B · ⬛ ≤3 · tiền kẹt ≤46tr · HĐ>30d ≤5", trang_thai: dong }
 
@@ -184,8 +184,10 @@ buoc:
     ten: "Dọn tồn 1 buổi — huỷ 5 HĐ kẹt · đóng 9 HĐ thu đủ · rà 13 HĐ ngoài phân phối (>43d) · bổ sung ngày chụp 4 HĐ"
     hinh_thuc: chu
     gate: [13]
-    status: todo
+    status: hoan
+    ly_do_hoan: "07/09 chủ: HĐ đang chạy là vận hành thật, không phải data mock cần làm sạch. Bug hệ thống liên quan (R1 huỷ không được) đã sửa ở #13; các lỗ dữ liệu (mốc giao thiếu ngày, đơn in mở khi HĐ đóng, thiếu ngày chụp) là việc HỆ phải chặn/nhắc → #26 CHECK + #30, không phải việc tay của chủ"
     huong_dan: "Claude in 4 danh sách từ V0 + SQL chỉ đọc; chủ thao tác trên UI; done khi V0 lần kế: thu-đủ-chưa-đóng = 0, thiếu ngày chụp = 0"
+    danh_sach_07_09: "Còn 5 HĐ chạy, 0 kẹt huỷ (bản 02/09 đã được chủ đóng 06/09). Việc: 0058 DR Dinh (nhập ngày chụp + ngày mốc giao + thu/nợ 6,5tr) · 0064 San media (mốc giao da_huy, 0 thu, 0 ảnh → Huỷ HĐ = thử thật R1, hoặc sửa mốc) · 0063 (ngày mốc giao khi giao) · 0052 (nợ đến hạn 3,3tr — tuỳ chủ). Verify SQL: work_date NOT NULL cho HĐ chạy; mốc giao hoan_thanh có event_date; nếu huỷ 0064 → status da_huy + cancelled_at"
     tien_do: "06/09 07:30 chủ đóng 7/9 HĐ thu đủ (0016·0028·0043·0014·0010·0006·0030); còn 0003 Mỹ Dơn + 0008 Y Triên (mốc giao đã huỷ, 1 task mở) để mở có chủ đích → thu-đủ-chưa-đóng 9→2. Phát hiện: 4 HĐ đóng mà mốc giao chưa làm/đã huỷ → hệ không ràng buộc (ghi sổ đối chiếu, #30). Còn lại của #14: huỷ 5 HĐ kẹt (sau #13), 13 HĐ >43d, 4 HĐ thiếu ngày chụp"
   - id: 15
     gd: 1
@@ -193,7 +195,10 @@ buoc:
     ten: "Đối soát nợ lab 1,9tr + gắn payee_id cho 3 phiếu 500k thiếu lab"
     hinh_thuc: chung
     gate: [4]
-    status: todo
+    status: done
+    ngay_done: 2026-09-07
+    bang_chung: "Sổ hệ thống tự nhất quán 07/09: 1 lab Hồng Bảo — 33 đơn không huỷ 9.841.400 − 26 phiếu trả 7.936.400 = 1.905.000 = đúng 7 đơn chưa trả; finance_payable_summary() = 1.905.000; 0 phiếu lab thiếu payee_id (mục 3 phiếu 500k trong kế hoạch đã hết). Việc đối chiếu với sổ giấy của lab là vận hành của chủ, không gate — chủ báo nếu lab nói số khác"
+    trinh_07_09: "1 lab Hồng Bảo: 33 đơn 9.841.400 − 26 phiếu trả 7.936.400 = 1.905.000 = đúng 7 đơn chưa trả (370k·255k·235k·405k·235k·145k·260k); 0 phiếu lab thiếu payee_id (mục 3 phiếu 500k đã hết). Chờ chủ: (1) sổ lab khớp 1.905.000? (2) 3 đơn của HĐ đã đóng còn chờ xử lý/đang in/đã in (0051·0062·0060) — thực tế xong chưa? → bằng chứng cho #30 đóng HĐ ⇒ đơn in xong"
     can_cu: "đính chính 02/09 — 26 phiếu 7,94tr đã ghi; còn nợ 1.905.000 khớp /printing"
   - id: 16
     gd: 1
