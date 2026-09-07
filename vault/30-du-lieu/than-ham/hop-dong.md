@@ -215,13 +215,14 @@ BEGIN
   WHERE contract_id = p_contract_id
     AND COALESCE(status, '') <> 'hoan_thanh';
 
+  -- R1 (#13, 2026-09-07): CHECK printing_orders_status_check chỉ cho 'huy_don' (24/08); 'da_huy' làm abort cả giao dịch huỷ HĐ
   UPDATE public.printing_orders
-  SET status = 'da_huy',
+  SET status = 'huy_don',
       updated_by = p_user_id,
       updated_at = now()
   WHERE contract_id = p_contract_id
     AND deleted_at IS NULL
-    AND COALESCE(status, '') NOT IN ('hoan_thanh', 'da_huy');
+    AND COALESCE(status, '') NOT IN ('hoan_thanh', 'huy_don', 'da_huy');
 
   UPDATE public.dress_reservations
   SET status = 'cancelled',

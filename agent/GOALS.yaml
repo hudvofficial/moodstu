@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-07
 giai_doan_hien_tai: 1
-buoc_hien_tai: 13
+buoc_hien_tai: 14
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần · 0 HĐ kẹt huỷ · nợ lab xác nhận", trang_thai: mo }
@@ -167,8 +167,17 @@ buoc:
     ten: "Sửa R1 — cancel_contract_cascade 'da_huy' → 'huy_don'"
     hinh_thuc: db
     gate: [12]
-    status: todo
+    status: done
+    ngay_done: 2026-09-07
+    ngay_duyet: 2026-09-07
+    ngay_ap_db: 2026-09-07
+    bang_chung: "ĐÃ ÁP prod 07/09 (migrate-direct, cờ S3) · local: bản sống 23514 → sau fix HĐ da_huy/đơn huy_don/task da_huy, revert ✓ · thân hàm sống có SET status = 'huy_don' cho printing_orders · count HĐ+đơn theo trạng thái trước/sau khớp 100% · vault:db-truth 1 hàm · cửa thật = #14 chủ huỷ trên UI"
+    spec: agent/HANDOFFS/T-20260907-r1-cancel-cascade.spec.md
+    revert: agent/HANDOFFS/T-20260907-r1-cancel-cascade.revert.sql
+    migration: supabase/migrations/20260907100000_r1_cancel_cascade_huy_don.sql
+    ngay_spec: 2026-09-07
     can_cu: "R1 [DB] 5 HĐ kẹt, CHECK validated, 0 đơn mang da_huy"
+    do_duoc: "07/09: CHECK sống chỉ cho huy_don; app coi da_huy là LEGACY; tái hiện local 23514 → fix: HĐ da_huy/đơn huy_don/task da_huy; revert ✓; các bảng khác cascade đụng không có cửa abort thứ hai"
   - id: 14
     gd: 1
     tuan: 3

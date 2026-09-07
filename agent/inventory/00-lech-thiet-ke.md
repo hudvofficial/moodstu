@@ -54,7 +54,7 @@ Thang mức độ: **✅ khớp** · **⬛ chết** (tồn tại nhưng không c
 
 | Phần tử | Thiết kế | Thực tế | Số đo |
 |---|---|---|---|
-| `cancel_contract_cascade` | huỷ HĐ kéo theo đơn in | ghi `'da_huy'` mà CHECK (24/08) chỉ cho `huy_don` ⇒ **abort cả transaction** | **5 HĐ không huỷ được** · constraint validated=true · 0 đơn mang da_huy ⇒ chưa từng chạy thành công từ 24/08 |
+| ~~`cancel_contract_cascade`~~ **→ ✅ #13 R1 áp 07/09** | huỷ HĐ kéo theo đơn in | ~~ghi `'da_huy'` mà CHECK (24/08) chỉ cho `huy_don` ⇒ abort cả transaction~~ → ghi `huy_don`; tái hiện + fix trên local; chờ #14 huỷ thật | **5 HĐ không huỷ được** · constraint validated=true · 0 đơn mang da_huy ⇒ chưa từng chạy thành công từ 24/08 |
 | ~~Thẻ "Doanh thu tháng" `/dashboard`~~ **→ ✅ #8 commit d8d9de0 05/09 (chưa push):** 3 thẻ đọc `finance_pnl_by_month` | KPI doanh thu | không đọc sổ kỳ — hiển thị **tiền đã thu** dưới nhãn doanh thu | hiện 18,35tr · doanh thu thật 46,33tr — **lệch 27,98tr** trên màn mở đầu mỗi ngày |
 | `asNumber` kẹp sàn 0 (`lib/finance-utils.ts:67`, "P0-3 FIX") | ép số an toàn | dùng cho **`profit`, `cash_net`** ở `/finance/dashboard` (`finance-dashboard-queries.ts:119,133,167,472,636,794`) → **tháng lỗ hiện 0đ, két âm hiện 0đ** | phát hiện 05/09 qua review #8; `finance_pnl_by_month` có `cost_fixed`+`cost_salary_base` nên tháng vắng chụp lỗ là bình thường → số sai chắc chắn xảy ra. `/dashboard` đã né bằng `asSignedNumber` (#8); `/finance` sửa ở #29 |
 | Đồng bộ Google cho sự kiện HĐ | mốc HĐ lên Google Calendar | 🔴 **phát hiện 02/09:** `contract_events.google_sync_status` = 141 not_required · **76 failed · 0 thành công**; `google_sync_queue` 0 dòng; token Google có. Cơ chế gọi thẳng API (không qua queue) thất bại 100% số lần thử | 76/76 thất bại |
