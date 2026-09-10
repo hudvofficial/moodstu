@@ -21,6 +21,8 @@ UNION ALL SELECT 'schedules', count(*) FROM schedules WHERE notes ILIKE 'E2E%' O
 UNION ALL SELECT 'crm_leads', count(*) FROM crm_leads WHERE contact_name ILIKE 'E2E%'
 UNION ALL SELECT 'galleries(mo coi)', count(*) FROM galleries WHERE contract_id NOT IN (SELECT id FROM contracts)
 UNION ALL SELECT 'services', count(*) FROM services WHERE name ILIKE 'E2E%'
+-- 10/09 (lần 2): 13.622 dòng audit của seed E2E có description NULL → phải nhìn vào new_data/old_data (mã HĐ/khách/tên E2E%), không chỉ description.
 UNION ALL SELECT 'audit_logs(E2E)', count(*) FROM audit_logs WHERE description ILIKE '%E2E%'
+  OR coalesce(new_data->>'contract_code', old_data->>'contract_code', new_data->>'customer_code', old_data->>'customer_code', new_data->>'full_name', old_data->>'full_name', new_data->>'contact_name', old_data->>'contact_name', new_data->>'employee_code', old_data->>'employee_code', new_data->>'name', old_data->>'name', '') ILIKE 'E2E%'
 UNION ALL SELECT 'realtime_signals', count(*) FROM realtime_signals
 ORDER BY 2 DESC, 1

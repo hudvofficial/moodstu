@@ -138,7 +138,13 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
     await admin.from("credit_cards").delete().ilike("bank_name", "E2E-%").lt("created_at", cutoffIso);
     await admin.from("login_attempts").delete().or("email.ilike.e2e-%,email.ilike.%@test.local,email.ilike.%probe%");
     // audit_logs: app chỉ có policy SELECT/INSERT (append-only); service role bỏ qua RLS. Chỉ dòng mang dấu E2E.
-    await admin.from("audit_logs").delete().ilike("description", "%E2E%").lt("created_at", cutoffIso);
+    // 10/09 (lần 2): seed E2E ghi audit với description NULL → 13.629 dòng lọt suốt 4 tháng; phải nhìn new_data/old_data.
+    const E2E_JSON_FIELDS = ["contract_code", "customer_code", "full_name", "contact_name", "employee_code", "name"];
+    const e2eAuditOr = [
+      "description.ilike.%E2E%",
+      ...E2E_JSON_FIELDS.flatMap((f) => [`new_data->>${f}.ilike.E2E*`, `old_data->>${f}.ilike.E2E*`]),
+    ].join(",");
+    await admin.from("audit_logs").delete().or(e2eAuditOr).lt("created_at", cutoffIso);
   } catch {
     // Best-effort.
   }
