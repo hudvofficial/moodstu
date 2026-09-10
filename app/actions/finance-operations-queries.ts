@@ -4,7 +4,7 @@ import { withFinanceRead } from "@/lib/auth_utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
-import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
+import { isMissingRpcError, monthWindowOptional, relationText } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 import {
   MAX_FINANCE_PAGE_SIZE,
@@ -821,13 +821,18 @@ export async function fetchGoals(
   });
 }
 
+/**
+ * #17 (T-20260910-goals-doc-ledger): dòng tiền tháng của Mục tiêu đọc SỔ KỲ (`finance_month_summary`),
+ * không tự cộng payments/receipts/expenses và không trừ lương/cố định lần 2 (R10). C7: gỡ hai khối đó khỏi Mục tiêu.
+ */
 export interface GoalsCashflowData {
   month: number;
   year: number;
+  /** = finance_month_summary.cash_in (HĐ + bán lẻ) */
   monthlyIncome: number;
+  /** = finance_month_summary.cash_out (mọi phiếu chi, đã gồm lương/cố định nếu có) */
   monthlyExpense: number;
-  salaryComponent: number;
-  fixedCostComponent: number;
+  /** = finance_month_summary.cash_net */
   netCashflow: number;
   availableForGoals: number;
   currentPeriod: string;
@@ -843,66 +848,17 @@ export async function fetchGoalsCashflow(params: { month?: number; year?: number
       throw new Error("Tháng/năm không hợp lệ.");
     }
 
-    const window = monthWindow(month, year);
+    // #17: một số một nguồn — sổ kỳ (ADR-016 M2). cash_out đã gồm lương/cố định nếu có phiếu chi → không trừ lần 2.
+    const { data, error } = await supabase.rpc("finance_month_summary", { p_month: month, p_year: year });
+    if (error) throw new Error(`Lỗi tải sổ kỳ tháng ${month}/${year}: ${error.message}`);
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { cash_in?: unknown; cash_out?: unknown; cash_net?: unknown }
+      | null
+      | undefined;
 
-    const [paymentsResult, receiptsResult, expensesResult, salaryResult, fixedCostsResult] = await Promise.all([
-      supabase
-        .from("payments")
-        .select("amount")
-        .is("deleted_at", null)
-        .gte("payment_date", window.start)
-        .lt("payment_date", window.end),
-      supabase
-        .from("receipts")
-        .select("receipt_amount")
-        .is("deleted_at", null)
-        .is("contract_id", null)
-        .gte("receipt_date", window.start)
-        .lt("receipt_date", window.end),
-      supabase
-        .from("expenses")
-        .select("amount")
-        .is("deleted_at", null)
-        .gte("expense_date", window.start)
-        .lt("expense_date", window.end),
-      supabase
-        .from("monthly_salaries")
-        .select("total_salary")
-        .eq("month", month)
-        .eq("year", year)
-        .maybeSingle(),
-      supabase
-        .from("fixed_costs")
-        .select("monthly_amount, start_date, end_date")
-        .is("deleted_at", null),
-    ]);
-
-    if (paymentsResult.error) throw new Error(`Lỗi tải thu vào: ${paymentsResult.error.message}`);
-    if (receiptsResult.error) throw new Error(`Lỗi tải phiếu thu: ${receiptsResult.error.message}`);
-    if (expensesResult.error) throw new Error(`Lỗi tải chi phí: ${expensesResult.error.message}`);
-    if (salaryResult.error) throw new Error(`Lỗi tải bảng lương: ${salaryResult.error.message}`);
-
-    if (fixedCostsResult.error) throw new Error(`Loi tai chi phi co dinh: ${fixedCostsResult.error.message}`);
-
-    const payments = paymentsResult.data || [];
-    const receipts = receiptsResult.data || [];
-    const expenses = expensesResult.data || [];
-    const salaryComponent = Number((salaryResult.data as { total_salary?: unknown } | null)?.total_salary) || 0;
-    const fixedCostComponent = (fixedCostsResult.data || []).reduce((sum, row) => {
-      const amount = Number(row.monthly_amount) || 0;
-      if (!amount) return sum;
-      if (row.start_date && row.start_date >= window.end) return sum;
-      if (row.end_date && row.end_date < window.start) return sum;
-      return sum + amount;
-    }, 0);
-
-    const monthlyIncome =
-      payments.reduce((sum, row) => sum + (row.amount || 0), 0)
-      + receipts.reduce((sum, row) => sum + (row.receipt_amount || 0), 0);
-
-    const monthlyExpense = expenses.reduce((sum, row) => sum + (row.amount || 0), 0);
-
-    const netCashflow = monthlyIncome - monthlyExpense - salaryComponent - fixedCostComponent;
+    const monthlyIncome = Number(row?.cash_in) || 0;
+    const monthlyExpense = Number(row?.cash_out) || 0;
+    const netCashflow = row?.cash_net != null ? Number(row.cash_net) || 0 : monthlyIncome - monthlyExpense;
     const availableForGoals = Math.max(0, netCashflow);
 
     return {
@@ -910,8 +866,6 @@ export async function fetchGoalsCashflow(params: { month?: number; year?: number
       year,
       monthlyIncome,
       monthlyExpense,
-      salaryComponent,
-      fixedCostComponent,
       netCashflow,
       availableForGoals,
       currentPeriod: `${month}/${year}`,

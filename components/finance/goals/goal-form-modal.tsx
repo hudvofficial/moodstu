@@ -108,10 +108,8 @@ export function GoalFormModal({ isOpen, goal, cashflow = null, onClose, onSaved 
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      const burnRate =
-                        (cashflow?.monthlyExpense || 0) +
-                        (cashflow?.salaryComponent || 0) +
-                        (cashflow?.fixedCostComponent || 0);
+                      // #17: chi/tháng lấy từ sổ kỳ (đã gồm lương/cố định nếu có) — không cộng thêm thành phần riêng
+                      const burnRate = cashflow?.monthlyExpense || 0;
                       const suggestedAmount =
                         template.suggestedAmount > 0 ? template.suggestedAmount : burnRate > 0 ? burnRate * 6 : 0;
                       const deadline = (() => {

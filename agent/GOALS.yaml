@@ -223,7 +223,21 @@ buoc:
     huong_dan: "đủ điều kiện G1 → đổi cong.G1.trang_thai = qua, mở GĐ2"
 
   # ───────── GIAI ĐOẠN 2 · XƯƠNG ─────────
-  - { id: 17, gd: 2, tuan: 4, ten: "T1 · /finance/goals đọc ledger — diệt R10", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "sổ đối chiếu 🟡 trừ trùng lương+cố định; C7 = không dùng lương → vẫn sửa, hạ ưu tiên" }
+  - id: 17
+    gd: 2
+    tuan: 4
+    ten: "T1 · /finance/goals đọc ledger — diệt R10"
+    hinh_thuc: spec
+    gate: [G1]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-10
+    ngay_code: 2026-09-10
+    verify: "verify:goals pass · tsc 0 · eslint 0 · Playwright goals-ledger 1/1: Thu 85.995.000 · Chi 0 · Dư 85.995.000 = finance_month_summary(9,2026) chênh 0đ, không còn dòng Lương/Chi cố định, 0 lỗi app (nhiễu next start: Sentry tunnel 403, speed-insights 404/MIME) · finance-module 'no critical console errors' đỏ do 15 nhiễu speed-insights MIME trên next start, 0 lỗi app (spec viết cho npm run dev) · sweep 0"
+    diff: "app/actions/finance-operations-queries.ts (GoalsCashflowData bỏ 2 trường, fetchGoalsCashflow → rpc finance_month_summary, bỏ import monthWindow) · components/finance/goals/goals-overview.tsx (gỡ 2 dòng) · goal-form-modal.tsx (burn rate) · scripts/verify-goals.mjs + package.json verify:goals (mới) · tests/e2e/goals-ledger.spec.ts (mới) · vault/40-module/tai-chinh.md"
+    spec: agent/HANDOFFS/T-20260910-goals-doc-ledger.spec.md
+    ngay_spec: 2026-09-10
+    can_cu: "sổ đối chiếu dòng 85 (R10): goals tự cộng 5 bảng, trừ lương + cố định 2 lần; C7 = gỡ khối lương/cố định khỏi Mục tiêu; ADR-016 M2 một nguồn sổ kỳ"
+    do_duoc: "10/09: fetchGoalsCashflow 5 truy vấn (payments, receipts lẻ, expenses, monthly_salaries, fixed_costs); UI dùng availableForGoals ×9, salary/fixed chỉ ở goal-form-modal burn rate; finance_month_summary(p_month,p_year) có cash_in/cash_out/cash_net; T8 tay = RPC (18,35tr / 18,096tr / 253.600) và T9 tay = RPC (85,995tr / 0 / 85,995tr) vì monthly_salaries T5/T6 = 0, fixed_costs 0 dòng → hôm nay đúng tình cờ"
   - { id: 18, gd: 2, tuan: 4, ten: "T1 · health-score thôi đọc debts rỗng → finance_debt_stats", hinh_thuc: db, gate: [G1], status: todo, can_cu: "sổ đối chiếu ⬛ debts 0 dòng; C8 gỡ health-score khỏi màn" }
   - { id: 19, gd: 2, tuan: 4, ten: "T3 · audit inject actor tại withAuth + nối LOGIN", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "R11 — 169 điểm ghi, 10 có performedBy" }
   - { id: 20, gd: 2, tuan: 5, ten: "T2 · V4 hàng đợi tuổi đơn (RPC chỉ-đọc + section /contracts)", hinh_thuc: spec, gate: [14], status: todo, can_cu: "cơ chế trung tâm; C0 ngưỡng 26/43/14; chọn = hậu kỳ" }

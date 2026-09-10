@@ -134,22 +134,7 @@ export function GoalsOverview({ goals, cashflow }: GoalsOverviewProps) {
                   -{formatVnd(cashflow?.monthlyExpense || 0)}
                 </span>
               </div>
-              {(cashflow?.salaryComponent || 0) > 0 ? (
-                <div className="flex justify-between items-center">
-                  <span className="text-text-secondary">Lương</span>
-                  <span className="font-semibold tabular-nums text-error">
-                    -{formatVnd(cashflow?.salaryComponent || 0)}
-                  </span>
-                </div>
-              ) : null}
-              {(cashflow?.fixedCostComponent || 0) > 0 ? (
-                <div className="flex justify-between items-center">
-                  <span className="text-text-secondary">Chi co dinh</span>
-                  <span className="font-semibold tabular-nums text-error">
-                    -{formatVnd(cashflow?.fixedCostComponent || 0)}
-                  </span>
-                </div>
-              ) : null}
+              {/* #17 / C7: Thu · Chi · Dư = 3 cột của sổ kỳ (finance_month_summary). Không còn dòng "Lương" / "Chi cố định" riêng — chúng đã nằm trong Chi. */}
             </div>
           </div>
 

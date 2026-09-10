@@ -120,6 +120,25 @@ async function cleanupById(
     else console.log(`[global-teardown] ✅ Deleted ${customerIds.length} customers`);
   }
 
+  // 3b. Nhật ký audit của HĐ/khách seed (10/09: mỗi lần chạy để lại ~40 dòng CREATE/DELETE với description NULL,
+  //     sweep theo description không thấy → 13.629 dòng tồn 4 tháng). Xoá theo record_id seed + theo mã E2E trong payload.
+  const auditRecordIds = [...allContractIds, ...customerIds];
+  if (auditRecordIds.length > 0) {
+    const { error: auditErr, count } = await admin
+      .from("audit_logs")
+      .delete({ count: "exact" })
+      .in("record_id", auditRecordIds);
+    if (auditErr) console.warn(`[global-teardown] ⚠️  audit_logs cleanup: ${auditErr.message}`);
+    else console.log(`[global-teardown] ✅ Deleted ${count ?? 0} audit_logs rows of seeded records`);
+  }
+  {
+    const { error: auditErr2 } = await admin
+      .from("audit_logs")
+      .delete()
+      .or("new_data->>contract_code.ilike.E2E-GL*,old_data->>contract_code.ilike.E2E-GL*,new_data->>full_name.ilike.E2E*,old_data->>full_name.ilike.E2E*");
+    if (auditErr2) console.warn(`[global-teardown] ⚠️  audit_logs E2E payload cleanup: ${auditErr2.message}`);
+  }
+
   // 4. Employee + Auth user
   if (userId) {
     const { error: empErr } = await admin
