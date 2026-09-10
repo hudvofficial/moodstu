@@ -13,7 +13,7 @@ Gom các màn hình xuyên suốt không thuộc một nghiệp vụ riêng.
 ## Dashboard
 
 `/dashboard` — RSC, không SWR, **nhưng CÓ realtime**: `DashboardRealtimeRefresh` (`page.tsx:294`) subscribe `postgres_changes` trên bảng tín hiệu `realtime_signals` rồi gọi server action xoá cache (`components/dashboard/dashboard-realtime-refresh.tsx:104-125`). Component này dựng kênh **thủ công**, không bị `verify-realtime-client-surface.mjs` canh.
-RPC: `dashboard_critical_kpis`, `dashboard_revenue_chart`, `dashboard_service_breakdown`, **`finance_pending_collections`** (card "Cần thu tiền" — `lib/api/dashboard.ts:850`). **Không** gọi `contract_stats`; hàm đó thuộc `/contracts` (`contract-queries.ts:123`).
+RPC: `dashboard_critical_kpis` (từ 05/09 #8 chỉ còn dùng `total_debt` + đếm HĐ — cột `current_revenue/previous_revenue` không ai đọc), **`finance_pnl_by_month`** (3 thẻ Doanh thu · Đã thu · Lãi/lỗ, #8), `dashboard_revenue_chart`, `dashboard_service_breakdown`, **`finance_pending_collections`** (card "Cần thu tiền" — `lib/api/dashboard.ts:850`). **Không** gọi `contract_stats`; hàm đó thuộc `/contracts` (`contract-queries.ts:123`).
 `lib/dashboard-idb-cache.ts` **có file nhưng 0 import trong toàn repo** → tầng cache IndexedDB này không chạy. Đừng dựa vào nó khi lập luận về cache dashboard.
 
 ⚠️ TTFB `/dashboard` từng đo **5,69s**. Đã ghi nhận nhưng **cố ý chưa xử lý** (admin-only, ngoài phạm vi tối ưu LCP công khai — [[adr-index|ADR-012]]).

@@ -64,7 +64,7 @@ Nhưng đừng tin câu "không có UPDATE `status` tay": code **có**. `return_
 
 SWR (4 file) + realtime qua **signal** ở 3 file client (5 lời gọi `useRealtimeSignal`: `dresses-list-client.tsx:97-99`, `rental-history-client.tsx:132`, `standalone-rentals-client.tsx:82`) — `dresses` bị REVOKE SELECT khỏi `authenticated` (nếu grant lại thì `purchase_price` lộ cho mọi nhân viên qua payload realtime). → [[cache-va-realtime]]
 
-Huỷ hợp đồng có `cancel_contract_cascade` chạm `dress_reservations` + `dresses` → [[hop-dong]] (ở đó còn một nghi vấn nghiêm trọng: hàm này đặt `printing_orders.status='da_huy'`, giá trị mà CHECK constraint hiện tại không cho phép).
+Huỷ hợp đồng có `cancel_contract_cascade` chạm `dress_reservations` + `dresses` → [[hop-dong]] (~~nghi vấn `printing_orders.status='da_huy'` vs CHECK~~ — ✅ **đã sửa 07/09/2026, #13 R1**: hàm ghi `huy_don`).
 
 ⚠️ **`lib/hooks/use-prefetch-on-hover.ts:90-99` query thẳng bảng `dresses` từ trình duyệt** (và select cả `purchase_price`, `:53`) — trong khi `dresses` đã bị `REVOKE ALL … FROM PUBLIC, anon, authenticated` (`20260429110000_dresses_audit_fix.sql:10`, không có GRANT lại ở migration nào sau). Prefetch này sẽ nhận `42501`; đừng lấy nó làm mẫu.
 

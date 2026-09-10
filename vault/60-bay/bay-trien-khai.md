@@ -68,6 +68,8 @@ Kiểm `pg_policies` tồn tại là chưa đủ — đã lọt một lần. Ph�
 
 `scripts/migrate-direct.mjs:57-64` bắt truyền **từng tên file** ⇒ migration được áp **thủ công**, thứ tự áp **≠** thứ tự tên file, và có thứ đã được áp mà **không qua file nào** trong repo.
 
+✅ **Từ 06–07/09/2026 (S3 #10 + quy trình 🗄️):** runner chỉ chạy khi `ALLOW_PROD_WRITE=1`; mọi đổi DB có `revert.sql` (thân sống), dòng `agent/DB-CHANGELOG.md` **trước** khi áp, diễn tập trên cluster cục bộ, `vault:db-truth` + **commit ngay** sau áp → repo khớp DB tức thì (#12, #13 là 2 lần đầu đi đủ). Xem [[trien-khai-va-verify]] §Quy trình đổi DB prod.
+
 Bốn bằng chứng đo 31/08/2026: `process_contract_payment_v2` (file mới nhất theo tên **nghèo hơn** bản chạy thật) · `recalc_contract_totals` + `get_contract_balance` (**không có `CREATE`** trong `supabase/migrations/`) · 4 policy trên `crm_leads`/`customers` không migration nào tạo · `sync_employee_salary_paid` vắng trong types.
 
 ⇒ **Không kết luận về lược đồ chỉ bằng đọc repo.** "Migration mới nhất theo tên" là bằng chứng mạnh nhất *có trong repo*, không phải bằng chứng về DB. Hỏi DB: `node scripts/db-q.mjs`, hoặc đọc `vault/30-du-lieu/than-ham/` (sinh từ `pg_proc` thật).
