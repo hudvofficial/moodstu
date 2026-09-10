@@ -13,18 +13,18 @@ Module liên quan: [[tai-chinh]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `payments` | 51 | ✅ | 4 |
-| `payment_plans` | 121 | ✅ | 6 |
-| `payment_plan_allocations` | 51 | ✅ | 2 |
+| `payments` | 69 | ✅ | 4 |
+| `payment_plans` | 123 | ✅ | 2 |
+| `payment_plan_allocations` | 69 | ✅ | 2 |
 | `expenses` | 81 | ✅ | 4 |
 | `expense_allocations` | 40 | ✅ | 0 |
-| `receipts` | 4 | ✅ | 1 |
+| `receipts` | 6 | ✅ | 1 |
 | `debts` | 0 | ✅ | 4 |
 | `budgets` | 0 | ✅ | 1 |
 | `financial_goals` | 0 | ✅ | 1 |
 | `goal_contributions` | 0 | ✅ | 1 |
 | `fixed_costs` | 0 | ✅ | 4 |
-| `finance_monthly_closes` | 0 | ✅ | 1 |
+| `finance_monthly_closes` | 1 | ✅ | 1 |
 | `finance_close_tasks` | 0 | ✅ | 1 |
 | `transaction_categories` | 14 | ✅ | 4 |
 | `credit_cards` | 3 | ✅ | 1 |
@@ -33,7 +33,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payments`
 
-51 dòng · RLS bật · 4 policy
+69 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -88,7 +88,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payment_plans`
 
-121 dòng · RLS bật · 6 policy
+123 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -125,7 +125,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payment_plan_allocations`
 
-51 dòng · RLS bật · 2 policy
+69 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -235,7 +235,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `receipts`
 
-4 dòng · RLS bật · 1 policy
+6 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -455,7 +455,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `finance_monthly_closes`
 
-0 dòng · RLS bật · 1 policy
+1 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

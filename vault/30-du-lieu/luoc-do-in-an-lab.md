@@ -13,14 +13,14 @@ Module liên quan: [[in-an-lab]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `printing_orders` | 35 | ✅ | 4 |
-| `printing_order_status_history` | 66 | ✅ | 2 |
+| `printing_orders` | 36 | ✅ | 4 |
+| `printing_order_status_history` | 71 | ✅ | 2 |
 | `labs` | 1 | ✅ | 4 |
 | `lab_services` | 22 | ✅ | 4 |
 
 ## `printing_orders`
 
-35 dòng · RLS bật · 4 policy
+36 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -84,7 +84,7 @@ Module liên quan: [[in-an-lab]]
 
 ## `printing_order_status_history`
 
-66 dòng · RLS bật · 2 policy
+71 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

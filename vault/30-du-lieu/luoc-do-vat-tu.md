@@ -13,13 +13,13 @@ Module liên quan: [[vat-tu]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `inventory_items` | 3 | ✅ | 1 |
-| `inventory_transactions` | 9 | ✅ | 1 |
+| `inventory_items` | 5 | ✅ | 1 |
+| `inventory_transactions` | 13 | ✅ | 1 |
 | `equipment` | 0 | ✅ | 4 |
 
 ## `inventory_items`
 
-3 dòng · RLS bật · 1 policy
+5 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -73,7 +73,7 @@ Module liên quan: [[vat-tu]]
 
 ## `inventory_transactions`
 
-9 dòng · RLS bật · 1 policy
+13 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

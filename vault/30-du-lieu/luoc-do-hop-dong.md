@@ -13,11 +13,11 @@ Module liên quan: [[hop-dong]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `contracts` | 64 | ✅ | 6 |
-| `contract_items` | 84 | ✅ | 4 |
-| `contract_events` | 217 | ✅ | 6 |
-| `contract_checklists` | 333 | ✅ | 6 |
-| `contract_notes` | 2 | ✅ | 6 |
+| `contracts` | 65 | ✅ | 2 |
+| `contract_items` | 86 | ✅ | 4 |
+| `contract_events` | 220 | ✅ | 2 |
+| `contract_checklists` | 338 | ✅ | 2 |
+| `contract_notes` | 2 | ✅ | 2 |
 | `checklist_templates` | 62 | ✅ | 1 |
 | `event_templates` | 11 | ✅ | 1 |
 | `addon_history` | 2 | ✅ | 1 |
@@ -26,7 +26,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contracts`
 
-64 dòng · RLS bật · 6 policy
+65 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_items`
 
-84 dòng · RLS bật · 4 policy
+86 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -145,7 +145,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_events`
 
-217 dòng · RLS bật · 6 policy
+220 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -179,7 +179,7 @@ Module liên quan: [[hop-dong]]
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_contract_events_updated_at` → `update_updated_at_column()`
 
-**CHECK:** `CHECK ((google_sync_status = ANY (ARRAY['not_required', 'pending', 'synced', 'failed', 'deleted', 'not_connected'])))`
+**CHECK:** `CHECK ((google_sync_status = ANY (ARRAY['not_required', 'pending', 'synced', 'failed', 'deleted', 'not_connected'])))` · `CHECK (((status IS NOT NULL) AND ((status)= ANY ((ARRAY['chua_lam', 'dang_lam', 'hoan_thanh', 'da_huy'])))))`
 
 <details><summary>9 index</summary>
 
@@ -197,7 +197,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_checklists`
 
-333 dòng · RLS bật · 6 policy
+338 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -227,7 +227,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_notes`
 
-2 dòng · RLS bật · 6 policy
+2 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

@@ -264,7 +264,23 @@ buoc:
     can_cu: "T3 [RLS] contracts_authenticated_read OR contracts_select → mọi nhân viên active đọc mọi HĐ; R8 RPC lịch không lọc theo vai (vault bao-mat-du-lieu-rls §lệch, sổ đối chiếu)"
     do_duoc: "10/09: 6 bảng HĐ 2 policy SELECT cộng OR; nhánh created_by chết (auth uid ≠ employees.id, 63/63); authenticated có full DML 9 bảng + 24 policy ghi trong khi app ghi 100% qua service role (withAuth→createAdminClient; 0 ghi từ browser; 0 hàm INVOKER/trigger ghi 9 bảng) → thêm REVOKE; RPC lịch không lọc non-admin (fallback TS có lọc, RPC không); ACL hàm sống {postgres, service_role} phải giữ sau DROP+CREATE; diễn tập local: sale 66 HĐ + UPDATE 42501, ctv 0 HĐ/1 việc/1 lịch, lịch ctv 3→1, revert ✓ áp lại ✓; 1 admin có login, 3 sale + 6 ctv chưa có auth"
   - { id: 25, gd: 2, tuan: 7, ten: "T3 · probe → khoá 4 action gallery + /api/drive-download", hinh_thuc: spec, gate: [G1], status: todo }
-  - { id: 26, gd: 2, tuan: 7, ten: "T4 · CHECK cho work_tasks.status + contract_events.status (dữ liệu đã sạch — chỉ NOT VALID → VALIDATE)", hinh_thuc: db, gate: [10], status: todo }
+  - id: 26
+    gd: 2
+    tuan: 7
+    ten: "T4 · CHECK cho work_tasks.status + contract_events.status (dữ liệu đã sạch — chỉ NOT VALID → VALIDATE)"
+    hinh_thuc: db
+    gate: [10]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-10
+    ngay_ap_db: 2026-09-10
+    verify: "prod: 2 CHECK convalidated=true · dữ liệu 171/220 khớp 100% · service role ghi hoan_thnah/NULL/xong/NULL vào dòng thật → 4/4 23514, dòng giữ nguyên · verify:contracts pass · tsc 0 · vault-gen-schema + db-truth chạy lại · sweep 0"
+    diff: "migration + revert.sql + spec · DB-CHANGELOG 2 dòng · vault/30-du-lieu/luoc-do-*.md (9 file sinh lại, có 2 CHECK mới) · 0 file app"
+    spec: agent/HANDOFFS/T-20260910-t4-check-status.spec.md
+    revert: agent/HANDOFFS/T-20260910-t4-check-status.revert.sql
+    migration: supabase/migrations/20260910120000_t4_check_status_work_tasks_contract_events.sql
+    ngay_spec: 2026-09-10
+    can_cu: "T4 [DB] sổ đối chiếu dòng 88: status text tự do, không enum/CHECK; PHUONG-AN T4 'fail lúc ghi'; điều kiện G2 'CHECK status validated'"
+    do_duoc: "10/09: work_tasks 171 dòng (hoan_thanh 167 · dang_lam 2 · da_huy 2) · contract_events 220 (sống: hoan_thanh 162 · chua_lam 11 · dang_lam 2; xoá mềm 45 gồm da_huy 38) — 0 NULL, 0 giá trị lạ; app ghi literal 4 giá trị + input.status kiểu TaskStatus; cascade ghi 'da_huy'; 2 CHECK hiện có không đụng status; 94 mốc hoan_thanh không ngày (hau_ky 56/56, giao_san_pham 31/32) → #30, không phải #26"
   - { id: 27, gd: 2, tuan: 7, ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng", hinh_thuc: db, gate: [10], status: todo }
   - { id: 28, gd: 2, tuan: 7, ten: "T1 · scripts/verify-numbers.mjs → kiểm CỔNG G2", hinh_thuc: doc, gate: [17, 18, 19, 20, 22, 23, 24, 25, 26, 27], status: todo }
 

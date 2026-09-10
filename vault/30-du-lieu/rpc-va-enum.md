@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 148 hàm
+# Danh mục RPC — 149 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -169,6 +169,7 @@ cap-nhat: 2026-08-07
 | `get_my_employee_productivity` | p_start_date date, p_end_date date | TABLE(employee_id uuid, full_name text, role employee_role_e | ⚠️ có |
 | `is_active_employee` | — | boolean | ⚠️ có |
 | `next_employee_code` | — | text |  |
+| `sync_employee_salary_paid` | p_salary_id uuid | void |  |
 
 ## Báo cáo & dashboard
 
@@ -200,7 +201,7 @@ cap-nhat: 2026-08-07
 
 | Hàm | Tham số | Trả về | SECURITY DEFINER |
 |---|---|---|---|
-| `calendar_month_events` | p_month integer, p_year integer | TABLE(event_source text, id uuid, event_type text, event_dat |  |
+| `calendar_month_events` | p_month integer, p_year integer, p_employee_id uuid | TABLE(event_source text, id uuid, event_type text, event_dat |  |
 
 ## Khác
 

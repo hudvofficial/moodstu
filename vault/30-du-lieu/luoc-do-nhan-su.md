@@ -19,8 +19,8 @@ Module liên quan: [[nhan-su]]
 | `salary_adjustments` | 0 | ✅ | 0 |
 | `attendance` | 0 | ✅ | 4 |
 | `work_shifts` | 0 | ✅ | 4 |
-| `work_tasks` | 166 | ✅ | 6 |
-| `schedules` | 2 | ✅ | 4 |
+| `work_tasks` | 171 | ✅ | 2 |
+| `schedules` | 2 | ✅ | 1 |
 | `evaluations` | 0 | ✅ | 4 |
 | `requests` | 0 | ✅ | 4 |
 
@@ -256,7 +256,7 @@ Module liên quan: [[nhan-su]]
 
 ## `work_tasks`
 
-166 dòng · RLS bật · 6 policy
+171 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -284,7 +284,7 @@ Module liên quan: [[nhan-su]]
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_work_tasks_updated_at` → `update_updated_at_column()`
 
-**CHECK:** `CHECK ((((assigned_to IS NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NOT NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NULL) AND (vendor_id IS NOT NULL))))`
+**CHECK:** `CHECK ((((assigned_to IS NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NOT NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NULL) AND (vendor_id IS NOT NULL))))` · `CHECK (((status IS NOT NULL) AND ((status)= ANY ((ARRAY['chua_lam', 'dang_lam', 'hoan_thanh', 'da_huy'])))))`
 
 <details><summary>17 index</summary>
 
@@ -310,7 +310,7 @@ Module liên quan: [[nhan-su]]
 
 ## `schedules`
 
-2 dòng · RLS bật · 4 policy
+2 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
