@@ -25,8 +25,10 @@ buoc:
     ten: "Đồng bộ vault (Obsidian) với 2 tuần chương trình — commit 47 file, sửa 6 file viết tay đã sai, INDEX trỏ sang chương trình, nhãn da-kiem-2026-09-10"
     hinh_thuc: doc
     gate: []
-    status: dang-lam
+    status: done
+    ngay_done: 2026-09-10
     ngay_bat_dau: 2026-09-10
+    bang_chung: "commit ca456cd (47 file vault vào git, +9.839 dòng) · 15e76ad (9 file đối chiếu → da-kiem-2026-09-10) · 1f69371 (vá 3 chỗ còn chạm chủ đề đã đổi, giữ nhãn cũ) · rà 24 file 31/08 bằng grep chủ đề đã đổi: chỉ 1 câu sai · mojibake gate xanh · nhãn cuối: 14 sinh-tu-dong · 9 da-kiem-09-10 · 24 da-kiem-08-31 · 1 da-chot"
     can_cu: "chủ 10/09 hỏi 'có nắm toàn bộ obsidian không' → đo: 33 file da-kiem-2026-08-31 (trước chương trình), 0/62 nhắc GOALS/S3/restore/V0, 47 file vault chưa commit từ 02/09"
   - id: 1
     gd: 1
