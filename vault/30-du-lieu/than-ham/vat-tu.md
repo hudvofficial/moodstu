@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — vat-tu"
 tags: [sinh-tu-dong, db, ham, vat-tu]
-cap-nhat: 2026-09-07
+cap-nhat: 2026-09-10
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---

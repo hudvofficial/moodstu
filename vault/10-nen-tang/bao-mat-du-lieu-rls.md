@@ -1,8 +1,8 @@
 ---
 title: "Bảo mật dữ liệu — RLS, grant, vai trò DB"
 tags: [nen-tang, bao-mat, du-lieu]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: vault/30-du-lieu/rls-va-quyen.md · vault/30-du-lieu/than-ham/ · vault/30-du-lieu/ham-mo-coi.md · agent/system-map/06-nen-tang.md
 ---
 
@@ -79,8 +79,18 @@ Số đo 2026-08-31 (từ `pg_proc`): **92/149 hàm** trên DB là `SECURITY DEF
 ## Ranh giới đã chấp nhận (không phải bug)
 
 - **Ảnh gốc gallery lộ qua URL `lh3`** — đổi `=s600` thành `=s0` là ra ảnh gốc. Cổng tải là **UX-gate, không phải security-gate** ([[adr-index|ADR-011]]). Đừng "vá" bằng cách giấu `drive_file_id`: fileId nằm sẵn trong chính URL ảnh.
-- **Bảng hợp đồng không scope theo studio** — ghi chú cũ nói "chấp nhận được vì không có client-direct"; **lý do đó không còn đúng**: client-direct ĐÃ mở cho drawer hợp đồng (`lib/client-direct/contract-drawer.ts`). Hạ tầng RLS đi kèm đã làm (`20260605000000_contracts_rls_hardening.sql`, `20260605020000_client_direct_rls_prereq.sql`), nhưng `contracts` hiện có **2 policy SELECT cộng OR**: `contracts_select` (admin/manager, hoặc `created_by`/`assigned_to` là mình) **và** `contracts_authenticated_read` `USING is_active_employee()` — nghĩa là **mọi nhân viên active vẫn đọc được mọi hợp đồng** ([[rls-va-quyen]] §`contracts`). Studio hiện chỉ 2 tài khoản nên chưa lộ ra; cấp thêm đăng nhập thì phải siết trước ([[adr-index|ADR-005]], LESSONS A9).
-  > ⚠️ CHƯA KIỂM (2026-08-31): "chỉ 2 tài khoản" lấy từ [[xac-thuc-phan-quyen]], chưa đếm lại `auth.users` / `employees` có `auth_user_id` trên DB.
+- ~~**Bảng hợp đồng không scope theo studio** — `contracts` có 2 policy SELECT cộng OR (`contracts_select` + `contracts_authenticated_read is_active_employee()`) → mọi nhân viên active đọc mọi HĐ.~~ **ĐÃ SIẾT 2026-09-10 (bước #24, ADR-019, `agent/HANDOFFS/T-20260910-t3-rls-matrix.spec.md`)** — xem mục "Ma trận đọc/ghi 9 bảng hợp đồng" dưới. Số đếm 10/09: `auth.users` = 2, chỉ **1 admin** có `auth_user_id`; 3 sale + 6 ctv active chưa có đăng nhập.
+
+## Ma trận đọc/ghi 9 bảng hợp đồng (áp prod 2026-09-10, #24)
+
+Áp cho `contracts`, `contract_events`, `contract_checklists`, `contract_notes`, `payment_plans`, `payment_plan_allocations`, `work_tasks`, `schedules`, `customers` — migration `20260910100000_t3_rls_matrix_revoke_writes_calendar_scope.sql`, đường lùi `agent/HANDOFFS/T-20260910-t3-rls-matrix.revert.sql`:
+
+| | anon | authenticated (qua RLS) | service_role |
+|---|---|---|---|
+| **Đọc** | 0 grant | `SELECT` + **1 policy `<bảng>_read`** gương `ROLE_PERMISSIONS` (`types/roles.ts`): 6 bảng HĐ = admin/manager/**sale**; `work_tasks_read` = 3 vai đó **hoặc** `assigned_to`/`created_by` là mình; `customers_select` = admin/manager/sale; `schedules_select` = admin/manager hoặc `employee_id` là mình | tất cả |
+| **Ghi** | 0 | **0** — `INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER` đã REVOKE, 24 policy ghi đã gỡ → REST trả `42501` | tất cả (mọi server action bọc `withAuth`/`withAuthRead`/`withAdmin` nhận `createAdminClient()` — `lib/auth_utils.ts`) |
+
+Hệ quả cần nhớ khi viết code mới: **ghi 9 bảng này bằng cookie client hay browser client sẽ bị `42501`** — đó là chủ đích; đường ghi duy nhất là server action. Nhánh client-direct (`lib/client-direct/contract-drawer.ts`, `payslip-modal.tsx`) chỉ đọc, vẫn chạy cho admin/manager/sale. Vì sao bỏ scope "HĐ của tôi": `contracts.created_by` lưu **auth uid**, còn `get_current_employee_id()` trả `employees.id` → nhánh đó chưa bao giờ khớp (0/63); ma trận Mood là theo vai. RPC `calendar_month_events(p_month, p_year, p_employee_id DEFAULT NULL)` chỉ `service_role` EXECUTE; lọc lịch tay theo người khi app truyền (`app/actions/calendar-queries.ts`). Probe REST 10/09 bằng user sale/ctv tạm: 15/15 đúng ma trận. Trước đó (02/09–10/09) số policy toàn DB 217 → nay **187**.
 
 ## Liên quan
 

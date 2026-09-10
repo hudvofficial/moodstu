@@ -243,7 +243,24 @@ buoc:
     ngay_spec: 2026-09-07
     do_duoc: "9/14 module đã guard cùng mẫu; hở: /settings (layout pass-through), /admin/* (không layout), /crm (pass-through, sale còn trong ma trận). withAdmin đã chặn tầng action cho admin/settings; CRM action chỉ withAuth (→ #19). 1 admin · 3 sale · 8 ctv; 4 lead không do sale tạo"
   - { id: 23, gd: 2, tuan: 6, ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)", hinh_thuc: db, gate: [G1], status: todo }
-  - { id: 24, gd: 2, tuan: 6, ten: "T3 · gỡ policy OR contracts_authenticated_read + vá R8 lịch WHERE theo vai", hinh_thuc: db, gate: [3, 10], status: todo }
+  - id: 24
+    gd: 2
+    tuan: 6
+    ten: "T3 · một policy đọc mỗi bảng theo ma trận vai (gỡ OR *_authenticated_read) + thu hồi quyền ghi anon/authenticated 9 bảng + vá R8 calendar_month_events lọc theo người"
+    hinh_thuc: db
+    gate: [3, 10]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-10
+    ngay_ap_db: 2026-09-10
+    ngay_code: 2026-09-10
+    verify: "prod: 9 bảng 46→16 policy · grant authenticated 63→9 (SELECT) · anon 0 · hàm 3 tham số ACL {postgres,service_role} · dữ liệu 9 bảng khớp 100% · calendar(9,2026)=NULL=83, id khác=82 · probe REST sale/ctv tạm 15/15 (sale đọc 65 HĐ, PATCH/POST/DELETE/RPC 403 42501; ctv 0 ×4) · Playwright contracts-table-desktop 5/5 + t3-rls-client-direct 2/2 (drawer sale: 4 GET 200, events 3; /calendar OK) · tsc 0 eslint 0 verify:calendar/contracts pass · sweep 0 (realtime_signals 221 = tín hiệu thật) · vault:db-truth 187 policy"
+    diff: "migration + revert.sql + spec · app/actions/calendar-queries.ts (p_employee_id) · types/database.types.ts (Args) · tests/e2e/t3-rls-client-direct.spec.ts (mới) · agent/DECISIONS.md ADR-019 · DB-CHANGELOG 2 dòng · vault: rls-va-quyen + than-ham (sinh) · bao-mat-du-lieu-rls.md · xac-thuc-phan-quyen.md"
+    spec: agent/HANDOFFS/T-20260910-t3-rls-matrix.spec.md
+    revert: agent/HANDOFFS/T-20260910-t3-rls-matrix.revert.sql
+    migration: supabase/migrations/20260910100000_t3_rls_matrix_revoke_writes_calendar_scope.sql
+    ngay_spec: 2026-09-10
+    can_cu: "T3 [RLS] contracts_authenticated_read OR contracts_select → mọi nhân viên active đọc mọi HĐ; R8 RPC lịch không lọc theo vai (vault bao-mat-du-lieu-rls §lệch, sổ đối chiếu)"
+    do_duoc: "10/09: 6 bảng HĐ 2 policy SELECT cộng OR; nhánh created_by chết (auth uid ≠ employees.id, 63/63); authenticated có full DML 9 bảng + 24 policy ghi trong khi app ghi 100% qua service role (withAuth→createAdminClient; 0 ghi từ browser; 0 hàm INVOKER/trigger ghi 9 bảng) → thêm REVOKE; RPC lịch không lọc non-admin (fallback TS có lọc, RPC không); ACL hàm sống {postgres, service_role} phải giữ sau DROP+CREATE; diễn tập local: sale 66 HĐ + UPDATE 42501, ctv 0 HĐ/1 việc/1 lịch, lịch ctv 3→1, revert ✓ áp lại ✓; 1 admin có login, 3 sale + 6 ctv chưa có auth"
   - { id: 25, gd: 2, tuan: 7, ten: "T3 · probe → khoá 4 action gallery + /api/drive-download", hinh_thuc: spec, gate: [G1], status: todo }
   - { id: 26, gd: 2, tuan: 7, ten: "T4 · CHECK cho work_tasks.status + contract_events.status (dữ liệu đã sạch — chỉ NOT VALID → VALIDATE)", hinh_thuc: db, gate: [10], status: todo }
   - { id: 27, gd: 2, tuan: 7, ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng", hinh_thuc: db, gate: [10], status: todo }

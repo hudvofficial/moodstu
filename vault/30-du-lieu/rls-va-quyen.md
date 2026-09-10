@@ -1,7 +1,7 @@
 ---
 title: "RLS & quyền bảng — chi tiết"
 tags: [sinh-tu-dong, db, bao-mat, rls]
-cap-nhat: 2026-09-07
+cap-nhat: 2026-09-10
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -25,14 +25,14 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | `audit_logs` | bật | — | 2 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `budgets` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `checklist_templates` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `contract_checklists` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `contract_events` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `contract_checklists` | bật | — | 2 | authenticated=SELECT |
+| `contract_events` | bật | — | 2 | authenticated=SELECT |
 | `contract_items` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `contract_notes` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `contracts` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `contract_notes` | bật | — | 2 | authenticated=SELECT |
+| `contracts` | bật | — | 2 | authenticated=SELECT |
 | `credit_cards` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `crm_leads` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `customers` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `customers` | bật | — | 1 | authenticated=SELECT |
 | `debts` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `documents` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `dress_rental_accessories` | bật | — | 1 | — |
@@ -86,8 +86,8 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | `notification_preferences` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `notification_queue` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `notifications` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `payment_plan_allocations` | bật | — | 2 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `payment_plans` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `payment_plan_allocations` | bật | — | 2 | authenticated=SELECT |
+| `payment_plans` | bật | — | 2 | authenticated=SELECT |
 | `payments` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `price_rules` | bật | có | 1 | — |
 | `printing_order_status_history` | bật | — | 2 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
@@ -98,7 +98,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | `receipts` | bật | — | 1 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `requests` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `salary_adjustments` | bật | — | 0 ⚠️ | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `schedules` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `schedules` | bật | — | 1 | authenticated=SELECT |
 | `service_bundles` | bật | có | 0 ⚠️ | — |
 | `service_categories` | bật | có | 4 | — |
 | `service_relations` | bật | có | 1 | — |
@@ -108,7 +108,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | `transaction_categories` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `vendors` | bật | — | 3 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
 | `work_shifts` | bật | — | 4 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
-| `work_tasks` | bật | — | 6 | authenticated=DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE |
+| `work_tasks` | bật | — | 2 | authenticated=SELECT |
 
 ⚠️ = RLS bật nhưng **0 policy** ⇒ anon key không đọc/ghi được gì (chặn hoàn toàn).
 
@@ -258,33 +258,7 @@ USING true
 WITH CHECK true
 ```
 
-**contract_checklists_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**contract_checklists_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**contract_checklists_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**contract_checklists_select** · `SELECT` · roles: `public`
-
-```sql
-USING (EXISTS ( SELECT 1
-   FROM contracts c
-  WHERE ((c.id = contract_checklists.contract_id) AND (c.deleted_at IS NULL) AND ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (c.created_by = get_current_employee_id()) OR (c.assigned_to = get_current_employee_id())))))
-```
-
-**contract_checklists_update** · `UPDATE` · roles: `public`
+**contract_checklists_read** · `SELECT` · roles: `authenticated`
 
 ```sql
 USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
@@ -302,33 +276,7 @@ USING true
 WITH CHECK true
 ```
 
-**contract_events_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**contract_events_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**contract_events_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**contract_events_select** · `SELECT` · roles: `public`
-
-```sql
-USING (EXISTS ( SELECT 1
-   FROM contracts c
-  WHERE ((c.id = contract_events.contract_id) AND ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (c.created_by = get_current_employee_id()) OR (c.assigned_to = get_current_employee_id())))))
-```
-
-**contract_events_update** · `UPDATE` · roles: `public`
+**contract_events_read** · `SELECT` · roles: `authenticated`
 
 ```sql
 USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
@@ -374,36 +322,10 @@ USING true
 WITH CHECK true
 ```
 
-**contract_notes_delete** · `DELETE` · roles: `public`
+**contract_notes_read** · `SELECT` · roles: `authenticated`
 
 ```sql
-USING ((created_by = get_current_employee_id()) OR (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])))
-```
-
-**contract_notes_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**contract_notes_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**contract_notes_select** · `SELECT` · roles: `public`
-
-```sql
-USING (EXISTS ( SELECT 1
-   FROM contracts c
-  WHERE ((c.id = contract_notes.contract_id) AND (c.deleted_at IS NULL) AND ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (c.created_by = get_current_employee_id()) OR (c.assigned_to = get_current_employee_id())))))
-```
-
-**contract_notes_update** · `UPDATE` · roles: `public`
-
-```sql
-USING ((created_by = get_current_employee_id()) OR (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])))
+USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
 ```
 
 ### `contracts`
@@ -418,31 +340,7 @@ USING true
 WITH CHECK true
 ```
 
-**contracts_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**contracts_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**contracts_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**contracts_select** · `SELECT` · roles: `public`
-
-```sql
-USING ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (created_by = get_current_employee_id()) OR (assigned_to = get_current_employee_id()))
-```
-
-**contracts_update** · `UPDATE` · roles: `public`
+**contracts_read** · `SELECT` · roles: `authenticated`
 
 ```sql
 USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
@@ -488,25 +386,7 @@ USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'ma
 
 ### `customers`
 
-**customers_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**customers_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
 **customers_select** · `SELECT` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**customers_update** · `UPDATE` · roles: `public`
 
 ```sql
 USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
@@ -1321,10 +1201,10 @@ USING true
 WITH CHECK true
 ```
 
-**payment_plan_allocations_authenticated_read** · `SELECT` · roles: `authenticated`
+**payment_plan_allocations_read** · `SELECT` · roles: `authenticated`
 
 ```sql
-USING is_active_employee()
+USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
 ```
 
 ### `payment_plans`
@@ -1339,34 +1219,10 @@ USING true
 WITH CHECK true
 ```
 
-**payment_plans_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**payment_plans_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**payment_plans_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**payment_plans_select** · `SELECT` · roles: `public`
+**payment_plans_read** · `SELECT` · roles: `authenticated`
 
 ```sql
 USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**payment_plans_update** · `UPDATE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
 ```
 
 ### `payments`
@@ -1547,28 +1403,10 @@ USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'ma
 
 ### `schedules`
 
-**schedules_delete** · `DELETE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**schedules_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
 **schedules_select** · `SELECT` · roles: `public`
 
 ```sql
 USING ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (employee_id = get_current_employee_id()))
-```
-
-**schedules_update** · `UPDATE` · roles: `public`
-
-```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
 ```
 
 ### `service_categories`
@@ -1745,32 +1583,8 @@ USING true
 WITH CHECK true
 ```
 
-**work_tasks_delete** · `DELETE` · roles: `public`
+**work_tasks_read** · `SELECT` · roles: `authenticated`
 
 ```sql
-USING (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum]))
-```
-
-**work_tasks_insert** · `INSERT` · roles: `public`
-
-```sql
-WITH CHECK (get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum]))
-```
-
-**work_tasks_authenticated_read** · `SELECT` · roles: `authenticated`
-
-```sql
-USING is_active_employee()
-```
-
-**work_tasks_select** · `SELECT` · roles: `public`
-
-```sql
-USING ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (assigned_to = get_current_employee_id()) OR (created_by = get_current_employee_id()))
-```
-
-**work_tasks_update** · `UPDATE` · roles: `public`
-
-```sql
-USING ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum])) OR (assigned_to = get_current_employee_id()))
+USING ((get_current_employee_role() = ANY (ARRAY['admin'::employee_role_enum, 'manager'::employee_role_enum, 'sale'::employee_role_enum])) OR (assigned_to = get_current_employee_id()) OR (created_by = get_current_employee_id()))
 ```

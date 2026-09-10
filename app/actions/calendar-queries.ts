@@ -415,6 +415,9 @@ async function fetchCalendarEventsRpc(
       supabase.rpc("calendar_month_events", {
         p_month: month,
         p_year: year,
+        // #24 (R8): RPC chạy dưới service role nên không có RLS — lịch tay (schedules)
+        // phải lọc theo người cho vai không phải admin/manager, giống nhánh fallback.
+        p_employee_id: access.isGlobalAdmin ? null : access.employeeId,
       }),
     ),
   );

@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — hop-dong"
 tags: [sinh-tu-dong, db, ham, hop-dong]
-cap-nhat: 2026-09-07
+cap-nhat: 2026-09-10
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -14,7 +14,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
-| [`calendar_month_events`](#calendar_month_events) | `p_month integer, p_year integer` | `TABLE(event_source text, id uuid, event_type text, event_date text, end_date text, employee_id uuid, contract_id uuid, status text, google_event_id text, color_id text, location text, notes text, work_type text, assigned_to uuid, start_date text, start_time text, end_time text, deadline text, event_id uuid, contract_code text, customer_name text)` | invoker | plpgsql |
+| [`calendar_month_events`](#calendar_month_events) | `p_month integer, p_year integer, p_employee_id uuid` | `TABLE(event_source text, id uuid, event_type text, event_date text, end_date text, employee_id uuid, contract_id uuid, status text, google_event_id text, color_id text, location text, notes text, work_type text, assigned_to uuid, start_date text, start_time text, end_time text, deadline text, event_id uuid, contract_code text, customer_name text)` | invoker | plpgsql |
 | [`cancel_contract_cascade`](#cancel_contract_cascade) | `p_contract_id uuid, p_reason text, p_user_id uuid` | `void` | **DEFINER** | plpgsql |
 | [`contract_payment_receipt_code`](#contract_payment_receipt_code) | `p_payment_id uuid, p_payment_date date` | `text` | invoker | sql |
 | [`contract_payment_status_v2`](#contract_payment_status_v2) | `p_paid numeric, p_remaining numeric` | `text` | invoker | sql |
@@ -51,7 +51,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 ## calendar_month_events
 
-`calendar_month_events(p_month integer, p_year integer)` → `TABLE(event_source text, id uuid, event_type text, event_date text, end_date text, employee_id uuid, contract_id uuid, status text, google_event_id text, color_id text, location text, notes text, work_type text, assigned_to uuid, start_date text, start_time text, end_time text, deadline text, event_id uuid, contract_code text, customer_name text)` · SECURITY INVOKER · plpgsql · STABLE
+`calendar_month_events(p_month integer, p_year integer, p_employee_id uuid)` → `TABLE(event_source text, id uuid, event_type text, event_date text, end_date text, employee_id uuid, contract_id uuid, status text, google_event_id text, color_id text, location text, notes text, work_type text, assigned_to uuid, start_date text, start_time text, end_time text, deadline text, event_id uuid, contract_code text, customer_name text)` · SECURITY INVOKER · plpgsql · STABLE
 
 ```sql
 DECLARE
@@ -91,6 +91,7 @@ BEGIN
     FROM public.schedules s
     WHERE s.event_date >= v_start
       AND s.event_date < v_end_exclusive
+      AND (p_employee_id IS NULL OR s.employee_id = p_employee_id)   -- R8 (#24): vai không phải admin/manager chỉ thấy lịch tay của mình
 
     UNION ALL
 

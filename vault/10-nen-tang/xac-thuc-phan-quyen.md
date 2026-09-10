@@ -96,6 +96,7 @@ Hệ quả: **role sai chính tả không báo lỗi, nó âm thầm tụt xuố
 - Bảng `employees` là danh bạ nhân sự; không phải ai cũng có tài khoản.
 - Có **trigger `on_auth_user_created`** tự tạo dòng `employees` khi tạo auth user → script seed phải `UPDATE`, không `INSERT`.
 - `crm_leads.created_by` trỏ `employees.id`, **không phải** auth user id — khác với phần còn lại của hệ thống.
+- **Tầng DB gương ma trận (10/09/2026, bước #24, ADR-019):** 9 bảng hợp đồng (`contracts` + 5 bảng con, `work_tasks`, `schedules`, `customers`) chỉ còn **1 policy đọc mỗi bảng** theo đúng `ROLE_PERMISSIONS` (module `contracts` = admin/manager/sale; `work_tasks` thêm việc của mình) và **0 quyền ghi** cho `anon`/`authenticated` — ghi chỉ qua server action (`withAuth` → service role). Bảng ma trận đọc/ghi + vì sao bỏ scope "HĐ của tôi" (`contracts.created_by` là auth uid, không khớp `employees.id`): [[bao-mat-du-lieu-rls]]. Đây là điều kiện kỹ thuật **trước khi cấp đăng nhập** cho 3 sale + 6 ctv (hôm nay chỉ 1 admin có `auth_user_id`).
 
 ## Chống dò mật khẩu
 

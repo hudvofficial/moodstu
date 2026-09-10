@@ -5597,7 +5597,7 @@ export type Database = {
       }
       backfill_payment_plan_ssot_v2: { Args: never; Returns: Json }
       calendar_month_events: {
-        Args: { p_month: number; p_year: number }
+        Args: { p_month: number; p_year: number; p_employee_id?: string | null }
         Returns: {
           assigned_to: string
           color_id: string
