@@ -1,6 +1,6 @@
 # T-20260910-t4-check-status — T4: CHECK danh mục đóng cho `work_tasks.status` + `contract_events.status`
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · verify xong, chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 7, bước #26 (`agent/GOALS.yaml`), gate #10 ✅ · **DB:** 2 `ADD CONSTRAINT … CHECK … NOT VALID` + 2 `VALIDATE CONSTRAINT`; 0 hàm, 0 dữ liệu, 0 đổi kiểu cột · **ADR:** không cần — thêm ràng buộc khớp đúng kiểu TS `TaskStatus` đã dùng từ 05/2026, không đổi data-flow · **Revert:** `agent/HANDOFFS/T-20260910-t4-check-status.revert.sql` (2 `DROP CONSTRAINT`).
+**Owner:** claude (spec → chủ duyệt → claude áp DB → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · commit `0a35475` · chủ "push" 10/09 → `origin/main` · `/buoc done` 10/09 · **Chương trình:** GĐ2 tuần 7, bước #26 (`agent/GOALS.yaml`), gate #10 ✅ · **DB:** 2 `ADD CONSTRAINT … CHECK … NOT VALID` + 2 `VALIDATE CONSTRAINT`; 0 hàm, 0 dữ liệu, 0 đổi kiểu cột · **ADR:** không cần — thêm ràng buộc khớp đúng kiểu TS `TaskStatus` đã dùng từ 05/2026, không đổi data-flow · **Revert:** `agent/HANDOFFS/T-20260910-t4-check-status.revert.sql` (2 `DROP CONSTRAINT`).
 
 ## 0. Vì sao
 

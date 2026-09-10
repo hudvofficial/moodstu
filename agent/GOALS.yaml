@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-10
 giai_doan_hien_tai: 1
-buoc_hien_tai: 26
+buoc_hien_tai: 27
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
@@ -270,9 +270,11 @@ buoc:
     ten: "T4 · CHECK cho work_tasks.status + contract_events.status (dữ liệu đã sạch — chỉ NOT VALID → VALIDATE)"
     hinh_thuc: db
     gate: [10]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-10
     ngay_duyet: 2026-09-10
     ngay_ap_db: 2026-09-10
+    bang_chung: "ĐÃ ÁP prod 10/09 (migrate-direct, cờ S3) · commit 0a35475 · chủ 'push' 10/09 → origin/main 0a35475 (hook 9s) · pg_constraint: work_tasks_status_check + contract_events_status_check convalidated=true · dữ liệu 171/220 khớp 100% · hàng rào thật: service role ghi hoan_thnah/NULL/xong/NULL vào dòng thật → 4/4 23514, dòng giữ nguyên · verify:contracts pass · tsc 0 · vault-gen-schema 9 file + db-truth · sweep 0 · revert.sql thử local ✓ · góp điều kiện G2 'CHECK status validated'"
     verify: "prod: 2 CHECK convalidated=true · dữ liệu 171/220 khớp 100% · service role ghi hoan_thnah/NULL/xong/NULL vào dòng thật → 4/4 23514, dòng giữ nguyên · verify:contracts pass · tsc 0 · vault-gen-schema + db-truth chạy lại · sweep 0"
     diff: "migration + revert.sql + spec · DB-CHANGELOG 2 dòng · vault/30-du-lieu/luoc-do-*.md (9 file sinh lại, có 2 CHECK mới) · 0 file app"
     spec: agent/HANDOFFS/T-20260910-t4-check-status.spec.md
