@@ -66,7 +66,7 @@ Thẻ duyệt tối đa 6 dòng. Chủ không cần đọc spec để quyết �
 ## Sau mỗi `done`
 1. Cập nhật `agent/GOALS.yaml` (status · ngay_done · bang_chung · buoc_hien_tai · updated).
 2. Nếu bước vừa xong đóng được một cổng → đổi `cong.G*.trang_thai = qua` và in dòng "⛩ G* QUA — mở GĐ*".
-3. Nếu bước có hệ quả lên hồ sơ (số đo mới, phát hiện mới) → sửa đúng chỗ trong `agent/inventory/00-lech-thiet-ke.md` / `SYSTEM_MAP.md`, không viết file mới.
+3. Nếu bước có hệ quả lên hồ sơ (số đo mới, phát hiện mới) → sửa đúng chỗ trong `agent/inventory/00-lech-thiet-ke.md` / `SYSTEM_MAP.md`, không viết file mới. **Và sửa luôn file vault viết tay liên quan** (`vault/40-module/<X>.md`, `50-luong/*`, `10-nen-tang/*`): gạch câu đã sai, ghi "✅ ĐÃ SỬA <ngày> (#bước)", đổi `trang-thai: da-kiem-<ngày>` chỉ khi đã đối chiếu cả file. Bước db → `vault:db-truth` bắt buộc. (10/09: lớp viết tay trôi 10 ngày, chủ hỏi "có nắm obsidian không" → #0b.)
 4. `mem_save` một dòng tiến độ.
 5. In thẻ trạng thái. **Không** tự chạy bước kế — chờ chủ gõ `/buoc next`.
 
