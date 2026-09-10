@@ -152,7 +152,7 @@ buoc:
     ngay_done: 2026-09-07
     ngay_duyet: 2026-09-07
     ngay_ap_db: 2026-09-07
-    bang_chung: "ĐÃ ÁP prod 07/09 (migrate-direct, cờ S3) · commit 138882a (chưa push) · local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp byte · EXPLAIN 9,4→11,6ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert không liên quan (0058 mốc giao thiếu ngày → sổ #26/#30)"
+    bang_chung: "ĐÃ ÁP prod 07/09 (migrate-direct, cờ S3) · commit 138882a, push 10/09 808fc68 · local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp byte · EXPLAIN 9,4→11,6ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert không liên quan (0058 mốc giao thiếu ngày → sổ #26/#30)"
     spec: agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.spec.md
     verify: "local: cost_direct 1.200.000→200.000, cash_out giữ, revert ✓ · prod trước/sau 12+1+62 dòng khớp 100% · EXPLAIN +2ms · vault:db-truth 2 hàm · verify:reports đỏ ở assert KHÔNG liên quan (0058 mốc giao thiếu ngày → ghi sổ #26/#30)"
     diff: "supabase/migrations/20260907090000_r2_ledger_hoan_tien_khong_phai_chi_phi.sql · agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.{spec.md,revert.sql} · agent/DB-CHANGELOG.md · vault/30-du-lieu/than-ham/hop-dong.md (sinh lại) · agent/inventory/00-lech-thiet-ke.md"
@@ -225,7 +225,7 @@ buoc:
     ngay_done: 2026-09-10
     ngay_duyet: 2026-09-10
     ngay_code: 2026-09-10
-    bang_chung: "commit bd9e3b5 · jest roles-matrix 4/4 · Playwright role-gate 3/3 (sale: crm+settings chặn, contracts vào, sidebar 0 CRM · ctv: /admin/* chặn · admin: 3 route vào) · contracts-table-desktop 5/5 · tsc 0 eslint 0 build OK · rác 0 · chủ 'đẩy' 10/09"
+    bang_chung: "commit bd9e3b5 · jest roles-matrix 4/4 · Playwright role-gate 3/3 (sale: crm+settings chặn, contracts vào, sidebar 0 CRM · ctv: /admin/* chặn · admin: 3 route vào) · contracts-table-desktop 5/5 · tsc 0 eslint 0 build OK · rác 0 · chủ 'đẩy' 10/09 → push 808fc68, prod kiểm bằng user sale tạm: /crm/leads · /settings · /admin/vendors = denied, /contracts vào (rác 0)"
     spec: agent/HANDOFFS/T-20260907-role-gate-route.spec.md
     verify: "jest roles-matrix 4/4 · Playwright role-gate 3/3 (sale: crm+settings chặn, contracts vào, sidebar 0 CRM · ctv: /admin/* chặn · admin: 3 route vào) · contracts-table-desktop 5/5 hồi quy · tsc 0 eslint 0 build OK · rác 0"
     diff: "6 file: types/roles.ts · app/(protected)/admin/layout.tsx (mới) · settings/layout.tsx · crm/layout.tsx · tests/unit/roles-matrix.test.ts · tests/e2e/role-gate.spec.ts"

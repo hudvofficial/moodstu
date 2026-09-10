@@ -1,6 +1,6 @@
 # T-20260907-role-gate-route — T3 tầng route: guard `/admin` `/settings` `/crm` theo ma trận + gỡ CRM khỏi `sale` (C1)
 
-**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — duyệt 10/09 · code+verify 10/09 · chủ "đẩy" → commit `bd9e3b5` · **Chương trình:** bước #22 (`agent/GOALS.yaml`), T3 Danh tính & Quyền, gate #3 (C1) ✅ · **DB:** KHÔNG đổi · **ADR:** không cần — dùng đúng mẫu guard đã có ở 9 module, chỉ phủ 3 route còn hở; C1 là quyết định đã chốt 02/09.
+**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — duyệt 10/09 · code+verify 10/09 · chủ "đẩy" → commit `bd9e3b5` · push `808fc68` · prod kiểm 10/09: sale bị chặn /crm/leads · /settings · /admin/vendors, vào /contracts · **Chương trình:** bước #22 (`agent/GOALS.yaml`), T3 Danh tính & Quyền, gate #3 (C1) ✅ · **DB:** KHÔNG đổi · **ADR:** không cần — dùng đúng mẫu guard đã có ở 9 module, chỉ phủ 3 route còn hở; C1 là quyết định đã chốt 02/09.
 
 ## 0. Vì sao
 

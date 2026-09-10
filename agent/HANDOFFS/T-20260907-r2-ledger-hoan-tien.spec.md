@@ -1,6 +1,6 @@
 # T-20260907-r2-ledger-hoan-tien — R2: hoàn tiền không phải chi phí (`finance_period_ledger` + `contract_financials`)
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB → chủ xem diff) · **Trạng thái:** ✅ ĐÃ ÁP PROD 07/09 (chủ "duyệt") — chờ xem diff repo (migration + vault + sổ) · **Chương trình:** GĐ1 Nền móng, bước #12 (`agent/GOALS.yaml`) — **bước DB đầu tiên** · **DB:** `CREATE OR REPLACE` 2 hàm, chữ ký giữ nguyên, không đổi bảng/RLS · **ADR:** không cần — đúng luật ADR-016 §2 (két ≠ lãi/lỗ), sửa để hàm làm đúng luật đã chốt · **Revert:** `agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.revert.sql` (thân hàm sống dump 07/09).
+**Owner:** claude (spec → chủ duyệt → claude áp DB → chủ xem diff) · **Trạng thái:** ✅ ĐÃ ÁP PROD 07/09 (chủ "duyệt") — commit `138882a` · push 10/09 `808fc68` · **Chương trình:** GĐ1 Nền móng, bước #12 (`agent/GOALS.yaml`) — **bước DB đầu tiên** · **DB:** `CREATE OR REPLACE` 2 hàm, chữ ký giữ nguyên, không đổi bảng/RLS · **ADR:** không cần — đúng luật ADR-016 §2 (két ≠ lãi/lỗ), sửa để hàm làm đúng luật đã chốt · **Revert:** `agent/HANDOFFS/T-20260907-r2-ledger-hoan-tien.revert.sql` (thân hàm sống dump 07/09).
 
 ## 0. Vì sao
 

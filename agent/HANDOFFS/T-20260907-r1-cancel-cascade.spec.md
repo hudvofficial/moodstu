@@ -1,6 +1,6 @@
 # T-20260907-r1-cancel-cascade — R1: huỷ hợp đồng chạy được (`cancel_contract_cascade` ghi `huy_don` cho đơn in)
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 07/09 (chủ "duyêt") · commit ngay theo luật db · **Chương trình:** GĐ1 Nền móng, bước #13 (`agent/GOALS.yaml`), gate #12 ✅ (R2 trước R1) · **DB:** `CREATE OR REPLACE` 1 hàm, không đổi bảng/CHECK/RLS · **ADR:** không cần — sửa hàm cho khớp CHECK đã có · **Revert:** `agent/HANDOFFS/T-20260907-r1-cancel-cascade.revert.sql`.
+**Owner:** claude (spec → chủ duyệt → claude áp DB → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 07/09 (chủ "duyêt") · commit `d13746d` · push 10/09 `808fc68` · **Chương trình:** GĐ1 Nền móng, bước #13 (`agent/GOALS.yaml`), gate #12 ✅ (R2 trước R1) · **DB:** `CREATE OR REPLACE` 1 hàm, không đổi bảng/CHECK/RLS · **ADR:** không cần — sửa hàm cho khớp CHECK đã có · **Revert:** `agent/HANDOFFS/T-20260907-r1-cancel-cascade.revert.sql`.
 
 ## 0. Vì sao
 
