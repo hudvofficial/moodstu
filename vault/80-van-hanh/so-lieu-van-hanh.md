@@ -1,8 +1,8 @@
 ---
 title: "Số liệu vận hành thật"
 tags: [van-hanh, so-lieu]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/SYSTEM_MAP.md (phụ lục + §6) · vault/30-du-lieu/luoc-do-*.md · vault/30-du-lieu/ham-mo-coi.md
 ---
 
@@ -17,6 +17,8 @@ Dùng để quyết định *có đáng tối ưu không* — trước khi giả
 | **07/08/2026** | lần introspect đầu | nghiệp vụ theo tháng, người dùng, cấu trúc code cũ |
 | **~27/08/2026** | `30-du-lieu/luoc-do-*.md` (frontmatter còn ghi 07/08 — **sai**, xem `agent/system-map/01-tien.md` §7 #9) | số dòng từng bảng |
 | **31/08/2026** | `agent/SYSTEM_MAP.md` phụ lục + `30-du-lieu/ham-mo-coi.md` (`pg_proc` thật) | cấu trúc code, số hàm DB, rủi ro đã đo |
+| **02/09 → hằng tuần** | `agent/V0-LOG.md` (`scripts/v0-snapshot.mjs`, thứ Hai) | 10 số vận hành: HĐ chạy, thiếu ngày chụp, tiền còn thu, tuổi HĐ, nợ lab, đơn in mở |
+| **10/09/2026** | SQL đọc trực tiếp | 62 HĐ thật (57 hoàn thành · 5 đang chạy · 0 huỷ) · 1 admin + 3 sale + 8 ctv active · phải thu 13,8tr (đến hạn 3,3tr) · nợ lab 1,905tr = 7 đơn |
 
 Không chắc số nào của mốc nào → chạy lại: `node scripts/db-q.mjs`, `npm run vault:db-truth`.
 

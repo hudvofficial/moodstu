@@ -1,8 +1,8 @@
 ---
 title: "Luồng — Vòng đời hợp đồng"
 tags: [luong, hop-dong]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/02-hop-dong.md · agent/system-map/03-in-kho-vay.md · vault/30-du-lieu/than-ham/hop-dong.md
 ---
 
@@ -88,7 +88,7 @@ Trạng thái mở đầu `cho_xu_ly`.
 ## 5. Thanh toán
 
 RPC **`process_contract_payment_v2`** → `payments` + `payment_plan_allocations` + cập nhật `payment_plans.status` (`pending → partial → paid`, hoặc `cancelled`).
-Huỷ: `void_contract_payment_v2` (xoá mềm phiếu, **XOÁ** allocation, sync lại). Hoàn tiền: `contract-refund-actions.ts` → `expenses` — chỉ mở sau khi HĐ đã `da_huy`.
+Huỷ: `void_contract_payment_v2` (xoá mềm phiếu, **XOÁ** allocation, sync lại). Hoàn tiền: `contract-refund-actions.ts` → `expenses` (danh mục `transaction_categories.category_code ∈ contract_refund/refund/hoan_tien`) — chỉ mở sau khi HĐ đã `da_huy`. ✅ **R2 (#12, 07/09/2026):** phiếu hoàn **không** vào `cost_direct`/`direct_cost` (sổ kỳ + lợi nhuận HĐ); vẫn là `cash_out`. Quy ước: hoàn trên HĐ **còn sống** = sửa giá HĐ, không dùng phiếu hoàn thay giảm giá.
 
 **RPC chặn cứng (RAISE):** kỳ kế toán đã khoá · HĐ `da_huy` · thu quá `remaining` · phát sinh tăng khi còn nợ (bắt buộc `remaining = 0` + lý do ≥ 5 ký tự).
 
@@ -111,7 +111,7 @@ Chi tiết: [[luong-gallery]]. Tóm tắt: import từ Drive → `galleries` + `
 cho_xu_ly ──► dang_in ──► da_in ──► hoan_thanh   (terminal)
      └──────────┴──────────┴──► huy_don | gap_su_co
                     gap_su_co ──► quay lại 4 bước trên, hoặc huy_don
-Legacy chỉ đọc, KHÔNG ghi mới:  da_nhan · da_huy
+Legacy chỉ đọc, KHÔNG ghi mới:  da_nhan · da_huy   (R1 #13 07/09: cancel_contract_cascade đã đổi sang huy_don)
 ```
 
 ❌ **`dat_coc` và `da_giao` đã bị xoá khỏi từ vựng** (ADR-014, 24/08/2026) — quan hệ Mood↔Lab không có khái niệm cọc, và việc giao khách thuộc `contract_events.giao_san_pham`. CHECK constraint DB chỉ nhận 6 giá trị `cho_xu_ly · dang_in · da_in · hoan_thanh · huy_don · gap_su_co` (áp cho dòng `deleted_at IS NULL`).

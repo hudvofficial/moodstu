@@ -1,8 +1,8 @@
 ---
 title: "Module Tài chính"
 tags: [module, tai-chinh]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/01-tien.md · 09-baocao-caidat-admin.md · vault/30-du-lieu/than-ham/tai-chinh.md
 ---
 
@@ -68,6 +68,8 @@ Dashboard `/finance` hiện đúng 3 khối, mỗi khối một câu hỏi, **kh
 Drawer **"Lợi nhuận HĐ"** (`components/finance/dashboard/profit-detail-drawer.tsx`, mở từ `/finance`, `/reports`, cột Lợi nhuận `/contracts`) dùng **cùng khung** với drawer vận hành hợp đồng: `Drawer` mặc định 480px, header = mã HĐ + badge trạng thái, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN; số lấy từ `contract_financials` qua `getContractFinanceDetails` (T-20260826-profit-drawer-align). Đừng đặt `size="lg"` cho drawer nào mở cạnh drawer hợp đồng.
 
 Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung cho `finance_month_summary` (3 khối), `finance_pnl_by_month` (chart 12 tháng) và `finance_reports_snapshot` (`/reports`, Moodie). ⚠️ **`finance_cashflow_timeline` KHÔNG gọi hàm này** — nó tự query `payments` + `receipts` + `expenses` (`20260826120000:324-336`); số vẫn khớp nhờ dùng cùng bộ lọc và `verify:reports` assert cả 4 hàm cho cùng số (`scripts/verify-reports.mjs:164-165`), nhưng đừng phát biểu "4 hàm đều đọc sổ kỳ" — sửa `finance_period_ledger` sẽ **không** tự động đổi `finance_cashflow_timeline`. `finance_dashboard_metrics` và `finance_revenue_by_month` **đã DROP** (két bị gọi là "lợi nhuận", tiền thu bị gọi là "doanh thu"). `fixed_costs` và `monthly_salaries.total_salary` **không** phải tiền → không vào két; chi phí cố định thật = phiếu chi `[Auto-Fixed]`, lương cứng (overhead accrual `cost_salary_base`) = **`employee_salaries.total_salary`** = cơ bản + thưởng − phạt. Cột `employee_salaries.monthly_salary` **không code nào ghi, luôn 0** (M2 dùng nhầm) — thân hàm M5 nói rõ, `20260827130000_luong_cung_m5.sql:85-88`. Chi tiết luật ngày: [[luong-tien]].
+
+**Cập nhật 09/2026.** (1) **R2 #12 (07/09):** `finance_period_ledger.cost_direct` + `contract_financials.direct_cost` **loại phiếu hoàn tiền** (danh mục `contract_refund/refund/hoan_tien`); `cash_out` giữ. (2) **#8 (05/09):** màn mở đầu `/dashboard` (`lib/api/dashboard.ts`) 6 thẻ — Doanh thu (ngày chụp) · Đã thu (két) · Lãi/lỗ đọc **`finance_pnl_by_month`**; `asSignedNumber` cục bộ vì `asNumber` (`lib/finance-utils.ts:67`) **kẹp sàn 0** → ⚠️ `/finance/dashboard` (`finance-dashboard-queries.ts`) vẫn dùng `asNumber` cho `profit`/`cash_net` → **tháng lỗ / két âm hiện 0đ** (sổ đối chiếu 🔴, #29). Biểu đồ `/dashboard` đổi nhãn "Tiền thu theo tháng (két)" vì nguồn `dashboard_revenue_chart` vẫn là tiền theo ngày phiếu. (3) `verify:reports` **đỏ có sẵn** (07/09): HĐ có mốc giao `hoan_thanh` nhưng `event_date = NULL` → `finance_month_summary.receivable_due` ≠ `finance_debt_stats.overdue` (9,8tr vs 3,3tr) → #26 CHECK / #30.
 
 > ⚠️ CHƯA KIỂM (2026-08-31): `cost_salary_base` cộng theo `total_salary`, còn `payable_items`/`sync_employee_salary_paid` dùng `net_salary` (`= total_salary − advance_payment`, `salary-actions.ts:56-57`). Khi có `advance_payment > 0` thì **accrual chi phí lương ≠ nợ lương phải trả**. Hiện chưa xác minh trên DB có dòng nào `advance_payment > 0`.
 

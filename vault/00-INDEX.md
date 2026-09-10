@@ -1,8 +1,8 @@
 ---
 title: "INDEX — bản đồ vault"
 tags: [meta, moc]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 ---
 
 # INDEX — mood-studio
@@ -31,6 +31,15 @@ Xem [[README]] để biết cách dùng vault.
 | Gallery / ảnh | 76 gallery / 17.704 ảnh (lớn nhất 780 ảnh) |
 
 Chi tiết + xu hướng: [[so-lieu-van-hanh]]
+
+## Chương trình tối ưu doanh nghiệp (02/09/2026 → 12 tuần) — sống ở `agent/`, không ở vault
+- [`agent/PHUONG-AN.md`](../agent/PHUONG-AN.md) — 4 giai đoạn (Nền móng → Xương → Modules → Vận hành), cổng G1/G2/G3, 32 bước.
+- [`agent/GOALS.yaml`](../agent/GOALS.yaml) — **sổ 32 bước, nguồn chân lý tiến độ**; thi hành bằng lệnh `/buoc` (`.claude/skills/buoc/SKILL.md`). Luật: không có trong sổ → không làm; vận hành ≠ việc tay cho chủ.
+- [[quyet-dinh-C0-C9]] — 10 luật nghiệp vụ chủ đã chốt 02/09 (ngưỡng vàng/đỏ, sale rời CRM, không chặn chồng lịch, 6 số dashboard…).
+- [`agent/inventory/00-lech-thiet-ke.md`](../agent/inventory/00-lech-thiet-ke.md) — sổ đối chiếu thiết kế ↔ thực tế (🔴/🟡/⬛), mọi phát hiện mới ghi vào đây trước.
+- [`agent/DB-CHANGELOG.md`](../agent/DB-CHANGELOG.md) — mọi thay đổi DB prod (kể cả dọn rác) có dòng **trước** khi áp. `agent/HANDOFFS/T-*.spec.md` — spec từng bước, §6 là bằng chứng.
+- [`agent/RUNBOOK-SU-CO.md`](../agent/RUNBOOK-SU-CO.md) · [`agent/V0-LOG.md`](../agent/V0-LOG.md) — sự cố & thước tuần.
+- Đã xong tới 10/09: S1 backup/restore · S3 cờ ghi prod + hook · V0 ×2 · #8 dashboard 3 số · #12 R2 · #13 R1 · #22 role-gate · #30a bảng HĐ. Đang chờ: G1 (V0 mốc 3, 15/09) → GĐ2.
 
 ## Sự thật DB — sinh tự động, đừng sửa tay
 

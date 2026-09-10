@@ -1,8 +1,8 @@
 ---
 title: "Xác thực & phân quyền"
 tags: [nen-tang, bao-mat]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/06-nen-tang.md §2 · vault/30-du-lieu/rls-va-quyen.md · lib/auth_utils.ts · types/roles.ts
 ---
 
@@ -44,12 +44,15 @@ Cả hai đều trả về client **service role**. Phân quyền vẫn do `requ
 | moodie | ✅ | ✅ | ✅ | ✅ | ✅ |
 | calendar | ✅ | ✅ | ✅ | ✅ | |
 | contracts | ✅ | ✅ | ✅ | | |
-| crm | ✅ | ✅ | ✅ | | |
+| crm | ✅ | ✅ | | | |
+| admin (`/admin/*` công cụ quản trị) | ✅ | ✅ | | | |
 | dresses | ✅ | ✅ | ✅ | | |
 | productivity | ✅ | ✅ | | ✅ | |
 | finance · inventory · reports · employees · printing · settings · services · salaries · goals | ✅ | ✅ | | | |
 
 `admin` và `manager` hiện **quyền hệt nhau** trong `ROLE_PERMISSIONS`. Khác biệt nằm ở các guard hẹp hơn bên dưới.
+
+✅ **10/09/2026 (#22, C1):** `sale` **không còn `crm`** (quyết định C1 02/09 — 4 lead đều không do sale tạo); khoá mới **`admin`** cho `/admin/*`. Ma trận trên là bản sống, `tests/unit/roles-matrix.test.ts` khoá nó.
 
 ## Guard hẹp hơn ma trận
 
@@ -73,7 +76,9 @@ Các `requireXAccess` còn lại (crm, finance, printing, services, inventory, m
 
 ⚠️ **`withContractAccess` / `withContractWriteAccess` / `withContractDestructiveAccess` có định nghĩa (`lib/auth_utils.ts:852-877`) nhưng 0 call-site.** Module hợp đồng gọi `withAuth` + `require*` trực tiếp (`requireContractAccess` ở 63 chỗ). Đừng tưởng contract đi qua wrapper riêng khi đọc code.
 
-⚠️ **Không phải module nào cũng có guard ở tầng layout.** `crm` (`app/(protected)/crm/layout.tsx:1-7`) và `settings` (`app/(protected)/settings/layout.tsx:1-8`) là pass-through; `admin/*` **không có layout** (`app/(protected)/admin/vendors/page.tsx:7-11` không guard). Ở các route đó `requireXAccess()` trong server action là lớp chặn **duy nhất** — quên gọi một lần = trang mở cho mọi vai.
+✅ **ĐÃ SỬA 10/09/2026 (#22, `T-20260907-role-gate-route`):** `crm`, `settings` và `admin/*` giờ có `layout.tsx` guard đúng mẫu `contracts/layout` (`getAuthenticatedUserContext` → `canAccess` → `<AccessDenied/>`, không redirect). 14/14 route-group đã guard tầng route; e2e `tests/e2e/role-gate.spec.ts` (sale/ctv/admin) khoá hành vi.
+
+⚠️ **Tầng action của CRM vẫn hở (đo 07/09):** 17 server action trong `lead-actions.ts` + `lead-lifecycle.ts` chỉ bọc `withAuth` (đăng nhập) — không đọc ma trận. Sale bị chặn ở cửa trang nhưng gọi thẳng action vẫn qua → bước #19 (inject actor + luật vai tại `withAuth`).
 
 ## ⚠️ Bẫy: `viewer` (app) vs `ctv` (DB)
 

@@ -1,8 +1,8 @@
 ---
 title: "Triển khai & verify"
 tags: [van-hanh]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/DECISIONS.md ADR-007/017/018 · package.json · agent/SYSTEM_MAP.md §5.1
 ---
 
@@ -65,6 +65,12 @@ E2E: `test:e2e` (+ `:setup`, `:contracts`, `:contracts-perf`, `:mobile`, `:heade
 
 ⚠️ **E2E chạm DB PRODUCTION.** Dừng dev server trước (Next khoá theo thư mục project), chạy đúng môi trường `playwright.config.ts` chỉ định, và **dọn rác sau** bằng `sweepStaleE2EOrphans` (`tests/e2e/e2e-sweep.ts`) — đừng tự viết SQL xoá.
 
+**S3 — kỷ luật ghi prod (từ 06/09, #10, `T-20260905-s3-ky-luat-ghi-prod`):**
+- 22 script ghi + `playwright/global-setup.ts` + jest `tests/integration/*-live` **chỉ chạy khi `ALLOW_PROD_WRITE=1`** (`scripts/lib/prod-guard.mjs`; thiếu cờ = dừng, exit 2). PowerShell: `$env:ALLOW_PROD_WRITE="1"; …` rồi đặt lại `""`. Danh sách 🔒 trong `agent/inventory/16-scripts.md`.
+- Hook `.githooks/pre-push` (tsc · eslint file đổi · mojibake · `.only` · `.env`, ~20–55 s) — máy mới gõ `npm run hooks:install`. Bỏ qua chỉ khi thật cần: `--no-verify` + lý do trong commit.
+- **Sau MỌI lần test chạm prod:** `node scripts/db-q.mjs "$(cat scripts/sweep-e2e-residue.sql)"` — 23 bảng, mọi `n` = 0 (trừ `realtime_signals`). 10/09 quét lại thấy 86 dòng sót 2 tuần (sweep cũ chỉ nhìn `department=E2E`) → `sweepStaleE2EOrphans` đã mở rộng (employees theo tên, expense_allocations→expenses, labs/vendors/inventory/credit_cards/login_attempts/audit_logs).
+- Chạy Playwright trên `next start` (không `next dev`), qua **PowerShell** (Git Bash làm node crash libuv); không `git stash` khi build/dev đang chạy (Turbopack đọc file lúc stash, cache `.next/cache` giữ bản cũ → xoá `.next`).
+
 ## Query DB nhanh
 
 ```bash
@@ -77,7 +83,7 @@ Chỉ đọc, qua pooler + CA ghim. Dùng cái này thay vì đoán schema.
 ## Migration
 
 ```bash
-node scripts/migrate-direct.mjs <ten-file.sql>
+ALLOW_PROD_WRITE=1 node scripts/migrate-direct.mjs <ten-file.sql>   # runner tự bọc BEGIN/COMMIT — file migration KHÔNG được có BEGIN/COMMIT riêng
 ```
 
 ⚠️ `npm run migrate:latest` **không** chạy file mới nhất. Tên file truyền vào là **tương đối `supabase/migrations/`** (không kèm thư mục). Từ [[adr-index|ADR-017]] (26/08/2026): không truyền tham số → script **dừng báo lỗi**; trước đây nó chạy ngầm file phase-1 cũ (sẽ tạo lại object đã drop). Banner "Created: order_payments…" in cứng cũng đã bỏ.
@@ -112,3 +118,15 @@ node scripts/vault-gen-codemap.mjs    # sau mỗi đợt thêm route/action
 ## Liên quan
 
 [[bay-trien-khai]] · [[adr-index]] · [[so-lieu-van-hanh]] · [[bay-du-lieu]]
+
+## Quy trình đổi DB prod (bước 🗄️, từ 07/09/2026 — #12/#13 là 2 lần đầu)
+1. Dump thân hàm/policy **đang sống** (`pg_get_functiondef`) → `agent/HANDOFFS/<slug>.revert.sql`.
+2. Dòng "chuẩn bị" trong `agent/DB-CHANGELOG.md` + kiểm backup đêm gần nhất `OK` (`H:\backups\mood-studio\backup.log`).
+3. Migration **sinh từ thân hàm sống** bằng replace có assert anchor — không gõ lại tay.
+4. **Diễn tập trên Postgres cục bộ** (`scripts\restore-drill.ps1` dựng cluster `H:\backups\mood-studio\restore-test`, cổng 5433, DB `mood_restore`): áp → đo → chạy `revert.sql` → áp lại. `pg_ctl` qua PowerShell `Start-Process -PassThru` + `WaitForExit()` (Git Bash treo).
+5. Áp prod: `ALLOW_PROD_WRITE=1 node scripts/migrate-direct.mjs <file>` → snapshot RPC trước/sau khớp → `npm run vault:db-truth` → **commit ngay** (repo phải khớp DB tức thì; push vẫn chờ chủ) → dòng "ĐÃ ÁP".
+
+## Sao lưu & khôi phục (S1, 02–04/09/2026)
+- `scripts\backup-db.ps1` — Task Scheduler `MoodStudio-Backup-DB` 02:00 mỗi đêm → `H:\backups\mood-studio\mood_YYYYMMDD_HHmm.dump` (+ `.schema.sql`), giữ 14 bản, log `backup.log`. Chỉ schema `public` — **không** gồm Drive/Storage/Vault/auth.
+- `scripts\restore-drill.ps1` + `scripts/restore-drill-compare.mjs` — diễn tập 04/09: **11 s, 0 lỗi, 93 bảng, 45.041 dòng = 100% dump**; lặp mỗi quý.
+- Kịch bản sự cố: `agent/RUNBOOK-SU-CO.md` (deploy hỏng → Vercel Promote · dữ liệu hỏng → restore cục bộ, đưa lại qua RPC/UI · mất kết nối → 15 connection/kill session).

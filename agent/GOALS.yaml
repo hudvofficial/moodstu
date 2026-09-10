@@ -19,6 +19,15 @@ cong:
 
 buoc:
   # ───────── GIAI ĐOẠN 1 · NỀN MÓNG ─────────
+  - id: 0b
+    gd: 1
+    tuan: 3
+    ten: "Đồng bộ vault (Obsidian) với 2 tuần chương trình — commit 47 file, sửa 6 file viết tay đã sai, INDEX trỏ sang chương trình, nhãn da-kiem-2026-09-10"
+    hinh_thuc: doc
+    gate: []
+    status: dang-lam
+    ngay_bat_dau: 2026-09-10
+    can_cu: "chủ 10/09 hỏi 'có nắm toàn bộ obsidian không' → đo: 33 file da-kiem-2026-08-31 (trước chương trình), 0/62 nhắc GOALS/S3/restore/V0, 47 file vault chưa commit từ 02/09"
   - id: 1
     gd: 1
     tuan: 1

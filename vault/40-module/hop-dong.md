@@ -1,8 +1,8 @@
 ---
 title: "Module Hợp đồng"
 tags: [module, hop-dong]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/02-hop-dong.md · vault/30-du-lieu/than-ham/hop-dong.md
 ---
 
@@ -75,6 +75,8 @@ Lược đồ đầy đủ: [[luoc-do-hop-dong]]
    ⚠️ **Nghi vấn nghiêm trọng (code ↔ code).** Bản định nghĩa mới nhất của `cancel_contract_cascade` (`20260422160000…:348-354`) đặt `printing_orders.status = 'da_huy'`, trong khi CHECK constraint thêm **sau đó** (`20260824120000_printing_workflow_redesign.sql:22-25`) chỉ cho phép `cho_xu_ly · dang_in · da_in · hoan_thanh · huy_don · gap_su_co` khi `deleted_at IS NULL`. Nếu constraint đang VALIDATED thì **huỷ một HĐ còn đơn in đang hoạt động sẽ làm fail cả transaction**, kéo theo `cancelContract` (`contract-lifecycle.ts:113`). Không có migration nào sửa hàm này sau 24/08.
 
    > ✅ ĐÃ ĐO trên prod (2026-08-31): `printing_orders_status_check.convalidated = true`, và hàm `cancel_contract_cascade` vẫn ghi `'da_huy'` (`prosrc` xác nhận). **5 hợp đồng hiện không huỷ được**; 33 đơn in đang sống, **0 đơn mang `da_huy`** và **0 hợp đồng ở trạng thái `da_huy`** ⇒ nhánh này chưa từng chạy thành công kể từ 24/08. Sửa: đổi `'da_huy'` → `'huy_don'` trong nhánh `printing_orders` của hàm.
+
+   > ✅ **ĐÃ SỬA 07/09/2026 (#13, R1)** — `supabase/migrations/20260907100000_r1_cancel_cascade_huy_don.sql` (sinh từ thân hàm sống, đổi đúng 2 chữ), revert `agent/HANDOFFS/T-20260907-r1-cancel-cascade.revert.sql`. Tái hiện trên Postgres cục bộ: bản cũ `23514 check violation`, bản mới HĐ `da_huy` · đơn `huy_don` · task `da_huy`. Thân sống trong [[than-ham/hop-dong]]. Chưa có HĐ nào huỷ thật sau sửa (chủ quyết theo vận hành).
 4. **Module này dùng React Query**, không phải SWR như phần lớn app. → [[cache-va-realtime]]
 5. **Client-direct: đúng cho `contracts`, SAI cho các bảng con.** `lib/client-direct/contract-drawer.ts:29-72` đọc **thẳng từ trình duyệt** `contract_events`, `contract_checklists`, `work_tasks`, `payment_plans`, `payment_plan_allocations`, `contract_notes`, `employees_public` — dựa hạ tầng RLS dựng có chủ đích (`20260605000000_contracts_rls_hardening.sql`, `20260605020000_client_direct_rls_prereq.sql`), nối vào app tại `lib/hooks/use-contract-queries.ts:301` và `use-contract-notes.ts:25`. Riêng bảng `contracts` thì đúng là không đọc client-direct. → [[bao-mat-du-lieu-rls]]
 6. **Không còn bảng nghiệp vụ nào dùng `postgres_changes` trực tiếp.** `20260714040000_realtime_signal_only_hardening.sql:8-42` gỡ 15 bảng (gồm `contracts`, `contract_events`, `contract_checklists`, `contract_notes`, `work_tasks`, `payment_plans`, `payments`) khỏi publication và gắn trigger STATEMENT `emit_realtime_signal`; `:48-59` để lại **duy nhất `realtime_signals`** trong publication. → [[cache-va-realtime]]
@@ -89,3 +91,10 @@ Lược đồ đầy đủ: [[luoc-do-hop-dong]]
 ## Liên quan
 
 [[vong-doi-hop-dong]] · [[luong-tien]] · [[tai-chinh]] · [[gallery]] · [[nhan-su]]
+
+## Danh sách hợp đồng — 3 tầng (cập nhật 07/09/2026, #30a)
+- **Phone (<768):** card 8 hàng (`MobileCardList` trong `components/contracts/contracts-table.tsx`).
+- **Tablet (768–1279, `TierSwitch desktopAt="xl"`):** `contracts-tablet-table.tsx` — 5 cột gộp, mã HĐ ghim trái 124px, nút "Đi" ghim phải, virtualizer.
+- **Desktop (≥1280):** `DesktopTable` — `table-fixed`, **tự co theo bề rộng khung bảng** bằng Tailwind v4 container query (`TableWrapper containerQuery` — lần đầu dùng trong repo): < 880px 6 cột (ẩn Sự kiện) · 880–1079 **7 cột** · ≥ 1080 8 cột (thêm Lợi nhuận). Cột: Khách hàng (tên đậm · dịch vụ · **mã HĐ dòng phụ** · thiếu-checklist chỉ khi có) · Ngày chụp · **Trạng thái (cột 3)** · Sự kiện · Tiến độ · Còn nợ (+Tổng dòng 2) · Lợi nhuận · ›. HĐ `hoan_thanh`/`da_huy`: pill mảnh 1 dòng "✓ Hoàn tất · n/n" (hàng 48px). Lợi nhuận khi `total_cost = 0` → "— chưa ghi chi phí" (cả 3 tầng).
+- **Mặc định** vào `/contracts` = tab **Đang thực hiện** (đổi cả `page.tsx` lẫn `CONTRACT_FILTER_DEFAULTS` — nuqs `clearOnDefault`); "Tất cả" vẫn là tab.
+- Bằng chứng: `tests/e2e/contracts-table-desktop.spec.ts` (tràn 0 ở 1280/1366/1440/1536/1920, cột rộng nhất ≤ 40% khung). Trước 07/09: 11 cột 1.727px, khung 912px → mất 47% kể cả cột Trạng thái, thanh cuộn bị ẩn.

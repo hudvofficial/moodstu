@@ -1,8 +1,8 @@
 ---
 title: "Vault mood-studio — bộ nhớ thứ 2"
 tags: [meta]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 ---
 
 # Vault mood-studio
@@ -38,6 +38,8 @@ Dòng `> ⚠️ CHƯA KIỂM (ngày): …` nằm giữa bài là chỗ tác gi�
 |---|---|
 | **Mới vào phiên, chưa biết gì** | [`agent/SYSTEM_MAP.md`](../agent/SYSTEM_MAP.md) §0 cách đọc → §1 sơ đồ tổng → §5 phát hiện xuyên miền → rồi mới [[00-INDEX]] |
 | Sắp sửa module X | `40-module/X.md` → `30-du-lieu/luoc-do-X.md` → `30-du-lieu/than-ham/X.md` → [[bay-du-lieu]] |
+| **Đang thi hành chương trình tối ưu** | `agent/GOALS.yaml` (bước hiện tại) → `agent/PHUONG-AN.md` → [[quyet-dinh-C0-C9]] → `agent/inventory/00-lech-thiet-ke.md` → gõ `/buoc next` |
+| Sắp chạm DB prod / chạy test | [[trien-khai-va-verify]] §S3 + §Quy trình đổi DB → `agent/DB-CHANGELOG.md` |
 | **Sắp đụng tiền** | [[luong-tien]] → `30-du-lieu/than-ham/tai-chinh.md` → `agent/system-map/01-tien.md` |
 | **Sắp đụng quyền / RLS** | [[rls-va-quyen]] (chân lý) → [[xac-thuc-phan-quyen]]. Nhớ: server action dùng service-role nên **RLS không áp dụng cho đường đó** |
 | **Cần biết một hàm DB làm gì** | `30-du-lieu/than-ham/<nhóm>.md` — thân thật trên DB. **ĐỪNG đọc `supabase/migrations/`**: migration là lịch sử, có hàm bản trong repo cũ hơn bản đang chạy |

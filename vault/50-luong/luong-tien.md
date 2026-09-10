@@ -1,8 +1,8 @@
 ---
 title: "Luồng — Dòng tiền"
 tags: [luong, tai-chinh]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/01-tien.md · vault/30-du-lieu/than-ham/tai-chinh.md
 ---
 
@@ -75,7 +75,7 @@ Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn
 
 ## Ba câu hỏi hay hỏi sai
 
-**"Doanh thu tháng này bao nhiêu?"**
+**"Doanh thu tháng này bao nhiêu?"** *(từ 05/09, #8: `/dashboard` 3 thẻ Doanh thu · Đã thu (két) · Lãi/lỗ đọc `finance_pnl_by_month` — cùng sổ kỳ, 16 ms; thẻ cũ đọc `dashboard_critical_kpis.current_revenue` = tiền két gọi là doanh thu, T8 lệch 27,98tr.)*
 → `finance_month_summary(m, y).revenue` — theo **ngày chụp**. Muốn tiền đã thu: `.cash_in`. **Đừng cộng tay `payment_plans`** — đó là kế hoạch, không phải tiền.
 
 **"Hợp đồng này lãi bao nhiêu?"**
@@ -96,7 +96,7 @@ Quy trình đi qua `finance_close_tasks` + `advance_close_task`.
 
 ## Rủi ro tiền đã đo — chưa vá (31/08/2026)
 
-**Hoàn tiền HĐ đã huỷ làm lệch lãi/lỗ.** `createContractRefundExpense` ghi `expenses(contract_id, payee_type='other')` cho HĐ `da_huy`. Ledger gom **mọi** phiếu `other` có `contract_id` vào `cost_direct` **không lọc trạng thái HĐ** (`20260827130000:32`), trong khi `revenue_contract` **loại** `da_huy` (`:45`).
+~~**Hoàn tiền HĐ đã huỷ làm lệch lãi/lỗ.**~~ ✅ **ĐÃ SỬA 07/09/2026 (#12, R2, `T-20260907-r2-ledger-hoan-tien`):** `finance_period_ledger.cost_direct` và `contract_financials.direct_cost` loại phiếu chi danh mục `contract_refund/refund/hoan_tien` (JOIN `transaction_categories`); `cash_out` giữ nguyên. Diễn tập local: hoàn cọc 1tr → `cost_direct` 1.200.000 → 200.000. Hôm áp: 0 phiếu hoàn → số không đổi. Thân sống: [[than-ham/hop-dong]] (`finance_period_ledger`, `contract_financials`). Còn mở: cọc **giữ lại** khi khách huỷ chưa là thu nhập (#29/#30).
 ⇒ Chi phí vào sổ, doanh thu không → tháng đó lỗ oan.
 **[DB] hiện 0 phiếu / 0đ** vì chưa có HĐ nào huỷ được — nó sẽ **nổ cùng lúc** với lỗi huỷ hợp đồng ở [[vong-doi-hop-dong]] (5 HĐ đang không huỷ được). → `agent/SYSTEM_MAP.md` §6 R2.
 
