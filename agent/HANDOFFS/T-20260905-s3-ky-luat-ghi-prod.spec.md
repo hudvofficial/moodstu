@@ -1,6 +1,6 @@
 # T-20260905-s3-ky-luat-ghi-prod — Chuẩn S3: kỷ luật ghi production (cờ `ALLOW_PROD_WRITE` + pre-push tĩnh)
 
-**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — duyệt 06/09 · code+verify 06/09 · `/buoc done` → commit `04665cd` (chưa push) · **Chương trình:** GĐ1 Nền móng, bước #10 (`agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — không đổi data-flow/schema/lib; thêm 1 module guard + 1 hook git + sửa 2 config test.
+**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — duyệt 06/09 · code+verify 06/09 · `/buoc done` → commit `04665cd` · push 07/09 `b4073b4` · **Chương trình:** GĐ1 Nền móng, bước #10 (`agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — không đổi data-flow/schema/lib; thêm 1 module guard + 1 hook git + sửa 2 config test.
 
 ## 0. Vì sao — bằng chứng trong 24 giờ qua
 

@@ -1,6 +1,6 @@
 # T-20260906-bang-hd-desktop — Bảng hợp đồng desktop (≥1280): 7 cột vừa khung, mã HĐ lùi xuống dòng phụ, không bao giờ mất cột
 
-**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** 🔍 CHỜ XEM DIFF — chủ "triển khai" 06/09 · code + verify 06/09 · **Chương trình:** bước #30a (kéo lên từ #30 theo lệnh chủ 06/09, `agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — chỉ trình bày; không đổi data-flow, RPC, state, lib.
+**Owner:** claude (spec → chủ duyệt → claude code → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — chủ "triển khai" 06/09, xem dev 3 vòng, "tiếp" 07/09 → commit `2a53dd6` · push 07/09 `b4073b4` · **Chương trình:** bước #30a (kéo lên từ #30 theo lệnh chủ 06/09, `agent/GOALS.yaml`) · **DB:** KHÔNG đổi · **ADR:** không cần — chỉ trình bày; không đổi data-flow, RPC, state, lib.
 
 ## 0. Vì sao
 
