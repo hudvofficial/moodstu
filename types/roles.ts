@@ -9,6 +9,7 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "dashboard",
     "contracts",
     "crm",
+    "admin", // #22: công cụ quản trị /admin/* — cùng nhóm với withAdmin
     "finance",
     "inventory",
     "calendar",
@@ -27,6 +28,7 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "dashboard",
     "contracts",
     "crm",
+    "admin",
     "finance",
     "inventory",
     "calendar",
@@ -41,7 +43,8 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "salaries",
     "goals",
   ],
-  sale: ["dashboard", "contracts", "crm", "calendar", "dresses", "moodie"],
+  // C1 (02/09): gỡ CRM khỏi sale — 4 lead đều không do sale tạo; mở lại khi sale bắt đầu làm lead + luật sở hữu
+  sale: ["dashboard", "contracts", "calendar", "dresses", "moodie"],
   media: ["dashboard", "productivity", "calendar", "moodie"],
   viewer: ["dashboard", "moodie"],
 };
