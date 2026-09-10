@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-10
 giai_doan_hien_tai: 1
-buoc_hien_tai: 24
+buoc_hien_tai: 26
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
@@ -249,10 +249,12 @@ buoc:
     ten: "T3 · một policy đọc mỗi bảng theo ma trận vai (gỡ OR *_authenticated_read) + thu hồi quyền ghi anon/authenticated 9 bảng + vá R8 calendar_month_events lọc theo người"
     hinh_thuc: db
     gate: [3, 10]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-10
     ngay_duyet: 2026-09-10
     ngay_ap_db: 2026-09-10
     ngay_code: 2026-09-10
+    bang_chung: "ĐÃ ÁP prod 10/09 (migrate-direct, cờ S3) · commit 0ac42f1 · chủ 'đẩy' 10/09 → push 9da864d (hook pre-push OK 61s) · 9 bảng 46→16 policy, grant authenticated 63→9 (SELECT), anon 0, calendar_month_events(int,int,uuid) ACL {postgres,service_role} · dữ liệu khớp 100% · probe REST sale/ctv tạm 15/15 (mọi ghi 403 42501, ctv đọc 0) · Playwright contracts-table-desktop 5/5 + t3-rls-client-direct 2/2 · tsc/eslint/verify:calendar/verify:contracts 0 lỗi · sweep rác 0 · vault:db-truth 187 policy · ADR-019 Accepted · revert.sql thử local 2 vòng"
     verify: "prod: 9 bảng 46→16 policy · grant authenticated 63→9 (SELECT) · anon 0 · hàm 3 tham số ACL {postgres,service_role} · dữ liệu 9 bảng khớp 100% · calendar(9,2026)=NULL=83, id khác=82 · probe REST sale/ctv tạm 15/15 (sale đọc 65 HĐ, PATCH/POST/DELETE/RPC 403 42501; ctv 0 ×4) · Playwright contracts-table-desktop 5/5 + t3-rls-client-direct 2/2 (drawer sale: 4 GET 200, events 3; /calendar OK) · tsc 0 eslint 0 verify:calendar/contracts pass · sweep 0 (realtime_signals 221 = tín hiệu thật) · vault:db-truth 187 policy"
     diff: "migration + revert.sql + spec · app/actions/calendar-queries.ts (p_employee_id) · types/database.types.ts (Args) · tests/e2e/t3-rls-client-direct.spec.ts (mới) · agent/DECISIONS.md ADR-019 · DB-CHANGELOG 2 dòng · vault: rls-va-quyen + than-ham (sinh) · bao-mat-du-lieu-rls.md · xac-thuc-phan-quyen.md"
     spec: agent/HANDOFFS/T-20260910-t3-rls-matrix.spec.md

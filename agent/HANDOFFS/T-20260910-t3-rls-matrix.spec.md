@@ -1,6 +1,6 @@
 # T-20260910-t3-rls-matrix — T3: một policy đọc mỗi bảng theo ma trận vai · ghi chỉ qua service role · RPC lịch lọc theo người (R8)
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 2 file app → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · app + verify xong, chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 6, bước #24 (`agent/GOALS.yaml`), gate #3 ✅ #10 ✅ · **DB:** 9 bảng — DROP 37 policy · CREATE 7 policy · REVOKE quyền ghi của `anon`/`authenticated` · DROP+CREATE 1 hàm (thêm tham số có mặc định, giữ ACL) · **ADR:** ADR-019 (`agent/DECISIONS.md`, Proposed → Accepted khi chủ "duyệt") · **Revert:** `agent/HANDOFFS/T-20260910-t3-rls-matrix.revert.sql` (46 policy + 9 grant + thân hàm + ACL sống, đã thử local).
+**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 2 file app → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · commit `0ac42f1` · chủ "đẩy" 10/09 → push `9da864d` · `/buoc done` 10/09 · **Chương trình:** GĐ2 tuần 6, bước #24 (`agent/GOALS.yaml`), gate #3 ✅ #10 ✅ · **DB:** 9 bảng — DROP 37 policy · CREATE 7 policy · REVOKE quyền ghi của `anon`/`authenticated` · DROP+CREATE 1 hàm (thêm tham số có mặc định, giữ ACL) · **ADR:** ADR-019 (`agent/DECISIONS.md`, Proposed → Accepted khi chủ "duyệt") · **Revert:** `agent/HANDOFFS/T-20260910-t3-rls-matrix.revert.sql` (46 policy + 9 grant + thân hàm + ACL sống, đã thử local).
 
 ## 0. Vì sao
 
