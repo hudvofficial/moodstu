@@ -55,6 +55,7 @@
     "verify:inventory": "node scripts/verify-inventory.mjs",
     "verify:dresses": "node scripts/verify-dresses.mjs",
     "verify:contracts": "node scripts/verify-contracts.mjs",
+    "verify:customers": "node scripts/verify-customers-phone.mjs",
     "verify:settings": "node scripts/verify-settings.mjs",
     "verify:employees": "node scripts/verify-employees.mjs",
     "smoke:employees": "node scripts/smoke-employees.mjs",

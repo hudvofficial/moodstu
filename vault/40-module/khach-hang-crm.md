@@ -1,8 +1,8 @@
 ---
 title: "Module Khách hàng & CRM"
 tags: [module, crm]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-10
+trang-thai: da-kiem-2026-09-10
 doi-chieu: agent/system-map/04-crm-nhan-su.md · vault/30-du-lieu/than-ham/khach-hang-crm.md
 ---
 
@@ -46,7 +46,7 @@ Sinh bằng `nextval_customer_code` (server) → **không optimistic-patch**, m�
 
 ## Bẫy đã tìm thấy
 
-- **`updateCustomer` không chuẩn hoá SĐT như `createCustomer`** — `customer-actions.ts:230` chỉ `.trim()`, trong khi `:135` gọi `normalizePhone`. Sửa SĐT một khách có thể phá cả dedup lẫn khớp lead ↔ customer. Sửa ở đây phải sửa **cả hai** đường.
+- ~~**`updateCustomer` không chuẩn hoá SĐT như `createCustomer`**~~ **→ ✅ #27 áp 10/09** (`agent/HANDOFFS/T-20260910-t4-normalize-phone.spec.md`). **Luật SĐT từ 10/09 — một chỗ, hai lớp:** (1) DB: `public.normalize_phone(text)` IMMUTABLE (chỉ giữ chữ số; `84`/`0084` + 9 số → `0…`; rỗng → NULL; **không sửa độ dài**) + trigger `normalize_phone_before_write` BEFORE INSERT/UPDATE OF `phone` trên `customers` và `crm_leads` → mọi đường ghi (app, `save_contract_atomic`, `convert_lead_to_customer`, service role) đều ra một dạng; index `idx_customers/crm_leads_active_normalized_phone`. (2) App: `lib/phone.ts` `normalizePhone` gương đúng luật SQL, dùng ở `createCustomer`/`updateCustomer`/`createLead`/`updateLead` (dedupe theo bản chuẩn) và `lead-lifecycle` (khớp khách cũ). RPC `convert_lead_to_customer` so `normalize_phone(phone) = normalize_phone(lead.phone)` → lead `+84…` nối vào khách `0…`, không tạo trùng. Báo cáo: `npm run verify:customers` → `customer_phone_report()` (chỉ service_role): `khach_trung` (exit 1) · `lead_trung_khach` · `sdt_khong_hop_le` · `chua_chuan` (ứng viên backfill — **không backfill tự động**, quyết định riêng). Số 10/09: 66 khách, 0 trùng, 6 SĐT sai độ dài (KH-023/051/053/064/065/084). Đổi luật → sửa cả hai lớp + `REINDEX` 2 index. `vendor-actions.ts` / `stock-out-modal.tsx` còn bản riêng (module NCC/kho).
 - **`crm_leads.pipeline_order` là cột chết ở tầng ghi** — chỉ có đường đọc (`lead-actions.ts:43`, `types/crm.ts:118`), không đường ghi nào trong repo → mọi lead giữ mặc định `0`, **thứ tự cột kéo-thả trên `pipeline-board` không được lưu**.
 - **`get_customer_ltv(uuid[])`** tồn tại trên DB (tạo ở `…_crm_audit_followups.sql:6,110-122`) để gộp LTV bằng SQL, nhưng `getCustomers` vẫn fetch `contracts` rồi cộng ở JS (`customer-actions.ts:92-98`) → tối ưu **chưa được nối vào**; hàm nằm trong danh sách ứng viên chết của [[ham-mo-coi]].
 

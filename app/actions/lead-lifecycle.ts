@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { LeadStatus } from "@/types/crm";
 import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
 import { writeAuditLog } from "@/lib/audit";
+import { normalizePhone } from "@/lib/phone";
 import { format } from "date-fns";
 import {
   ZodLeadMoveStage,
@@ -230,7 +231,7 @@ export async function convertLeadToCustomer(leadId: string): Promise<ActionResul
       ? await supabase
           .from("customers")
           .select("id, lead_id, full_name, phone")
-          .eq("phone", oldData.phone.trim())
+          .eq("phone", normalizePhone(oldData.phone) ?? oldData.phone.trim()) // #27: khớp khách cũ theo SĐT chuẩn (RPC convert cũng vậy)
           .is("deleted_at", null)
           .maybeSingle()
       : { data: null, error: null };

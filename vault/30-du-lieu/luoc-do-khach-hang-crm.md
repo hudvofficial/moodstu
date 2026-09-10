@@ -57,10 +57,11 @@ Module liên quan: [[khach-hang-crm]]
 
 **Bị trỏ tới bởi:** `payments.customer_id` · `contracts.customer_id` · `dress_reservations.customer_id`
 
-**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_customers_updated_at` → `update_updated_at_column()`
+**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `normalize_phone_before_write` → `trg_normalize_phone()` · `update_customers_updated_at` → `update_updated_at_column()`
 
-<details><summary>18 index</summary>
+<details><summary>19 index</summary>
 
+- `btree (normalize_phone((phone)::text)) WHERE (deleted_at IS NULL)`
 - `UNIQUE btree (id)`
 - `UNIQUE btree (customer_code)`
 - `btree (customer_code)`
@@ -119,11 +120,12 @@ Module liên quan: [[khach-hang-crm]]
 
 **Bị trỏ tới bởi:** `customers.lead_id`
 
-**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_crm_leads_updated_at` → `update_updated_at_column()`
+**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `normalize_phone_before_write` → `trg_normalize_phone()` · `update_crm_leads_updated_at` → `update_updated_at_column()`
 
-<details><summary>15 index</summary>
+<details><summary>16 index</summary>
 
 - `btree (deleted_at) WHERE (deleted_at IS NULL)`
+- `btree (normalize_phone((phone)::text)) WHERE (deleted_at IS NULL)`
 - `UNIQUE btree (id)`
 - `btree (phone)`
 - `btree (assigned_to)`

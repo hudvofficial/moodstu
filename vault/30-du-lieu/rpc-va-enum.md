@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 149 hàm
+# Danh mục RPC — 152 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -175,6 +175,7 @@ cap-nhat: 2026-08-07
 
 | Hàm | Tham số | Trả về | SECURITY DEFINER |
 |---|---|---|---|
+| `customer_phone_report` | — | TABLE(loai text, sdt_chuan text, so_dong integer, chi_tiet t |  |
 | `dashboard_critical_kpis` | p_month integer, p_year integer | TABLE(current_revenue numeric, previous_revenue numeric, tot |  |
 | `dashboard_service_breakdown` | p_month integer, p_year integer, p_can_view_financials boolean | TABLE(service_type text, contract_count bigint, revenue nume |  |
 | `get_crm_customer_stats` | — | json | ⚠️ có |
@@ -214,10 +215,12 @@ cap-nhat: 2026-08-07
 | `handle_new_user` | — | trigger | ⚠️ có |
 | `is_period_locked` | p_date date | boolean |  |
 | `log_audit_action` | — | trigger | ⚠️ có |
+| `normalize_phone` | p_phone text | text |  |
 | `payable_items` | p_payee_type text, p_payee_id uuid | TABLE(target_type text, target_id uuid, item_date date, labe |  |
 | `payable_remaining` | p_target_type text, p_target_id uuid, p_payee_id uuid | numeric |  |
 | `rls_auto_enable` | — | event_trigger | ⚠️ có |
 | `sync_ai_conversation_message_count` | — | trigger | ⚠️ có |
+| `trg_normalize_phone` | — | trigger |  |
 | `update_fulfillment_transaction_atomic` | p_txn_id uuid, p_new_quantity integer, p_new_unit_price numeric, p_user_id uuid | jsonb | ⚠️ có |
 | `update_updated_at_column` | — | trigger |  |
 | `vn_date` | p timestamp with time zone | date |  |

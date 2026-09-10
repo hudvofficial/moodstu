@@ -8,6 +8,7 @@ import type { LeadStatus, CrmLead } from "@/types/crm";
 import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
 import { format } from "date-fns";
 import { writeAuditLog } from "@/lib/audit";
+import { normalizePhone } from "@/lib/phone";
 import {
   ZodLeadFilter,
   ZodLeadCreate,
@@ -187,17 +188,18 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
       });
     }
 
-    // Check for duplicates
-    if (tData.phone?.trim()) {
-      const { data: existing } = await supabase.from("crm_leads").select("id, contact_name").eq("phone", tData.phone.trim()).neq("status", "huy").is("deleted_at", null).limit(1);
+    // Check for duplicates — #27: so và ghi theo SĐT chuẩn (cùng luật trigger normalize_phone trên DB)
+    const phoneChuan = normalizePhone(tData.phone);
+    if (phoneChuan) {
+      const { data: existing } = await supabase.from("crm_leads").select("id, contact_name").eq("phone", phoneChuan).neq("status", "huy").is("deleted_at", null).limit(1);
       if (existing && existing.length > 0) {
         throw new Error(`SĐT này đã tồn tại (${existing[0].contact_name}). Vui lòng kiểm tra lại.`);
       }
     }
 
     const insertData = {
-      contact_name: tData.contact_name.trim(), 
-      phone: tData.phone?.trim() || null, 
+      contact_name: tData.contact_name.trim(),
+      phone: phoneChuan,
       email: tData.email?.trim() || null,
       source: tData.source || null, 
       needs: tData.needs?.trim() || null, 
@@ -258,7 +260,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     }
 
     // Duplicate-phone guard on change (parity with createLead; closes the create→edit bypass).
-    const nextPhone = tData.phone?.trim();
+    const nextPhone = normalizePhone(tData.phone); // #27: so theo SĐT chuẩn
     if (nextPhone && nextPhone !== (oldData.phone || "")) {
       const { data: dup } = await supabase.from("crm_leads").select("id, contact_name").eq("phone", nextPhone).neq("status", "huy").is("deleted_at", null).neq("id", tData.id).limit(1);
       if (dup && dup.length > 0) {
@@ -269,7 +271,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     const now = new Date().toISOString();
     const updateData: Database["public"]["Tables"]["crm_leads"]["Update"] = { updated_at: now };
     if (tData.contact_name !== undefined) updateData.contact_name = tData.contact_name.trim();
-    if (tData.phone !== undefined) updateData.phone = tData.phone.trim() || null;
+    if (tData.phone !== undefined) updateData.phone = normalizePhone(tData.phone); // #27
     if (tData.email !== undefined) updateData.email = tData.email.trim() || null;
     if (tData.source !== undefined) updateData.source = tData.source || null;
     if (tData.needs !== undefined) updateData.needs = tData.needs?.trim() || null;

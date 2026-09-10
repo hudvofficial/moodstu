@@ -21,7 +21,7 @@ Module liên quan: [[he-thong]]
 | `notification_queue` | 0 | ✅ | 1 |
 | `push_subscriptions` | 0 | ✅ | 4 |
 | `login_attempts` | 2 | ✅ | 4 |
-| `realtime_signals` | 6 | ✅ | 1 |
+| `realtime_signals` | 3 | ✅ | 1 |
 | `google_sync_queue` | 0 | ✅ | 1 |
 | `integrity_reports` | 1 | ✅ | 1 |
 
@@ -237,7 +237,7 @@ Module liên quan: [[he-thong]]
 
 ## `realtime_signals`
 
-6 dòng · RLS bật · 1 policy
+3 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

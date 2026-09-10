@@ -283,7 +283,24 @@ buoc:
     ngay_spec: 2026-09-10
     can_cu: "T4 [DB] sổ đối chiếu dòng 88: status text tự do, không enum/CHECK; PHUONG-AN T4 'fail lúc ghi'; điều kiện G2 'CHECK status validated'"
     do_duoc: "10/09: work_tasks 171 dòng (hoan_thanh 167 · dang_lam 2 · da_huy 2) · contract_events 220 (sống: hoan_thanh 162 · chua_lam 11 · dang_lam 2; xoá mềm 45 gồm da_huy 38) — 0 NULL, 0 giá trị lạ; app ghi literal 4 giá trị + input.status kiểu TaskStatus; cascade ghi 'da_huy'; 2 CHECK hiện có không đụng status; 94 mốc hoan_thanh không ngày (hau_ky 56/56, giao_san_pham 31/32) → #30, không phải #26"
-  - { id: 27, gd: 2, tuan: 7, ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng", hinh_thuc: db, gate: [10], status: todo }
+  - id: 27
+    gd: 2
+    tuan: 7
+    ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng"
+    hinh_thuc: db
+    gate: [10]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-10
+    ngay_ap_db: 2026-09-10
+    ngay_code: 2026-09-10
+    verify: "prod: trigger 2 · index 2 · hàm 3 · convert so normalize_phone, ACL giữ · report chỉ service_role · md5 phone customers/crm_leads trước = sau · lead thử +84 968 000 111 → 0968000111, (0912) 000-222 → 0912000222, xoá 4→4 · verify:customers 0 trùng / 6 sai độ dài · jest phone 9/9 · eslint 0 · tsc 0 · vault db-truth 152 hàm + schema + module CRM · sweep 0"
+    diff: "migration + revert.sql + spec · lib/phone.ts (mới) · app/actions/customer-actions.ts, lead-actions.ts, lead-lifecycle.ts · tests/unit/phone.test.ts (mới) · scripts/verify-customers-phone.mjs (mới) + package.json verify:customers · DB-CHANGELOG 2 dòng · vault: than-ham/khach-hang-crm + he-thong, luoc-do-khach-hang-crm + he-thong, ham-mo-coi, rpc-va-enum (sinh), 40-module/khach-hang-crm.md (tay)"
+    spec: agent/HANDOFFS/T-20260910-t4-normalize-phone.spec.md
+    revert: agent/HANDOFFS/T-20260910-t4-normalize-phone.revert.sql
+    migration: supabase/migrations/20260910130000_t4_normalize_phone_customers_leads.sql
+    ngay_spec: 2026-09-10
+    can_cu: "T4 [DB+app] sổ đối chiếu dòng 89: convert so BTRIM, createCustomer lưu bản chuẩn → lead +84 tạo khách trùng; PHUONG-AN T4 'một normalizePhone mọi đường ghi'"
+    do_duoc: "10/09: 5 đường ghi SĐT khách/lead dùng 4 luật (updateCustomer + lead chỉ trim; RPC BTRIM; save_contract_atomic thô); prod customers 66 (60 chuẩn, 6 sai độ dài), leads 4, 0 +84, 0 trùng; thiết kế: normalize_phone IMMUTABLE + trigger 2 bảng + index + RPC convert so theo chuẩn + customer_phone_report; app lib/phone.ts gom 3 chỗ; local diễn tập 10 mẫu + trigger + convert nối khách cũ + báo cáo 6 dòng, revert ✓"
   - { id: 28, gd: 2, tuan: 7, ten: "T1 · scripts/verify-numbers.mjs → kiểm CỔNG G2", hinh_thuc: doc, gate: [17, 18, 19, 20, 22, 23, 24, 25, 26, 27], status: todo }
 
   # ───────── GIAI ĐOẠN 3 · MODULES (kém nhất trước) ─────────

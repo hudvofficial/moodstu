@@ -6,6 +6,7 @@ import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { ZodCustomerCreate, ZodCustomerUpdate, ZodUuidId, ZodCustomerFilter, ZodCustomerSearch } from "@/lib/validations/crm.schema";
+import { normalizePhone } from "@/lib/phone";
 
 // ----------------------------------------------------
 // Customer Actions - CRUD + Stats + LTV
@@ -50,9 +51,7 @@ function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
 }
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-().]/g, "").replace(/^\+84/, "0");
-}
+// #27: luật chuẩn SĐT dùng chung ở lib/phone.ts (gương trigger normalize_phone trên DB) — không giữ bản riêng ở đây.
 
 // ----------------------------------------------------
 // GET CUSTOMERS (Paginated + Search)
@@ -227,7 +226,7 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
 
     const updateData: Database["public"]["Tables"]["customers"]["Update"] = { updated_at: new Date().toISOString() };
     if (tData.full_name !== undefined) updateData.full_name = tData.full_name.trim();
-    if (tData.phone !== undefined) updateData.phone = tData.phone.trim() || null;
+    if (tData.phone !== undefined) updateData.phone = normalizePhone(tData.phone); // #27: cùng luật với createCustomer (trước chỉ trim)
     if (tData.alt_phone !== undefined) updateData.alt_phone = tData.alt_phone.trim() || null;
     if (tData.email !== undefined) updateData.email = tData.email.trim() || null;
     if (tData.address !== undefined) updateData.address = tData.address?.trim() || null;

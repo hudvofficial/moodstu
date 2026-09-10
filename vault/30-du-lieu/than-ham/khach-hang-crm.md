@@ -10,12 +10,13 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Thân hàm DB — khach-hang-crm
 
-5 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
+6 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
 | [`append_care_log`](#append_care_log) | `p_lead_id uuid, p_content text, p_type text` | `jsonb` | **DEFINER** | plpgsql |
 | [`convert_lead_to_customer`](#convert_lead_to_customer) | `p_lead_id uuid` | `jsonb` | **DEFINER** | plpgsql |
+| [`customer_phone_report`](#customer_phone_report) | `—` | `TABLE(loai text, sdt_chuan text, so_dong integer, chi_tiet text)` | invoker | sql |
 | [`get_crm_customer_stats`](#get_crm_customer_stats) | `—` | `json` | **DEFINER** | plpgsql |
 | [`get_crm_lead_stats`](#get_crm_lead_stats) | `—` | `json` | **DEFINER** | plpgsql |
 | [`nextval_customer_code`](#nextval_customer_code) | `—` | `bigint` | **DEFINER** | sql |
@@ -100,7 +101,7 @@ BEGIN
   SELECT id
   INTO v_existing_customer_id
   FROM public.customers
-  WHERE phone = BTRIM(v_lead.phone)
+  WHERE public.normalize_phone(phone) = public.normalize_phone(v_lead.phone)   -- #27: so theo SĐT chuẩn (lead +84… vẫn khớp khách 0…)
     AND deleted_at IS NULL
   LIMIT 1;
 
@@ -127,7 +128,7 @@ BEGIN
     VALUES (
       'KH-' || LPAD(public.nextval_customer_code()::text, 3, '0'),
       COALESCE(NULLIF(BTRIM(v_lead.contact_name), ''), 'Khach hang moi'),
-      BTRIM(v_lead.phone),
+      public.normalize_phone(v_lead.phone),   -- #27
       NULLIF(BTRIM(v_lead.email), ''),
       NULLIF(BTRIM(v_lead.address), ''),
       v_lead.source,
@@ -149,6 +150,42 @@ BEGIN
     'lead', row_to_json(v_lead)
   );
 END;
+```
+
+---
+
+## customer_phone_report
+
+`customer_phone_report()` → `TABLE(loai text, sdt_chuan text, so_dong integer, chi_tiet text)` · SECURITY INVOKER · sql · STABLE
+
+```sql
+-- Báo cáo khách trùng / SĐT lệch (#27). CHỈ ĐỌC. Gọi bằng service_role (scripts/verify-customers-phone.mjs).
+  -- khach_trung      : ≥2 khách sống cùng SĐT chuẩn
+  -- lead_trung_khach : lead sống (chưa chốt/huỷ) có SĐT chuẩn trùng khách sống → convert sẽ nối vào khách cũ
+  -- sdt_khong_hop_le : khách sống mà SĐT chuẩn không phải 10 số bắt đầu 0 (thiếu/thừa số)
+  -- chua_chuan       : dòng đang lưu khác bản chuẩn (ứng viên backfill — quyết định riêng, #27 không sửa)
+  WITH c AS (
+    SELECT id, customer_code, full_name, phone, public.normalize_phone(phone) AS chuan
+    FROM public.customers WHERE deleted_at IS NULL
+  ), l AS (
+    SELECT id, contact_name, phone, status, public.normalize_phone(phone) AS chuan
+    FROM public.crm_leads WHERE deleted_at IS NULL
+  )
+  SELECT 'khach_trung', chuan, count(*)::int, string_agg(customer_code || ' ' || full_name || ' (' || coalesce(phone,'') || ')', ' | ' ORDER BY customer_code)
+  FROM c WHERE chuan IS NOT NULL GROUP BY chuan HAVING count(*) > 1
+  UNION ALL
+  SELECT 'lead_trung_khach', l.chuan, count(*)::int, string_agg('lead ' || l.contact_name || ' [' || l.status || '] → ' || c.customer_code || ' ' || c.full_name, ' | ')
+  FROM l JOIN c ON c.chuan = l.chuan WHERE l.chuan IS NOT NULL AND l.status NOT IN ('da_chot', 'huy') GROUP BY l.chuan
+  UNION ALL
+  SELECT 'sdt_khong_hop_le', chuan, 1, customer_code || ' ' || full_name || ' (' || coalesce(phone,'') || ')'
+  FROM c WHERE chuan IS NOT NULL AND chuan !~ '^0[0-9]{9}$'
+  UNION ALL
+  SELECT 'chua_chuan', chuan, 1, 'customers ' || customer_code || ' (' || coalesce(phone,'') || ' → ' || coalesce(chuan,'NULL') || ')'
+  FROM c WHERE phone IS DISTINCT FROM chuan
+  UNION ALL
+  SELECT 'chua_chuan', chuan, 1, 'crm_leads ' || contact_name || ' (' || coalesce(phone,'') || ' → ' || coalesce(chuan,'NULL') || ')'
+  FROM l WHERE phone IS DISTINCT FROM chuan
+  ORDER BY 1, 2;
 ```
 
 ---

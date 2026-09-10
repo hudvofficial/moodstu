@@ -10,7 +10,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Thân hàm DB — he-thong
 
-12 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
+14 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
@@ -18,10 +18,12 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | [`log_audit_action`](#log_audit_action) | `—` | `trigger` | **DEFINER** | plpgsql |
 | [`moodie_jsonb_cosine_similarity`](#moodie_jsonb_cosine_similarity) | `a jsonb, b jsonb` | `double precision` | invoker | sql |
 | [`nextval_inventory_code`](#nextval_inventory_code) | `—` | `text` | invoker | sql |
+| [`normalize_phone`](#normalize_phone) | `p_phone text` | `text` | invoker | sql |
 | [`printing_items_total`](#printing_items_total) | `p_items jsonb` | `numeric` | invoker | sql |
 | [`refresh_dress_status`](#refresh_dress_status) | `p_dress_id uuid` | `void` | **DEFINER** | plpgsql |
 | [`resolve_vendor_expense_category_id`](#resolve_vendor_expense_category_id) | `—` | `uuid` | **DEFINER** | plpgsql |
 | [`rls_auto_enable`](#rls_auto_enable) | `—` | `event_trigger` | **DEFINER** | plpgsql |
+| [`trg_normalize_phone`](#trg_normalize_phone) | `—` | `trigger` | invoker | plpgsql |
 | [`trg_refresh_dress_status_from_rental`](#trg_refresh_dress_status_from_rental) | `—` | `trigger` | **DEFINER** | plpgsql |
 | [`trg_refresh_dress_status_from_reservation`](#trg_refresh_dress_status_from_reservation) | `—` | `trigger` | **DEFINER** | plpgsql |
 | [`update_updated_at_column`](#update_updated_at_column) | `—` | `trigger` | invoker | plpgsql |
@@ -109,6 +111,24 @@ WITH av AS (
 
 ```sql
 SELECT 'VT-' || LPAD(nextval('public.inventory_item_code_seq')::text, 3, '0');
+```
+
+---
+
+## normalize_phone
+
+`normalize_phone(p_phone text)` → `text` · SECURITY INVOKER · sql · IMMUTABLE
+
+```sql
+-- Chuẩn SĐT Việt Nam (#27): chỉ giữ chữ số; +84/84 (11 số) hoặc 0084 (13 số) → 0; rỗng → NULL.
+  -- KHÔNG sửa độ dài (thiếu/thừa số là lỗi nhập, báo cáo chứ không đoán).
+  SELECT CASE
+    WHEN d = '' THEN NULL
+    WHEN d ~ '^84[0-9]{9}$' THEN '0' || substr(d, 3)
+    WHEN d ~ '^0084[0-9]{9}$' THEN '0' || substr(d, 5)
+    ELSE d
+  END
+  FROM (SELECT regexp_replace(p_phone, '[^0-9]', '', 'g') AS d) s;
 ```
 
 ---
@@ -201,6 +221,19 @@ BEGIN
         RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
      END IF;
   END LOOP;
+END;
+```
+
+---
+
+## trg_normalize_phone
+
+`trg_normalize_phone()` → `trigger` · SECURITY INVOKER · plpgsql · VOLATILE
+
+```sql
+BEGIN
+  NEW.phone := public.normalize_phone(NEW.phone);
+  RETURN NEW;
 END;
 ```
 
