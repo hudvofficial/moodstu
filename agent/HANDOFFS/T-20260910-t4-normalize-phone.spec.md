@@ -1,6 +1,6 @@
 # T-20260910-t4-normalize-phone — T4: một `normalize_phone` cho mọi đường ghi SĐT khách + báo cáo khách trùng
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa app → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · app + verify xong, chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 7, bước #27 (`agent/GOALS.yaml`), gate #10 ✅ · **DB:** 3 hàm mới (`normalize_phone`, `trg_normalize_phone`, `customer_phone_report`) · 2 trigger · 2 index biểu thức · `convert_lead_to_customer` đổi 2 dòng · **0 dữ liệu** (không backfill) · **ADR:** không cần — không đổi data-flow/schema kiểu cột; thêm ràng buộc chuẩn hoá tại cửa ghi, khớp luật app đã có từ 05/2026 · **Revert:** `agent/HANDOFFS/T-20260910-t4-normalize-phone.revert.sql` (gỡ 7 đối tượng + thân hàm sống của RPC).
+**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa app → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 10/09 (chủ "duyệt" 10/09) · commit `4b97747` · chủ "đẩy" 10/09 → `origin/main` · `/buoc done` 10/09 · **Chương trình:** GĐ2 tuần 7, bước #27 (`agent/GOALS.yaml`), gate #10 ✅ · **DB:** 3 hàm mới (`normalize_phone`, `trg_normalize_phone`, `customer_phone_report`) · 2 trigger · 2 index biểu thức · `convert_lead_to_customer` đổi 2 dòng · **0 dữ liệu** (không backfill) · **ADR:** không cần — không đổi data-flow/schema kiểu cột; thêm ràng buộc chuẩn hoá tại cửa ghi, khớp luật app đã có từ 05/2026 · **Revert:** `agent/HANDOFFS/T-20260910-t4-normalize-phone.revert.sql` (gỡ 7 đối tượng + thân hàm sống của RPC).
 
 ## 0. Vì sao
 

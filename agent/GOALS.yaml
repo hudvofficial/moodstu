@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-10
 giai_doan_hien_tai: 1
-buoc_hien_tai: 27
+buoc_hien_tai: 16
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
@@ -216,7 +216,7 @@ buoc:
     tuan: 3
     ten: "V0 lần 3 → kiểm CỔNG G1"
     hinh_thuc: doc
-    gate: [6, 7, 11, 14, 15]
+    gate: [7, 11, 15]  # 10/09: bỏ 6 và 14 khỏi gate — cả hai đã hoãn theo luật 07/09 (vận hành ≠ điều kiện kỹ thuật), khớp cong.G1.dieu_kien đã sửa
     status: todo
     huong_dan: "đủ điều kiện G1 → đổi cong.G1.trang_thai = qua, mở GĐ2"
 
@@ -289,10 +289,12 @@ buoc:
     ten: "T4 · một normalizePhone mọi đường ghi + báo cáo khách trùng"
     hinh_thuc: db
     gate: [10]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-10
     ngay_duyet: 2026-09-10
     ngay_ap_db: 2026-09-10
     ngay_code: 2026-09-10
+    bang_chung: "ĐÃ ÁP prod 10/09 (migrate-direct, cờ S3) · commit 4b97747 · chủ 'đẩy' 10/09 → origin/main 4b97747 (hook 32s) · prod: normalize_phone + trg_normalize_phone + customer_phone_report, trigger 2 bảng, 2 index, convert_lead_to_customer so theo chuẩn (ACL giữ) · md5 phone customers/crm_leads trước = sau · lead thử +84 968 000 111 → 0968000111, (0912) 000-222 → 0912000222, xoá 4→4 · verify:customers 0 trùng / 6 sai độ dài (KH-023/051/053/064/065/084, không backfill) · jest phone 9/9 · eslint 0 · tsc 0 · vault db-truth 152 hàm + schema + module CRM · sweep 0 · revert.sql thử local ✓"
     verify: "prod: trigger 2 · index 2 · hàm 3 · convert so normalize_phone, ACL giữ · report chỉ service_role · md5 phone customers/crm_leads trước = sau · lead thử +84 968 000 111 → 0968000111, (0912) 000-222 → 0912000222, xoá 4→4 · verify:customers 0 trùng / 6 sai độ dài · jest phone 9/9 · eslint 0 · tsc 0 · vault db-truth 152 hàm + schema + module CRM · sweep 0"
     diff: "migration + revert.sql + spec · lib/phone.ts (mới) · app/actions/customer-actions.ts, lead-actions.ts, lead-lifecycle.ts · tests/unit/phone.test.ts (mới) · scripts/verify-customers-phone.mjs (mới) + package.json verify:customers · DB-CHANGELOG 2 dòng · vault: than-ham/khach-hang-crm + he-thong, luoc-do-khach-hang-crm + he-thong, ham-mo-coi, rpc-va-enum (sinh), 40-module/khach-hang-crm.md (tay)"
     spec: agent/HANDOFFS/T-20260910-t4-normalize-phone.spec.md
