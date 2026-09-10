@@ -9,11 +9,11 @@
 
 version: 1
 updated: 2026-09-10
-giai_doan_hien_tai: 1
-buoc_hien_tai: 16
+giai_doan_hien_tai: 2
+buoc_hien_tai: 17
 
 cong:
-  G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
+  G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 mốc (02/09, 06/09, 10/09 — mốc 3 chạy sớm theo lệnh chủ 10/09 thay 15/09) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: qua, ngay_qua: 2026-09-10 }
   G2: { dieu_kien: "0 công thức ngoài ledger · 100% khu nhạy cảm role-gate · audit ≥95% · Mồ côi = 0 · CHECK validated · 5 cửa khoá", trang_thai: dong }
   G3: { dieu_kien: "chấm lại điểm bằng thước cũ: không trục < C · Số-hiển-thị ≥ B · ⬛ ≤3 · tiền kẹt ≤46tr · HĐ>30d ≤5", trang_thai: dong }
 
@@ -217,7 +217,9 @@ buoc:
     ten: "V0 lần 3 → kiểm CỔNG G1"
     hinh_thuc: doc
     gate: [7, 11, 15]  # 10/09: bỏ 6 và 14 khỏi gate — cả hai đã hoãn theo luật 07/09 (vận hành ≠ điều kiện kỹ thuật), khớp cong.G1.dieu_kien đã sửa
-    status: todo
+    status: done
+    ngay_done: 2026-09-10
+    bang_chung: "V0 mốc 3 chạy 10/09 theo lệnh chủ (thay 15/09; tiền lệ #11): 4 HĐ chạy · thiếu ngày chụp 0 · kẹt 8,5tr · vàng 1 · đỏ 0 · già nhất 37 · thu-đủ-chưa-đóng 1 · phải thu 8,5tr · lab 2,14tr · đơn in mở 4 (agent/V0-LOG.md ³; giảm mạnh do chủ đóng 24 HĐ ngày 06/09 — vận hành thật) · G1: backup 9/9 đêm OK 02–10/09 + restore #7 11s/45.041 dòng ✓ · biên bản C0–C9 #15 ✓ · R2 #12 + R1 #13 đã áp ✓ · V0 3 mốc 02/09, 06/09, 10/09 ✓ → G1 QUA 10/09"
     huong_dan: "đủ điều kiện G1 → đổi cong.G1.trang_thai = qua, mở GĐ2"
 
   # ───────── GIAI ĐOẠN 2 · XƯƠNG ─────────

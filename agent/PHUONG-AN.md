@@ -3,7 +3,7 @@
 **Bản 2 · 01.09.2026 · ĐÃ DUYỆT 02.09.** 
 
 > 🎯 **Thi hành bằng `/buoc`** — sổ máy đọc: `agent/GOALS.yaml` · lệnh: `.claude/skills/buoc/SKILL.md` (một bước/lần, đúng gate, done phải có bằng chứng).
-> 📍 **TRẠNG THÁI:** GĐ1 · bước **#3 xong** (C0–C9 chốt → `vault/90-van-hanh-thuc-te/quyet-dinh-C0-C9.md`) · **#5 V0 xong** (baseline `agent/V0-LOG.md` 02/09: 29 HĐ chạy · 4 thiếu ngày chụp · kẹt 92,6tr · vàng 17 · đỏ 13 · thu-đủ-chưa-đóng **9** · lab 1,9tr) · **#4 XONG** (chủ không nâng Pro → tự dump: pg_dump 17.6 binary rời trên H:, task 02:00 hằng đêm Ready, dump đầu 6MB/93 bảng OK, runbook `agent/RUNBOOK-SU-CO.md`) · kế tiếp #6 chủ nhắn khách · #7 diễn tập restore
+> 📍 **TRẠNG THÁI (10/09):** **⛩ G1 QUA 10/09 → GĐ2** · 19/32 bước xong (GĐ1 trọn trừ #6/#9/#14 hoãn theo luật vận hành ≠ kỹ thuật; GĐ2 đã xong sớm #22 #24 #26 #27 #30a) · V0 mốc 3 (10/09, `agent/V0-LOG.md` ³): 4 HĐ chạy · kẹt 8,5tr · đỏ 0 · thu-đủ-chưa-đóng 1 · lab 2,14tr — giảm mạnh so baseline 02/09 (29 · 92,6tr · 13 · 9) do chủ đóng 24 HĐ ngày 06/09 · kế tiếp #17 goals đọc ledger · #18 health-score · #19 audit actor · #23 snapshot đóng sổ · #25 khoá gallery. Trạng thái chi tiết: `agent/GOALS.yaml`.
 
 Nguồn: bảng kiến trúc §00–§20 · sổ đối chiếu 37 mục · hội đồng 5 lăng kính + 3 giám khảo. Khung: **nền móng → xương → modules → vận hành** (theo định hướng của chủ).
 
