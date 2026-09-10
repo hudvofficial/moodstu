@@ -22,6 +22,11 @@
  * contracts/customers (contract_code LIKE 'E2E-%'; customer_code LIKE 'E2E-%' or
  * full_name LIKE 'E2E%') that leak into the contracts list when a spec's afterAll
  * cleanupSeed didn't run. All deletions are time-bounded by STALE_MS.
+ *
+ * 10/09/2026 (chủ: "data test đang rải rác trên production"): quét rộng hơn — employees theo
+ * full_name 'E2E%' (sự cố 28/08 để lại 2 dòng department "Chưa phân bổ" → lọt 2 tuần), login_attempts
+ * (probe-anon-access), credit_cards E2E-RT, expense_allocations + expenses của HĐ E2E, labs/vendors/
+ * inventory_items tên E2E, audit_logs mang dấu E2E (append-only cho app; service role bỏ qua RLS).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -47,7 +52,7 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
     const { data: staleEmps } = await admin
       .from("employees")
       .select("id, auth_user_id, created_at")
-      .eq("department", "E2E")
+      .or("department.eq.E2E,department.eq.PERF,full_name.ilike.E2E%,employee_code.ilike.E2E-%,employee_code.ilike.PERF-%")
       .lt("created_at", cutoffIso);
 
     if (staleEmps?.length) {
@@ -94,6 +99,11 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
     if (staleContracts?.length) {
       const contractIds = staleContracts.map((row) => row.id as string);
       // No ON DELETE CASCADE relied upon — remove children before the contract.
+      // expense_allocations TRƯỚC expenses (FK) — 05/09 còn 2 phân bổ mồ côi + 4 phiếu chi E2E 1,7tr nằm trong sổ T8.
+      const { data: e2eExpenses } = await admin.from("expenses").select("id").in("contract_id", contractIds);
+      if (e2eExpenses?.length) {
+        await admin.from("expense_allocations").delete().in("expense_id", e2eExpenses.map((row) => row.id as string));
+      }
       for (const table of [
         "expenses", // TRƯỚC printing_orders + contracts — accrual expense của đơn in FK-chặn delete (đã từng làm sweep silently fail, rò contract E2E ra prod 08/08)
         "work_tasks",
@@ -117,5 +127,19 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
     await admin.from("customers").delete().like("full_name", "E2E%").lt("created_at", cutoffIso);
   } catch {
     // Best-effort: a sweep failure must not fail the suite that depends on it.
+  }
+
+  // 4) Bảng phụ mà seed của các spec/script khác chạm tới (10/09) — cùng ngưỡng STALE_MS.
+  try {
+    await admin.from("expenses").delete().ilike("description", "E2E%").lt("created_at", cutoffIso);
+    await admin.from("labs").delete().ilike("lab_name", "E2E%").lt("created_at", cutoffIso);
+    await admin.from("inventory_items").delete().or("item_code.ilike.E2E-%,name.ilike.E2E%").lt("created_at", cutoffIso);
+    await admin.from("vendors").delete().ilike("full_name", "E2E%").lt("created_at", cutoffIso);
+    await admin.from("credit_cards").delete().ilike("bank_name", "E2E-%").lt("created_at", cutoffIso);
+    await admin.from("login_attempts").delete().or("email.ilike.e2e-%,email.ilike.%@test.local,email.ilike.%probe%");
+    // audit_logs: app chỉ có policy SELECT/INSERT (append-only); service role bỏ qua RLS. Chỉ dòng mang dấu E2E.
+    await admin.from("audit_logs").delete().ilike("description", "%E2E%").lt("created_at", cutoffIso);
+  } catch {
+    // Best-effort.
   }
 }

@@ -75,6 +75,10 @@ Thẻ duyệt tối đa 6 dòng. Chủ không cần đọc spec để quyết �
 - Thấy dữ liệu "lệch" do thao tác người → đó là **lỗ của hệ** (thiếu CHECK, thiếu nhắc, cho đóng khi chưa xong) → ghi sổ đối chiếu cho bước kỹ thuật (#26/#30…), không giao việc tay.
 - Nhắc việc vận hành: **chỉ** trong V0 thứ Hai, 1 dòng, không gate.
 
+## Sau MỌI lần chạm prod bằng test (e2e, jest live, script probe/seed)
+1. `node scripts/db-q.mjs "$(cat scripts/sweep-e2e-residue.sql)"` — 23 bảng, mọi `n` = 0 (trừ `realtime_signals`). Khác 0 → dọn ngay bằng API service-role (cờ S3), quét lại, ghi `DB-CHANGELOG`.
+2. Dán bảng số vào §6 spec. Không dán = chưa xong. (Chủ 10/09: "mỗi lần test mình dặn bạn phải dọn mà không chịu dọn" — sweep cũ chỉ quét `department='E2E'`, sót 86 dòng 2 tuần.)
+
 ## Cấm
 - Gộp nhiều bước vào một lần chạy.
 - Mở trang/artifact/tài liệu mới ngoài: spec của bước, sửa hồ sơ hiện có, GOALS.yaml.
