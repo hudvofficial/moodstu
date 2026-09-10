@@ -1,14 +1,18 @@
 ---
 title: "Module Nhân sự & công việc"
 tags: [module, nhan-su]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/04-crm-nhan-su.md · 08-dichvu-muctieu-nangsuat.md · vault/30-du-lieu/than-ham/nhan-su.md
 ---
 
 # Module Nhân sự & công việc
 
 Danh bạ nhân sự, phân công việc theo hợp đồng, lương, năng suất.
 
-**Thực tế: 7 nhân sự trong DB nhưng chỉ admin + kinh doanh có đăng nhập.** Phần lớn dòng `employees` là hồ sơ để phân công và tính lương, không phải tài khoản. → [[xac-thuc-phan-quyen]]
+**Số nhân sự đang lệch giữa 3 nguồn** — đừng chép số vào đây: bản cũ của trang này ghi 7, [[luoc-do-nhan-su]] (introspect DB) ghi **12 dòng**, `agent/CURRENT_STATE.md:40` (đo prod 26/08) ghi **10 nhân viên active**. Lấy số ở nguồn sinh tự động.
+
+Điều **không đổi**: chỉ admin + kinh doanh có đăng nhập; phần lớn dòng `employees` là hồ sơ để phân công và tính lương, không phải tài khoản. → [[xac-thuc-phan-quyen]]
 
 ## Route
 
@@ -51,8 +55,11 @@ Công việc giao **nhà cung cấp ngoài** hay **ekip nội bộ** đều là 
 
 ## Năng suất
 
-`productivity-actions.ts` chỉ gọi RPC, không chạm bảng: `get_employee_productivity`, `get_my_employee_productivity`, `get_employee_job_details`, `get_my_employee_job_details`.
-Cặp `get_X` / `get_my_X` = xem người khác vs xem chính mình — **giữ đúng cặp khi sửa quyền**.
+`productivity-actions.ts` chỉ gọi RPC, không chạm bảng **nghiệp vụ**: `get_employee_productivity`, `get_my_employee_productivity`, `get_employee_job_details`, `get_my_employee_job_details`. (Gián tiếp vẫn đọc `studio_info` để lấy múi giờ, qua `resolveProductivityViewerContext` → `lib/productivity-auth.ts:37-42`, admin client.)
+
+Cặp `get_X` / `get_my_X` = xem người khác vs xem chính mình — **giữ đúng cặp khi sửa quyền**. Bảo vệ ở đây mạnh hơn mô tả cũ: hai nhánh dùng **hai loại Supabase client khác nhau** (`createAdminClient` `:46` cho nhánh team vs `createClient` `:93` cho nhánh self), hai mức GRANT khác nhau, và bản self **ép `total_cost = NULL` ngay ở tầng DB** (`20260428170000:189`). Hai lớp DB + TS, hiếm trong repo — đừng làm phẳng.
+
+⚠️ **Quyền vào `/productivity` KHÔNG do `ROLE_PERMISSIONS` quyết định.** Ma trận ở `types/roles.ts` chỉ điều khiển hiển thị nav (`sidebar.tsx:39`, `bottom-nav.tsx:56`); route thật gác bằng `PRODUCTIVITY_ALLOWED_ROLES` (`types/productivity-constants.ts:27-31`) ở `page.tsx:27-33`, còn `canAccess(role,"productivity")` có **0 call-site**. Hôm nay hai nguồn trùng nhau (admin/manager/media) nên chưa phát tác — nhưng sửa `roles.ts` sẽ **không** đổi được quyền vào trang.
 
 ## Bảng
 
@@ -66,6 +73,12 @@ Cặp `get_X` / `get_my_X` = xem người khác vs xem chính mình — **giữ 
 Fix: quét tự lành có giới hạn thời gian ở `beforeAll` (`tests/e2e/e2e-sweep.ts`).
 
 **Ô nhập số xoá trắng búng về 0** — `Number("") === 0`. Dùng state string + `placeholder="0"`.
+
+**Cảnh báo payroll đã chết lặng.** `salary-actions.ts:259` và `:355` lọc `work_tasks.status = "Hoàn thành"` (chuỗi hoa có dấu) trong khi giá trị thật là `hoan_thanh` (`types/contract.ts:55`, `constants/work-statuses.ts:5,10`) → `validatePayrollWarningsAction` **luôn trả không cảnh báo** và `taskMap` trong `generateMonthlySalaryAction` luôn rỗng. Không sai tiền (vì `product_salary` bị ép 0 từ M3), nhưng cảnh báo "task chưa gán / cost 0đ" không còn chạy.
+
+**Cột tổng của `monthly_salaries` là dead column đọc được.** `base_salary_total` · `product_salary_total` · `bonus_total` · `penalty_total` · `advance_total` được UI **đọc** (`finance-operations-queries.ts:711,749-753`) nhưng **không code nào ghi** → luôn 0/NULL, luôn rơi vào nhánh `||` tính lại từ `items`. Đừng "sửa" bằng cách tin giá trị trong cột.
+
+**Hai cách cộng `monthly_salaries.total_salary` không khớp nhau:** Σ `total_salary` khi lập (`salary-actions.ts:445`) nhưng Σ `net_salary` khi điều chỉnh (`:79`) và khi xoá dòng (`:227`). Hiện `advance_payment` luôn 0 nên hai cách trùng — **sẽ lệch ngay khi có tạm ứng**.
 
 ## Liên quan
 

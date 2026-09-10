@@ -1,7 +1,9 @@
 ---
 title: "Luồng — Dòng tiền"
 tags: [luong, tai-chinh]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/01-tien.md · vault/30-du-lieu/than-ham/tai-chinh.md
 ---
 
 # Dòng tiền
@@ -51,14 +53,21 @@ Bán lẻ (vật tư, dịch vụ rời): `create_sale_receipt_atomic` → **`re
 
 ## Ba số, một bộ sổ (ADR-016 M2, 2026-08-26)
 
-Một hàm sổ kỳ **`finance_period_ledger(p_start, p_end)`** tính mọi cột (tiền vào/ra, doanh thu, từng loại chi phí) theo luật ngày ở trên. Bốn hàm đọc nó — **không hàm nào tự cộng lại**:
+Một hàm sổ kỳ **`finance_period_ledger(p_start, p_end)`** tính mọi cột (tiền vào/ra, doanh thu, từng loại chi phí) theo luật ngày ở trên. **Ba hàm đọc nó — hàm thứ tư thì không:**
 
-| Hàm | Dùng ở | Trả |
-|---|---|---|
-| `finance_month_summary(m, y)` | `/finance` 3 khối | két (`cash_*`), lãi/lỗ (`revenue`, `cost_*`, `profit`), công nợ (`receivable`, `payable_*`), `contracts_missing_work_date` |
-| `finance_pnl_by_month(y)` | chart 12 tháng | `revenue`, `cost`, `profit`, `cash_in`, `cash_out`, `signed_revenue` |
-| `finance_reports_snapshot(start, end)` | `/reports`, Moodie `financial_summary` | JSON cũ + `signedRevenue`; `cashflowSummary.totalOutflow` = Σ `expenses` |
-| `finance_cashflow_timeline(start, end)` | biểu đồ tiền | chỉ `payments` / `receipts` lẻ / `expenses` |
+| Hàm | Dùng ở | Đọc ledger? | Trả |
+|---|---|:---:|---|
+| `finance_month_summary(m, y)` | `/finance` 3 khối | ✅ 2 lần (kỳ này + kỳ trước) | két (`cash_*`), lãi/lỗ (`revenue`, `cost_*`, `profit`), công nợ (`receivable`, `payable_*`), `contracts_missing_work_date` |
+| `finance_pnl_by_month(y)` | chart 12 tháng | ✅ LATERAL × 12 | `revenue`, `cost`, `profit`, `cash_in`, `cash_out`, `signed_revenue` |
+| `finance_reports_snapshot(start, end)` | `/reports`, Moodie `financial_summary` | ✅ | JSON cũ + `signedRevenue`; `cashflowSummary.totalOutflow` = Σ `expenses` |
+| `finance_cashflow_timeline(start, end)` | biểu đồ tiền | ❌ **KHÔNG** | tự query lại `payments` + `receipts` + `expenses` (`20260826120000:324-336`) |
+
+⚠️ **Bản cũ của trang này viết "bốn hàm đọc nó — không hàm nào tự cộng lại". Sai.** Hiện còn **hai** công thức tiền chạy song song ngoài ledger:
+
+1. **`buildCloseSnapshot`** (`app/actions/finance-close-actions.ts:30-137`) — **vi phạm nặng nhất, và là công thức TypeScript, không phải SQL.** Snapshot chốt sổ tự cộng tiền trong TS: `operatingOutflow` loại phiếu `[Auto-Fixed]` rồi cộng `fixed_costs.monthly_amount` (ledger thì **đếm chính phiếu chi `[Auto-Fixed]`**), và đặt `netProfit = netCashflow − depreciationCost` — tức **lấy két trừ khấu hao rồi gọi là "lợi nhuận"**, đúng lớp lỗi mà ADR-016 M2 đã DROP `finance_dashboard_metrics` để diệt. ADR-016 M2 §6 đã ghi nợ này, M5 mới chỉ vá phần lương.
+2. **`finance_cashflow_timeline`** — số **hiện khớp** vì dùng đúng bộ lọc, và `scripts/verify-reports.mjs:164-165` assert `Σ timeline == snapshot.cashflowSummary`. Nhưng đổi ledger mà quên nó là lệch ngay.
+
+Còn 4 chỗ tự cộng khác **chỉ chạy fallback / không phải nguồn tổng**: `calculateFallbackSnapshot` (chỉ khi `NODE_ENV !== 'production'`), `get_finance_intelligence` / `_advanced_` / `get_cashflow_forecast` (card sức khoẻ, runway, hoà vốn — nhãn "biên lợi nhuận" vẫn tính theo két), `getServiceDistributionFallback` (lọc `contract_date` thay vì `work_date`), `fetchLedgerFallback`. → `agent/system-map/01-tien.md` §5.
 
 Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn bộ là **trả nợ** lab/thợ của tháng trước) nhưng lãi +37,1tr (14 HĐ chụp trong tháng). Trước M2 dashboard gọi 203.600 là "Tồn quỹ" và `/reports` cộng 18,1tr trả nợ thành "chi phí" lần hai.
 
@@ -70,10 +79,12 @@ Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn
 → `finance_month_summary(m, y).revenue` — theo **ngày chụp**. Muốn tiền đã thu: `.cash_in`. **Đừng cộng tay `payment_plans`** — đó là kế hoạch, không phải tiền.
 
 **"Hợp đồng này lãi bao nhiêu?"**
-→ `contract_financials(uuid[])` / `finance_contract_profit_report`. Nó trừ chi phí task (mọi task không huỷ) + in ấn + giá vốn kho + chi trực tiếp. Tự tính tay sẽ sót nhánh. Σ lãi theo tháng = Σ lãi theo HĐ vì cùng luật.
+→ `contract_financials(uuid[])` / `finance_contract_profit_report`. Nó trừ **bốn** khoản: chi phí task (mọi task ≠ `da_huy`, **gồm cả ekip nội bộ**) + in ấn + giá vốn kho + chi trực tiếp (`expenses` `other` gắn HĐ). Tự tính tay sẽ sót nhánh. Σ lãi theo tháng = Σ lãi theo HĐ vì cùng luật.
+⚠️ [[vong-doi-hop-dong]] §8 từng ghi công thức này **thiếu khoản chi trực tiếp** — đã sửa 31/08.
 
 **"Còn phải thu / phải trả bao nhiêu?"**
-→ phải thu: `finance_debt_stats()` (M3 — đọc **hợp đồng**, không phải bảng `debts` rỗng) hoặc `get_contract_balance` cho 1 HĐ · phải trả: `finance_payable_summary()` (lab · thợ · NCC · **ekip**).
+→ phải thu: `finance_debt_stats()` (M3 — đọc **hợp đồng**, không phải bảng `debts` rỗng); một HĐ thì đọc thẳng `contracts.remaining_amount` · phải trả: `finance_payable_summary()` (lab · thợ · NCC · **ekip**).
+⚠️ **Đừng dùng `get_contract_balance`** — hàm tồn tại trên DB nhưng **không có `CREATE` trong `supabase/migrations/`** và **0 call-site** trong `app/`+`lib/`+`components/`. Trang này từng khuyên dùng nó; đó là hàm chết.
 
 **"HĐ nào đến hạn thu?"** (M3)
 → **đến hạn = đã giao sản phẩm** (`contract_events` `giao_san_pham` `hoan_thanh`) mà `remaining_amount > 0`; tuổi nợ đếm từ ngày giao (`finance_debt_stats().aging`, `get_receivable_aging().not_delivered` + 4 bucket). Chưa giao = **chờ giao**, không phải quá hạn. Danh sách: `finance_pending_collections(limit)` — HĐ đã giao lên đầu. `finance_month_summary` tách `receivable_due` / `receivable_waiting`. Đo 26/08: phải thu 92.575.000 = đã giao chưa thu 3.300.000 (1 HĐ) + chờ giao 89.275.000 (19 HĐ). `payment_plans` (lịch tự sinh) **không** phải nguồn đến hạn — M4 (27/08/2026): dashboard "Cần thu tiền" cũng đọc `finance_pending_collections`; lịch thu mặc định chỉ còn Cọc + Tất toán (Đợt 1/2 0đ đã bỏ khỏi generator và xoá 119 dòng rỗng).
@@ -82,6 +93,17 @@ Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn
 
 `finance_monthly_closes.period = 'YYYY-MM'`, `status = 'locked'` → `is_period_locked(date)` trả true.
 Quy trình đi qua `finance_close_tasks` + `advance_close_task`.
+
+## Rủi ro tiền đã đo — chưa vá (31/08/2026)
+
+**Hoàn tiền HĐ đã huỷ làm lệch lãi/lỗ.** `createContractRefundExpense` ghi `expenses(contract_id, payee_type='other')` cho HĐ `da_huy`. Ledger gom **mọi** phiếu `other` có `contract_id` vào `cost_direct` **không lọc trạng thái HĐ** (`20260827130000:32`), trong khi `revenue_contract` **loại** `da_huy` (`:45`).
+⇒ Chi phí vào sổ, doanh thu không → tháng đó lỗ oan.
+**[DB] hiện 0 phiếu / 0đ** vì chưa có HĐ nào huỷ được — nó sẽ **nổ cùng lúc** với lỗi huỷ hợp đồng ở [[vong-doi-hop-dong]] (5 HĐ đang không huỷ được). → `agent/SYSTEM_MAP.md` §6 R2.
+
+**Phiếu chi thủ công có thể vào két mà không giảm công nợ.** `payee_type` **không xuất hiện trong bất kỳ component nào** ở `components/finance/expenses/` ⇒ form phiếu chi thủ công luôn để mặc định `'other'`. Nhưng `createExpenseSchema` **cho phép** truyền `lab/vendor/supplier/employee` (`lib/validations/finance.schema.ts:39`) — một phiếu như vậy sẽ vào `cash_out` mà **không có phân bổ**, tức không trừ nợ ai cả.
+
+> ⚠️ CHƯA KIỂM (2026-08-31): có dòng `expenses` nào `payee_type <> 'other'` mà **không** có `expense_allocations` trên DB không.
+> ⚠️ CHƯA KIỂM (2026-08-31): `finance_period_ledger.cost_salary_base` cộng `employee_salaries.total_salary`, còn `payable_items`/`sync_employee_salary_paid` dùng `net_salary` (= `total_salary − advance_payment`). Khi `advance_payment > 0` thì **accrual chi phí lương ≠ nợ lương phải trả**. Chưa đo có dòng nào `advance_payment > 0`.
 
 ## Ba luật cứng
 

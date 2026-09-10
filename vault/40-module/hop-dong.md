@@ -1,14 +1,16 @@
 ---
 title: "Module Hợp đồng"
 tags: [module, hop-dong]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/02-hop-dong.md · vault/30-du-lieu/than-ham/hop-dong.md
 ---
 
 # Module Hợp đồng
 
 **Trung tâm của hệ thống.** Gần như mọi module khác treo vào `contracts`: gallery, tài chính, in ấn, váy cưới, nhân sự, lịch.
 
-Quy mô thật: 54 hợp đồng, ~14–19 hợp đồng/tháng. → [[so-lieu-van-hanh]]
+Quy mô (**ảnh chụp**): 64 hợp đồng ([[luoc-do-hop-dong]] — nguồn sinh tự động, lấy số ở đó), ~14–19 hợp đồng/tháng. → [[so-lieu-van-hanh]]
 
 ## Route
 
@@ -32,9 +34,13 @@ cho_xu_ly → dang_thuc_hien → hoan_thanh
 ```
 Nhãn: Chờ xử lý · Đang thực hiện · Hoàn thành · Đã hủy.
 
-Phân bố thật hôm nay: `hoan_thanh` 29 · `dang_thuc_hien` 16 · `cho_xu_ly` 7.
+Phân bố `hoan_thanh` 29 · `dang_thuc_hien` 16 · `cho_xu_ly` 7 là **ảnh chụp 07/08/2026**, tổng không còn khớp số hợp đồng hiện tại — đừng dùng làm căn cứ, đếm lại khi cần.
 
-**Cổng trạng thái là cảnh báo mềm, không cấm cứng.** Server gác bằng số tươi; mọi UI phải đi qua `handleContractStatusUpdate`. `canMoveTo` (`lib/contracts/contract-workflow.ts`) chỉ so vị trí trong `CONTRACT_STATUS_ORDER`.
+**Cổng trạng thái CẤM CỨNG, không phải cảnh báo mềm.** `VALID_TRANSITIONS` (`app/actions/contract-mutations.ts:321-326`) chặn bằng `throw` ở `:354-362` — ví dụ `hoan_thanh → cho_xu_ly` và `hoan_thanh → da_huy` bị từ chối thẳng. Phần **mềm** duy nhất là cảnh báo nợ/việc dở khi chuyển sang `hoan_thanh` (`:364-383`). Mọi UI vẫn phải đi qua `handleContractStatusUpdate`.
+
+**`canMoveTo` không tồn tại trong repo** — đừng đi tìm. Hàm gần nhất là `isContractStatusForwardTransition` (`lib/contracts/contract-workflow.ts:39`), và nó **không có caller nào**.
+
+Thứ hệ thống *không* ép là **thứ tự nghiệp vụ** (chụp → in → giao): không tìm thấy ràng buộc nào.
 
 **Pill đổi trạng thái = `ContractStatusBadge`** (`components/contracts/contract-status-badge.tsx`, tách từ `contract-drawer.tsx` 26/08/2026): `SelectStatus variant="compact"` + `ConfirmDialog` cảnh báo nợ/việc dở + optimistic; dùng ở header drawer vận hành **và** drawer lợi nhuận (`profit-detail-drawer.tsx`, prop `onUpdated` → `mutate()` số drawer + `revalidateByPrefixes` các key `/finance` có trạng thái/lợi nhuận). Trang chi tiết (`detail/top-action-bar.tsx`) còn bản nội bộ riêng — chưa gộp.
 
@@ -62,19 +68,23 @@ Lược đồ đầy đủ: [[luoc-do-hop-dong]]
 
 ## Ràng buộc phải nhớ
 
-1. **Ghi qua RPC atomic, không ghi tay nhiều bảng.** `save_contract_atomic` gói hợp đồng + hạng mục + sự kiện + task trong một transaction. Chèn tay từng bảng sẽ phá toàn vẹn.
-2. **Tổng tiền do `recalc_contract_totals` tính** → **không optimistic-patch**. Đóng modal + revalidate.
+1. **Ghi qua RPC atomic, không ghi tay nhiều bảng** — nhưng phải biết đúng **ranh giới transaction**. `save_contract_atomic` chỉ ghi `customers` + `contracts` + `contract_items` (cộng `payment_plans`/`payments` qua 2 RPC con) — `20260714213000_fix_contract_schedule_customer_mirror.sql:7-300`, **không có câu nào chạm `contract_events` hay `work_tasks`**. Sự kiện sinh **ngoài** transaction ở `contract-mutations.ts:236-273` → `contract-event-actions.ts:231,300`; `work_tasks` **không còn sinh tự động** (`work-task-actions.ts:22-28` trả `[]`). Lời khuyên "chèn tay từng bảng sẽ phá toàn vẹn" vẫn đúng, chỉ là vùng atomic hẹp hơn bản cũ mô tả.
+2. **Không optimistic-patch tổng tiền** — kết luận đúng, nhưng **lý do ở bản cũ sai**. Trên đường tạo/sửa HĐ, `total_amount` do **client** tính (`components/contracts/form/hooks/useContractFinancials.ts:34-37`) rồi gửi thẳng vào RPC (`contract-mutations.ts:114`). Thứ server tính lại là **trigger** `trg_contract_payment_status_v2` (`paid_amount`/`remaining_amount`/`payment_status`). `recalc_contract_totals` **chỉ** được gọi từ đường trang phục (`dress-mutations.ts:437,553`). Vẫn: đóng modal + revalidate.
 3. **Huỷ/xoá lan toả rất rộng** — `cancel_contract_cascade` chạm `dress_reservations`, `dresses`, `contract_items`, `work_tasks`, `payment_plans`, `printing_orders`. Đọc kỹ trước khi đổi.
+
+   ⚠️ **Nghi vấn nghiêm trọng (code ↔ code).** Bản định nghĩa mới nhất của `cancel_contract_cascade` (`20260422160000…:348-354`) đặt `printing_orders.status = 'da_huy'`, trong khi CHECK constraint thêm **sau đó** (`20260824120000_printing_workflow_redesign.sql:22-25`) chỉ cho phép `cho_xu_ly · dang_in · da_in · hoan_thanh · huy_don · gap_su_co` khi `deleted_at IS NULL`. Nếu constraint đang VALIDATED thì **huỷ một HĐ còn đơn in đang hoạt động sẽ làm fail cả transaction**, kéo theo `cancelContract` (`contract-lifecycle.ts:113`). Không có migration nào sửa hàm này sau 24/08.
+
+   > ✅ ĐÃ ĐO trên prod (2026-08-31): `printing_orders_status_check.convalidated = true`, và hàm `cancel_contract_cascade` vẫn ghi `'da_huy'` (`prosrc` xác nhận). **5 hợp đồng hiện không huỷ được**; 33 đơn in đang sống, **0 đơn mang `da_huy`** và **0 hợp đồng ở trạng thái `da_huy`** ⇒ nhánh này chưa từng chạy thành công kể từ 24/08. Sửa: đổi `'da_huy'` → `'huy_don'` trong nhánh `printing_orders` của hàm.
 4. **Module này dùng React Query**, không phải SWR như phần lớn app. → [[cache-va-realtime]]
-5. **Bảng hợp đồng không có RLS scope** → cấm client-direct. → [[bao-mat-du-lieu-rls]]
-6. Đây là nhóm bảng **duy nhất** dùng `postgres_changes` trực tiếp (9 bảng trong publication).
+5. **Client-direct: đúng cho `contracts`, SAI cho các bảng con.** `lib/client-direct/contract-drawer.ts:29-72` đọc **thẳng từ trình duyệt** `contract_events`, `contract_checklists`, `work_tasks`, `payment_plans`, `payment_plan_allocations`, `contract_notes`, `employees_public` — dựa hạ tầng RLS dựng có chủ đích (`20260605000000_contracts_rls_hardening.sql`, `20260605020000_client_direct_rls_prereq.sql`), nối vào app tại `lib/hooks/use-contract-queries.ts:301` và `use-contract-notes.ts:25`. Riêng bảng `contracts` thì đúng là không đọc client-direct. → [[bao-mat-du-lieu-rls]]
+6. **Không còn bảng nghiệp vụ nào dùng `postgres_changes` trực tiếp.** `20260714040000_realtime_signal_only_hardening.sql:8-42` gỡ 15 bảng (gồm `contracts`, `contract_events`, `contract_checklists`, `contract_notes`, `work_tasks`, `payment_plans`, `payments`) khỏi publication và gắn trigger STATEMENT `emit_realtime_signal`; `:48-59` để lại **duy nhất `realtime_signals`** trong publication. → [[cache-va-realtime]]
 
 ## Bẫy đã dẫm
 
 - **Điều hướng từ drawer:** đừng gọi `onClose()` trước `router.push()` — drawer unmount nuốt lần navigate đầu, người dùng phải bấm 2 lần. Push thẳng, route mới tự unmount.
 - **Drawer hiện skeleton dù list đã có data:** seed `placeholderData` cho `useQuery` từ data list, đừng fetch + skeleton lại.
 - **RPC thay thế (v2 → v3):** phải deep-compare output với bản đang chạy trên data thật (`scripts/test-rpc-v3.mjs`) **trước** khi bật cờ. `get_contract_detail_v3` từng tái sinh đúng bug `labs.name` mà v2 đã fix. Grep các migration `fix_*` của bản cũ.
-- **Thêm `service_type` = sửa 4 chỗ**, compiler không bắt hết. → [[quy-uoc-code]]
+- **Thêm `service_type` = sửa 5 chỗ** (chỗ thứ 5 là `scripts/normalize-services.mjs:46`, đang sót `outsource` sẵn), compiler không bắt hết. → [[dich-vu]] · [[quy-uoc-code]]
 
 ## Liên quan
 

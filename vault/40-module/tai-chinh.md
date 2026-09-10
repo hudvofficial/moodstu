@@ -1,12 +1,14 @@
 ---
 title: "Module Tài chính"
 tags: [module, tai-chinh]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/01-tien.md · 09-baocao-caidat-admin.md · vault/30-du-lieu/than-ham/tai-chinh.md
 ---
 
 # Module Tài chính
 
-Module **nhiều màn hình nhất** (17 route, 116 component). Chỉ `admin` và `manager` vào được.
+Module **nhiều màn hình nhất**: **21 trang** `page.tsx` dưới `app/(protected)/finance/` (gồm 2 route redirect `lab-debts`, `vendor-debts`) và 116 component — đếm 31/08/2026. Chỉ `admin` và `manager` vào được.
 
 ## Route
 
@@ -33,7 +35,7 @@ EXISTS (SELECT 1 FROM finance_monthly_closes
         WHERE period = to_char(p_date,'YYYY-MM') AND status='locked')
 ```
 Kỳ khoá theo chuỗi `YYYY-MM`. Quy trình khoá đi qua `finance_close_tasks` + `advance_close_task`.
-Hiện thực tế mới có **1 dòng** trong `finance_monthly_closes` — tính năng đã dựng nhưng dùng còn ít.
+[[luoc-do-tai-chinh]] (sinh từ DB) đếm `finance_monthly_closes` **0 dòng** và `finance_close_tasks` **0 dòng** — tính năng đã dựng nhưng **chưa dùng lần nào**. Con số "1 dòng" ở bản cũ của trang này là ảnh chụp cũ hơn, đã bỏ.
 
 ## Optimistic locking (đã có sẵn — đừng xây lại)
 
@@ -65,11 +67,13 @@ Dashboard `/finance` hiện đúng 3 khối, mỗi khối một câu hỏi, **kh
 
 Drawer **"Lợi nhuận HĐ"** (`components/finance/dashboard/profit-detail-drawer.tsx`, mở từ `/finance`, `/reports`, cột Lợi nhuận `/contracts`) dùng **cùng khung** với drawer vận hành hợp đồng: `Drawer` mặc định 480px, header = mã HĐ + badge trạng thái, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN; số lấy từ `contract_financials` qua `getContractFinanceDetails` (T-20260826-profit-drawer-align). Đừng đặt `size="lg"` cho drawer nào mở cạnh drawer hợp đồng.
 
-Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung cho `finance_month_summary` (3 khối), `finance_pnl_by_month` (chart 12 tháng), `finance_reports_snapshot` (`/reports`, Moodie) và `finance_cashflow_timeline` — `verify:reports` assert 4 hàm cho cùng số. `finance_dashboard_metrics` và `finance_revenue_by_month` **đã DROP** (két bị gọi là "lợi nhuận", tiền thu bị gọi là "doanh thu"). `fixed_costs` và `monthly_salaries.total_salary` **không** phải tiền → không vào két; chi phí cố định thật = phiếu chi `[Auto-Fixed]`, lương cứng = `employee_salaries.monthly_salary` (0 hiện tại; M5). Chi tiết luật ngày: [[luong-tien]].
+Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung cho `finance_month_summary` (3 khối), `finance_pnl_by_month` (chart 12 tháng) và `finance_reports_snapshot` (`/reports`, Moodie). ⚠️ **`finance_cashflow_timeline` KHÔNG gọi hàm này** — nó tự query `payments` + `receipts` + `expenses` (`20260826120000:324-336`); số vẫn khớp nhờ dùng cùng bộ lọc và `verify:reports` assert cả 4 hàm cho cùng số (`scripts/verify-reports.mjs:164-165`), nhưng đừng phát biểu "4 hàm đều đọc sổ kỳ" — sửa `finance_period_ledger` sẽ **không** tự động đổi `finance_cashflow_timeline`. `finance_dashboard_metrics` và `finance_revenue_by_month` **đã DROP** (két bị gọi là "lợi nhuận", tiền thu bị gọi là "doanh thu"). `fixed_costs` và `monthly_salaries.total_salary` **không** phải tiền → không vào két; chi phí cố định thật = phiếu chi `[Auto-Fixed]`, lương cứng (overhead accrual `cost_salary_base`) = **`employee_salaries.total_salary`** = cơ bản + thưởng − phạt. Cột `employee_salaries.monthly_salary` **không code nào ghi, luôn 0** (M2 dùng nhầm) — thân hàm M5 nói rõ, `20260827130000_luong_cung_m5.sql:85-88`. Chi tiết luật ngày: [[luong-tien]].
+
+> ⚠️ CHƯA KIỂM (2026-08-31): `cost_salary_base` cộng theo `total_salary`, còn `payable_items`/`sync_employee_salary_paid` dùng `net_salary` (`= total_salary − advance_payment`, `salary-actions.ts:56-57`). Khi có `advance_payment > 0` thì **accrual chi phí lương ≠ nợ lương phải trả**. Hiện chưa xác minh trên DB có dòng nào `advance_payment > 0`.
 
 ## Bảng
 
-[[luoc-do-tai-chinh]] — 17 bảng. Đáng nhớ:
+[[luoc-do-tai-chinh]] — 17 bảng (mọi số dòng ở đó là **ảnh chụp**; lấy số từ nguồn sinh tự động, đừng chép vào trang này). Đáng nhớ:
 
 - `payments` + `payment_plans` + `payment_plan_allocations` — thanh toán hợp đồng
 - `receipts` (phiếu thu) · `expenses` (phiếu chi, tiền thật) · `expense_allocations` (phân bổ)
@@ -88,7 +92,9 @@ Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung c
 
 Ghi: `process_contract_payment_v2`, `void_contract_payment_v2`, `create_sale_receipt_atomic`, `record_payee_payment_atomic`, `void_payee_payment_atomic`, `contribute_to_goal`, `undo_contribution_atomic`, `advance_close_task`.
 
-Danh sách đầy đủ + cảnh báo `SECURITY DEFINER`: [[rpc-va-enum]]
+Danh sách đầy đủ + cảnh báo `SECURITY DEFINER`: [[rpc-va-enum]]. Hàm còn trên DB nhưng **không code nào gọi**: [[ham-mo-coi]] — trong đó `get_contract_balance` và `finance_receipt_stats` là ứng viên chết của miền này; đừng khuyên dùng chúng.
+
+> ⚠️ CHƯA KIỂM (2026-08-31): form phiếu chi thủ công ở `components/finance/expenses/` **không có trường `payee_type`** (grep rỗng) nên luôn để mặc định `'other'`, trong khi `createExpenseSchema` **cho phép** truyền `lab/vendor/supplier/employee` (`lib/validations/finance.schema.ts:39`). Một phiếu chi như vậy sẽ vào `cash_out` mà **không** giảm công nợ (vì không có phân bổ). Chưa xác minh trên DB có dòng nào như thế.
 
 ## Bẫy đã cháy
 

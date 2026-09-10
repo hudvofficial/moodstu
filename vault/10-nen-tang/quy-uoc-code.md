@@ -1,7 +1,9 @@
 ---
 title: "Quy ước code"
 tags: [nen-tang, quy-uoc]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: .github/workflows/ci.yml · package.json · lib/ (helper) · agent/system-map/06-nen-tang.md
 ---
 
 # Quy ước code
@@ -69,7 +71,7 @@ Sửa những file này chỉ được **thêm**, hoặc phải verify nhiều m
 
 ## Lint
 
-CI chỉ lint **file thay đổi** (repo còn nợ ~195 lỗi cũ). Nghĩa là **đụng file nào là nhận cổng lint của file đó**.
+CI chỉ lint **file thay đổi**. Nghĩa là **đụng file nào là nhận cổng lint của file đó**. (Con số nợ lint: `.github/workflows/ci.yml:13-14` ghi **~27 lỗi tồn đọng** — native `<button>`/`<input>`, arbitrary Tailwind, rules-of-hooks, Date.now purity. Bản vault cũ ghi "~195" là sai.)
 
 **`eslint` exit ≠ 0 → KHÔNG push.** Đã vi phạm một lần với lý do "lỗi có sẵn" → CI đỏ.
 

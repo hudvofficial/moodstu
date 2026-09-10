@@ -1,28 +1,45 @@
 ---
 title: "Module In ấn & Lab"
 tags: [module, in-an]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/03-in-kho-vay.md · vault/30-du-lieu/than-ham/in-an-lab.md · ham-mo-coi.md
 ---
 
 # Module In ấn & Lab
 
 Đơn in (album, ảnh phóng) gửi lab đối tác, theo dõi tiến độ và công nợ lab. Quyền: admin, manager.
 
-Quy mô: 29 đơn in, 1 lab, 22 dịch vụ lab.
+Quy mô (**ảnh chụp**, số sống ở [[luoc-do-in-an-lab]]): 35 đơn in, 1 lab, 22 dịch vụ lab.
 
 ## Route
 
 `/printing` · `/printing/labs` · công nợ ở `/finance/lab-debts`
 
-## Trạng thái đơn (số liệu thật hôm nay)
+## Trạng thái đơn (ADR-014)
 
-`cho_xu_ly` 9 · `dat_coc` 2 · `dang_in` 4 · `da_in` 4 · `da_nhan` 4 · `hoan_thanh` 5 · `huy_don` 1
+Trục thật — nguồn chân lý duy nhất là `types/printing-constants.ts`, cả server action lẫn dropdown UI đều đọc từ đó:
 
-Mỗi lần đổi trạng thái ghi vào `printing_order_status_history` (26 dòng).
+```
+cho_xu_ly → dang_in → da_in → hoan_thanh
+      ↘ huy_don · gap_su_co (từ mọi bước)
+```
 
-## Ghi qua RPC atomic
+`gap_su_co` quay lại được mọi trạng thái (`PRINTING_VALID_TRANSITIONS`, `printing-constants.ts:28`); `hoan_thanh` và `huy_don` là terminal.
 
-`create_printing_order_atomic` · `update_printing_order_atomic` · `delete_printing_order_atomic` · `record_lab_payment_atomic` · `upsert_printing_expense` · `resolve_printing_expense_category_id` · `printing_integrity_report` · `printing_items_total` · `printing_lab_overview` · `printing_stats`
+⚠️ **`dat_coc` KHÔNG còn tồn tại.** Migration `20260824120000…:15-18` chuyển hết sang `hoan_thanh`, CHECK constraint chặn (`:22-25`). `da_nhan` và `da_huy` là **legacy chỉ để đọc** audit-log cũ — terminal, không transition nào tới (`printing-constants.ts:13-14`, `:29-30`). Phân bố trạng thái ở bản cũ của trang này (có `dat_coc` 2 đơn) là ảnh chụp **trước ADR-014** — đã gỡ.
+
+Mỗi lần đổi trạng thái ghi vào `printing_order_status_history` (ảnh chụp **66 dòng** ở [[luoc-do-in-an-lab]]; con số 26 ở bản cũ đã lỗi thời).
+
+## Hàm DB của module
+
+**Ghi (atomic):** `create_printing_order_atomic` · `update_printing_order_atomic` · `delete_printing_order_atomic` · `record_lab_payment_atomic` (wrapper của `record_payee_payment_atomic('lab')`).
+
+**Đọc / phụ trợ:** `printing_stats` · `printing_lab_overview` · `printing_items_total` · `get_printing_cost_stats` · `nextval_printing_order_code` · `resolve_printing_expense_category_id` · `recompute_printing_payment_status` · `printing_integrity_report`.
+
+⚠️ **`upsert_printing_expense` đã DROP** (`20260825200000_cashflow_m1_expense_allocations.sql:178`) — không còn trên DB: không có thân hàm trong `vault/30-du-lieu/than-ham/`, cũng không nằm trong [[ham-mo-coi]] (bản kiểm 149 hàm sống, 31/08). Bản cũ của trang này vừa liệt kê nó ở đây vừa nói "đã bỏ" ở mục Tiền — mâu thuẫn nội bộ, nay đã gỡ.
+
+> ⚠️ CHƯA KIỂM (2026-08-31): `printing_integrity_report()` không có caller nào trong `app/` hay `components/` — chưa rà `scripts/` để biết nó chạy tay hay đã chết.
 
 ## Tiền (ADR-014 + ADR-016, 2026-08-24/25)
 

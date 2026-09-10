@@ -2,12 +2,18 @@
 title: "Server action → bảng/RPC"
 tags: [ban-do-code, server-action]
 sinh-tu: "scripts/vault-gen-codemap.mjs"
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: ls app/actions/*.ts · vault/30-du-lieu/than-ham/ · agent/system-map/06-nen-tang.md §5
 ---
 
 # Server action → bảng/RPC
 
-87 file. Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
+**85 file** trong `app/actions/` (bảng dưới còn thêm dòng `lib/audit.ts`). Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
+
+> Nội dung sinh ngày 2026-08-07, số đo đối chiếu lại 2026-08-31. Bản cũ ghi "87 file"; thực tế `ls app/actions/*.ts` = **85**. Dòng `gallery-masonry-layout.ts` đã được gỡ khỏi bảng dưới vì file không còn tồn tại trong repo.
+> ⚠️ **Cột RPC ở đây chỉ là *tên hàm được gọi***, không nói hàm đó ghi vào bảng nào. Bảng bị RPC ghi vào phải tra thân hàm ở `30-du-lieu/than-ham/` — xem cảnh báo đầu [[bang-doc-ghi]].
+> Chạy lại `node scripts/vault-gen-codemap.mjs` sẽ **ghi đè frontmatter `trang-thai`/`doi-chieu`** ở trên.
 
 | File | Bảng | RPC |
 |---|---|---|
@@ -51,7 +57,6 @@ cap-nhat: 2026-08-07
 | `gallery-dimensions-actions.ts` | `galleries` |  |
 | `gallery-drive-actions.ts` | `galleries` `gallery_images` `contract_events` `contracts` `studio_info` `gallery_reactions` `gallery_filter_jobs` |  |
 | `gallery-image-helpers.ts` | `gallery_images` `gallery_reactions` |  |
-| `gallery-masonry-layout.ts` | — | — |
 | `gallery-public-actions.ts` | `gallery_password_attempts` `galleries` | `verify_gallery_password` |
 | `gallery-reaction-actions.ts` | `gallery_reactions` `gallery_comments` `gallery_images` |  |
 | `gallery-selection-actions.ts` | `gallery_images` `galleries` `gallery_selection_batches` `gallery_selection_batch_items` |  |

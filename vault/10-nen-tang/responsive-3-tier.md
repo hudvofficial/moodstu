@@ -1,7 +1,9 @@
 ---
 title: "Responsive 3 tầng"
 tags: [nen-tang, ui]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: lib/breakpoints.ts · grep TierSwitch trong components/ · agent/system-map/06-nen-tang.md
 ---
 
 # Responsive 3 tầng
@@ -24,7 +26,10 @@ Chốt 2026-06-06. Nguồn: `lib/breakpoints.ts`, `plans/260606-tablet-design-la
 - **Chrome full-width** (sidebar, header rộng) giữ ở **`lg:`**
 - **Overlay/modal căn giữa** ở `sm:` (640px)
 
-Component `<TierSwitch>` đã rollout toàn bộ 56 file module dữ liệu (Phase 0+1 xong). Phase 2 (chi tiết 2 cột) chưa làm; Phase 3 (sidebar) đã quyết định **dừng**.
+Component `<TierSwitch>` đã rollout các module dữ liệu (Phase 0+1 xong). Phase 2 (chi tiết 2 cột) chưa làm; Phase 3 (sidebar) đã quyết định **dừng**.
+
+Đếm lại 2026-08-31: **37 file** import `components/ui/tier-switch` (`grep -rl tier-switch components app lib`); 38 file dùng `<TierSwitch>` ngoài chính file định nghĩa. Con số "56 file" ở bản cũ không khớp hiện trạng.
+> ⚠️ CHƯA KIỂM (2026-08-31): "56" có thể là số file **đã sửa trong đợt rollout** chứ không phải số file còn dùng `TierSwitch` — chưa đối chiếu với `plans/260606-tablet-design-layer/PLAN.md`.
 
 ## Bắt buộc khi đổi responsive
 

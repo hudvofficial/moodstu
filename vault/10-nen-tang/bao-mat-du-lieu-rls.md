@@ -1,7 +1,9 @@
 ---
 title: "Bảo mật dữ liệu — RLS, grant, vai trò DB"
 tags: [nen-tang, bao-mat, du-lieu]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: vault/30-du-lieu/rls-va-quyen.md · vault/30-du-lieu/than-ham/ · vault/30-du-lieu/ham-mo-coi.md · agent/system-map/06-nen-tang.md
 ---
 
 # Bảo mật dữ liệu — RLS, grant, vai trò DB
@@ -10,19 +12,25 @@ cap-nhat: 2026-08-07
 
 **RLS không phải lớp bảo vệ chính của app này.** Mọi server action dùng client **service role** → bỏ qua RLS hoàn toàn. Lớp bảo vệ thật là `requireXAccess()` ở tầng app ([[xac-thuc-phan-quyen]]).
 
-RLS + grant chỉ quan trọng ở đúng hai chỗ:
+RLS + grant chỉ quan trọng ở đúng ba chỗ:
 1. Vai `anon` (khách chưa đăng nhập chạm được endpoint nào đó).
 2. Vai `authenticated` khi **realtime** — client subscribe trực tiếp, RLS quyết định nghe được event nào.
+3. **Nhánh client-direct** — `lib/client-direct/contract-drawer.ts:38,48,57,64,71,114` query thẳng `contract_events`, `contract_checklists`, `work_tasks`, `payment_plans`, `employees_public`, `contract_notes` bằng anon key (drawer hợp đồng). Ở nhánh này RLS là cổng **duy nhất**. → [[kien-truc-tong-quan]]
 
-## Hiện trạng (quét 2026-08-07)
+## Hiện trạng (quét 2026-08-31 — đọc thẳng DB production)
 
-98/98 bảng đã **bật RLS**. 9 bảng bật RLS nhưng **0 policy** → deny-all cho mọi vai trừ service role:
+93/93 bảng đã **bật RLS**; 17 trong số đó bật thêm `FORCE ROW LEVEL SECURITY`. **8** bảng bật RLS nhưng **0 policy** → deny-all cho mọi vai trừ service role:
 
-`gallery_albums` · `gallery_comments` · `gallery_password_attempts` · `gallery_reactions` · `lab_payment_allocations` · `lab_payments` · `salary_adjustments` · `service_bundles` · `system_settings`
+`expense_allocations` · `gallery_albums` · `gallery_comments` · `gallery_password_attempts` · `gallery_reactions` · `salary_adjustments` · `service_bundles` · `system_settings`
+
+> Khác bản 2026-08-07 (nói "98/98 bảng · 9 bảng 0 policy"): `lab_payment_allocations` + `lab_payments` đã bị `DROP TABLE` (`20260826130000_cashflow_m2b_drop_legacy.sql:33-34,37-38`); `expense_allocations` là bảng mới (`20260825200000_cashflow_m1_expense_allocations.sql`).
 
 Đúng chủ đích — các bảng này chỉ được chạm qua server action. **Đừng "sửa" bằng cách thêm policy** trừ khi có nhu cầu client-direct hoặc realtime thật.
 
-Số policy từng bảng: xem cột trong `30-du-lieu/luoc-do-*.md`.
+Số policy từng bảng — kèm **nội dung `USING`/`WITH CHECK` đầy đủ của cả 217 policy** và grant anon/authenticated từng bảng: [[rls-va-quyen]] (sinh thẳng từ DB production, **đừng sửa tay**).
+
+**Vì sao 93/93 mà migration chỉ có 55 lệnh `ENABLE ROW LEVEL SECURITY`:** DB có **event trigger** `rls_auto_enable()` (`SECURITY DEFINER`) tự chạy `alter table … enable row level security` cho mọi `CREATE TABLE` trong schema `public` — thân hàm ở `30-du-lieu/than-ham/he-thong.md`. Hàm này **không nằm trong bất kỳ migration nào** (`grep rls_auto_enable supabase/migrations/` = 0 file), tức được tạo ngoài migration.
+> ⚠️ Hệ quả phải nhớ: **bảng mới sẽ tự bật RLS nhưng KHÔNG tự có policy** → mặc định deny-all. Nếu bảng đó cần client-direct/realtime mà quên viết policy, triệu chứng là "200 + rỗng", không phải lỗi.
 
 ## Bài học lớn: GRANT thắng POLICY
 
@@ -32,7 +40,11 @@ Supabase **tự cấp đủ 7 quyền** cho `anon` + `authenticated` trên mọi
 
 Bằng chứng ngược: `dresses`/`services`/`studio_info` đã REVOKE grant → anon nhận `42501` **dù vẫn còn policy `qual=true`**.
 
+⚠️ **Đang có một chỗ dẫm đúng bẫy này theo chiều ngược lại.** `lib/hooks/use-prefetch-on-hover.ts:90-99` query thẳng bảng `dresses` **từ browser** (vai `authenticated`). Trên DB, `dresses` có 4 policy — trong đó `inventory_items_select` vẫn `USING true` — **nhưng cột quyền anon/authenticated là rỗng** (`20260429110000_dresses_audit_fix.sql:10` REVOKE, không migration nào GRANT lại). Prefetch này nhận `42501` và im lặng. Select còn kèm cả `purchase_price` (`:53`). Policy còn sống ≠ query chạy được.
+
 → Migration `20260610150000`: `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon` + `ALTER DEFAULT PRIVILEGES … REVOKE ALL ON TABLES FROM anon` (chặn bảng tương lai) + cấp lại đúng 4 quyền cho `login_attempts`.
+
+**Xác nhận trên DB (2026-08-31):** trong 93 bảng, **chỉ `login_attempts`** còn dòng `anon=` — đúng `DELETE, INSERT, SELECT, UPDATE`. 92 bảng còn lại: anon rỗng ([[rls-va-quyen]] §Tổng quan). Tức bài học dưới đây đã được vá xong, không phải hiện trạng.
 
 **Quy tắc:** `anon` = tối thiểu tuyệt đối. Chỉ grant bảng có route public **thật sự** chạy bằng vai anon — rà code xác nhận, đừng đoán. Gallery public dùng `createAdminClient` (service role) nên **không cần** grant anon.
 
@@ -42,7 +54,7 @@ View **không có RLS**. Grant là lớp bảo vệ duy nhất. View đơn (1 b�
 
 Mọi view `*_public` phải: `REVOKE ALL FROM anon, authenticated;` **rồi mới** `GRANT SELECT TO authenticated;` Verify bằng `information_schema.role_table_grants`.
 
-Hiện chỉ có 1 view: `payment_plan_states`.
+Hiện có **2 view**: `employees_public` và `payment_plan_states` — `types/database.types.ts:5512,5539`. `employees_public` đã được siết đúng mẫu trên (`20260605020001_employees_public_grant_fix.sql:15`) và chính là view mà nhánh client-direct đọc.
 
 ## Policy gọi bảng bị REVOKE → 403, không phải rỗng
 
@@ -60,12 +72,15 @@ Script sẵn có: `scripts/probe-anon-access.mjs`, `scripts/verify-realtime-sign
 
 ## SECURITY DEFINER
 
-Hàm `SECURITY DEFINER` chạy bằng quyền chủ hàm → **bỏ qua RLS**. Mọi hàm loại này phải tự kiểm quyền bên trong. Danh sách đầy đủ có đánh dấu ⚠️ trong [[rpc-va-enum]].
+Hàm `SECURITY DEFINER` chạy bằng quyền chủ hàm → **bỏ qua RLS**. Mọi hàm loại này phải tự kiểm quyền bên trong.
+
+Số đo 2026-08-31 (từ `pg_proc`): **92/149 hàm** trên DB là `SECURITY DEFINER`. Thân hàm đầy đủ — đọc được cả phần tự kiểm quyền bên trong — ở `30-du-lieu/than-ham/*.md`. Hàm không call-site nào gọi: [[ham-mo-coi]] (30 hàm, trong đó 5 hàm **không ai gọi** cần kiểm).
 
 ## Ranh giới đã chấp nhận (không phải bug)
 
 - **Ảnh gốc gallery lộ qua URL `lh3`** — đổi `=s600` thành `=s0` là ra ảnh gốc. Cổng tải là **UX-gate, không phải security-gate** ([[adr-index|ADR-011]]). Đừng "vá" bằng cách giấu `drive_file_id`: fileId nằm sẵn trong chính URL ảnh.
-- **Bảng hợp đồng không scope theo studio** — chấp nhận được vì không có client-direct. Mở client-direct thì phải làm RLS hardening trước ([[adr-index|ADR-005]], LESSONS A9).
+- **Bảng hợp đồng không scope theo studio** — ghi chú cũ nói "chấp nhận được vì không có client-direct"; **lý do đó không còn đúng**: client-direct ĐÃ mở cho drawer hợp đồng (`lib/client-direct/contract-drawer.ts`). Hạ tầng RLS đi kèm đã làm (`20260605000000_contracts_rls_hardening.sql`, `20260605020000_client_direct_rls_prereq.sql`), nhưng `contracts` hiện có **2 policy SELECT cộng OR**: `contracts_select` (admin/manager, hoặc `created_by`/`assigned_to` là mình) **và** `contracts_authenticated_read` `USING is_active_employee()` — nghĩa là **mọi nhân viên active vẫn đọc được mọi hợp đồng** ([[rls-va-quyen]] §`contracts`). Studio hiện chỉ 2 tài khoản nên chưa lộ ra; cấp thêm đăng nhập thì phải siết trước ([[adr-index|ADR-005]], LESSONS A9).
+  > ⚠️ CHƯA KIỂM (2026-08-31): "chỉ 2 tài khoản" lấy từ [[xac-thuc-phan-quyen]], chưa đếm lại `auth.users` / `employees` có `auth_user_id` trên DB.
 
 ## Liên quan
 

@@ -1,14 +1,16 @@
 ---
 title: "Module Nhà cung cấp"
 tags: [module, nha-cung-cap]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/01-tien.md · 03-in-kho-vay.md · vault/30-du-lieu/than-ham/nha-cung-cap.md
 ---
 
 # Module Nhà cung cấp
 
 Thuê ngoài (CTV/đối tác) làm việc trong hợp đồng → sinh chi phí phải trả. Route: `/admin/vendors`, công nợ ở `/finance/vendor-debts`.
 
-Quy mô: 8 vendor, 1 lần thanh toán.
+Quy mô (**ảnh chụp**, số sống ở [[luoc-do-nha-cung-cap]]): 10 vendor.
 
 ## Cơ chế (ADR-016, 2026-08-25)
 
@@ -36,7 +38,7 @@ Script chẩn đoán còn giữ: `scripts/vendor-expense-diagnostic.mjs`, `vendo
 
 [[luoc-do-nha-cung-cap]] — `vendors` (`vendor_type` thợ ngoài / NCC phôi; phiếu chi ở `expenses`/`expense_allocations` — [[tai-chinh]])
 
-Ba bảng này từng **vắng mặt trong `types/database.types.ts`** suốt một thời gian dài; đã bổ sung ngày 2026-08-07 → [[canh-bao-schema]].
+**Nay chỉ còn một bảng.** `vendor_payments` và `vendor_payment_allocations` (+ 2 bảng `_legacy` của chúng) **đã drop** ở M2b — `20260826130000_cashflow_m2b_drop_legacy.sql:33-40`, cùng với `record_vendor_payment_atomic` (`:46`) và `update_vendor_payments_updated_at` (`:42`). Ghi chú cũ "ba bảng từng vắng mặt trong `types/database.types.ts`, đã bổ sung 2026-08-07" giờ chỉ còn áp cho `vendors`. → [[canh-bao-schema]]
 
 ## Liên quan
 

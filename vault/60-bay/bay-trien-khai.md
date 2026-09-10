@@ -1,7 +1,9 @@
 ---
 title: "Bẫy — build, migration, môi trường"
 tags: [bay, van-hanh]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/SYSTEM_MAP.md §5.1 · agent/system-map/06-nen-tang.md §7 · agent/DECISIONS.md ADR-017/018
 ---
 
 # Bẫy build / migration / môi trường
@@ -62,11 +64,28 @@ Script: `scripts/test-rpc-v3.mjs`.
 
 Kiểm `pg_policies` tồn tại là chưa đủ — đã lọt một lần. Phân biệt khi debug: `403` = grant/permission trong policy · `200 + rỗng` = RLS lọc đúng. → [[bao-mat-du-lieu-rls]]
 
+## Repo KHÔNG phản ánh database — bẫy nền tảng
+
+`scripts/migrate-direct.mjs:57-64` bắt truyền **từng tên file** ⇒ migration được áp **thủ công**, thứ tự áp **≠** thứ tự tên file, và có thứ đã được áp mà **không qua file nào** trong repo.
+
+Bốn bằng chứng đo 31/08/2026: `process_contract_payment_v2` (file mới nhất theo tên **nghèo hơn** bản chạy thật) · `recalc_contract_totals` + `get_contract_balance` (**không có `CREATE`** trong `supabase/migrations/`) · 4 policy trên `crm_leads`/`customers` không migration nào tạo · `sync_employee_salary_paid` vắng trong types.
+
+⇒ **Không kết luận về lược đồ chỉ bằng đọc repo.** "Migration mới nhất theo tên" là bằng chứng mạnh nhất *có trong repo*, không phải bằng chứng về DB. Hỏi DB: `node scripts/db-q.mjs`, hoặc đọc `vault/30-du-lieu/than-ham/` (sinh từ `pg_proc` thật).
+
 ## `types/database.types.ts` trôi khỏi DB nếu quên sinh lại
 
-Từng lệch 16 bảng / 15 RPC vì không ai sinh lại sau migration. Đã đồng bộ 2026-08-07.
+Từng lệch 16 bảng / 15 RPC vì không ai sinh lại sau migration.
 
-**Sau mỗi migration chạy cả hai:** `npm run db:types` + `node scripts/vault-gen-schema.mjs`.
+**Đo lại 31/08/2026:** bảng · view · enum = **93 · 2 · 16, khớp DB**. Hàm thì types liệt kê **124** trong khi DB có **149** — nhưng lệch ở mức **chữ ký chỉ đúng 1 hàm** (`sync_employee_salary_paid`, thêm ở M5 sau lần sinh cuối). Phần chênh còn lại là hàm trigger + hàm chỉ SQL gọi, **PostgREST không phơi ra nên vắng là đúng**.
+*(Con số cũ trong [[canh-bao-schema]] — "98 bảng · 4 view · 130 RPC" — là ảnh chụp 07/08, đã lỗi thời.)*
+
+**Sau mỗi migration chạy cả ba:**
+```bash
+npm run db:types                    # types cho TypeScript
+node scripts/vault-gen-schema.mjs   # 30-du-lieu/luoc-do-*.md
+npm run vault:db-truth              # 30-du-lieu/than-ham/, rls-va-quyen, ham-mo-coi
+```
+`vault:db-truth` là thứ duy nhất chụp được **thân hàm thật** trên DB — chạy nó khi nghi tài liệu viết tay đã cũ.
 
 ⚠️ Script `db:types` ghi ra `.tmp` rồi mới đổi tên — **đừng rút gọn thành `> types/database.types.ts`**. Shell cắt rỗng file *trước khi* lệnh chạy, nên lệnh lỗi (ví dụ `supabase` không có trên PATH) là mất trắng file. Đã dẫm.
 
@@ -77,7 +96,9 @@ Từng lệch 16 bảng / 15 RPC vì không ai sinh lại sau migration. Đã đ
 Branch protection đã gỡ ([[adr-index|ADR-007]]). `git push origin main` = **deploy thẳng**.
 Lưới còn lại: Vercel chặn build hỏng (lỗi *build*), review chặn lỗi *hành vi*. CI chỉ báo sau.
 
-Kỷ luật verify giờ **tự giác**.
+Kỷ luật verify giờ **tự giác** — và từ [[adr-index|ADR-018]] (29/08/2026) pipeline 3-agent đã bãi bỏ, **không còn review chéo của agent khác**. Hai cổng người thay thế: (1) user duyệt spec trước khi code, (2) **user xem diff trước khi push** — không tự push khi user chưa xem.
+
+⚠️ Cộng thêm: **dev và prod dùng chung một Supabase project**. Giữa agent và production gần như không còn lưới nào. → bẫy "Seed E2E rò vào production" ở [[bay-du-lieu]] #14.
 
 ## `eslint` exit ≠ 0 → không push
 

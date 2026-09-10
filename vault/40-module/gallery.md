@@ -1,12 +1,14 @@
 ---
 title: "Module Gallery"
 tags: [module, gallery]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/05-gallery-moodie.md · vault/30-du-lieu/than-ham/gallery.md
 ---
 
 # Module Gallery
 
-Album ảnh giao khách. **Module nặng dữ liệu nhất hệ thống**: 76 gallery / 17.704 ảnh, album lớn nhất 780 ảnh. Ảnh không lưu ở Supabase — lưu trên **Google Drive**, chỉ metadata nằm trong DB.
+Album ảnh giao khách. **Module nặng dữ liệu nhất hệ thống**: ảnh chụp gần nhất **89 gallery / 20.719 ảnh** ([[luoc-do-gallery]] — nguồn sinh tự động; lấy số ở đó, đừng chép số vào trang này), album lớn nhất ~780 ảnh. Ảnh không lưu ở Supabase — lưu trên **Google Drive**, chỉ metadata nằm trong DB.
 
 ## Hai mặt tiền
 
@@ -74,19 +76,23 @@ Ba lỗi đã sửa, đừng tái phạm: (1) `imageSrc` phụ thuộc `columnWi
 
 ## Bảng
 
-[[luoc-do-gallery]] — `galleries` · `gallery_images` (17.704 dòng) · `gallery_reactions` · `gallery_comments` · `gallery_share_links` · `gallery_albums` · `gallery_selection_batches` + `_items` · `gallery_filter_jobs` · `gallery_password_attempts`
+[[luoc-do-gallery]] — `galleries` · `gallery_images` (bảng lớn nhất hệ thống) · `gallery_reactions` · `gallery_comments` · `gallery_share_links` · `gallery_albums` · `gallery_selection_batches` + `_items` · `gallery_filter_jobs` · `gallery_password_attempts`
 
-## ⚠️ Chỉ admin ghi vào `gallery_images`
+## Ai ghi vào `gallery_images`
 
-Đúng **3 nơi**: `gallery-admin-actions.ts` (thêm ảnh) · `gallery-drive-actions.ts` (import Drive) · `gallery-selection-actions.ts` (kéo thả `sort_order`). Không cron, không webhook. Khách chỉ ghi được `gallery_reactions` / `gallery_comments` / `is_selected`.
+**Bốn** đường ghi phía admin: `gallery-admin-actions.ts` (thêm ảnh) · `gallery-drive-actions.ts` — cả `syncDriveFolder` (import Drive) **và** `createMultiFolderGalleries` insert ảnh (`:73`, đường thứ tư dễ sót) · `gallery-selection-actions.ts` (kéo thả `sort_order`).
 
-→ **Đừng viết rủi ro "có người upload trong lúc khách đang cuộn" vào spec.** Không có tác nhân thứ hai.
+Ngoài admin còn **hai tác nhân nữa** — phát biểu "chỉ admin ghi" đã sai:
+- **Khách có select-token** ghi được `is_selected`/`selected_at` (`gallery-selection-actions.ts:39`) **và `is_starred`/`starred_at`** (`:99-105`), tức ghi thẳng cột của `gallery_images`. Khách còn đặt được `galleries.cover_image_id` (`gallery-admin-actions.ts:252-282`).
+- **Moodie** chạy `syncDriveFolder` sau khi người dùng bấm duyệt phê duyệt (`moodie-action-actions.ts:102`) → INSERT `gallery_images`.
+
+→ Vẫn **không cron, không webhook** nên rủi ro "ảnh tự mọc lúc khách đang cuộn" là thấp. Nhưng câu "không có tác nhân thứ hai" **không còn đúng**: có Moodie (luôn qua bước người duyệt) và có khách ghi cột.
 
 ## Bẫy phân trang & đếm
 
 - **PostgREST cắt 1000 dòng/request.** `.limit(20000)` vẫn chỉ trả 1000, **im lặng**. Đếm phía client sẽ ra số sai. Phải `.range()` phân trang hoặc `count: 'exact', head: true`.
-  Đang còn nợ ở `getReactionCounts` và query tim của admin.
-- **PostgREST giới hạn header 16KB.** `.in('id', [~500 uuid])` sinh URL ~19.700 ký tự → lỗi "HTTP headers exceeded server limits". Chế độ lọc "tim" hiện dùng cách này → **vỡ khi album có hơn ~400 ảnh được tim**. Nợ kỹ thuật đã biết.
+  `getReactionCounts` (`gallery-reaction-actions.ts:112`) và `getGallerySummariesByContract` (`gallery-admin-actions.ts:414`) **đã trả nợ** bằng helper `selectAllRows` (`gallery-core.ts`). Nợ **còn lại đúng 5 chỗ**, đều select một phát không phân trang: `getAllHeartedImagesForAction` (`gallery-image-helpers.ts:118-122`) · `getGalleryComments` (`gallery-reaction-actions.ts:183-187`) · `getClientReactions` (`:141-145`) · `getCommentCountsPerImage` (`:330-333`) · `getGalleryMetadataAll` (`gallery-composite-actions.ts:108-117`).
+- **PostgREST giới hạn header 16KB.** `.in('id', [~500 uuid])` sinh URL ~19.700 ký tự → lỗi "HTTP headers exceeded server limits". **Nợ này đã trả:** `initDriveCopyJob` đổi sang `selectAllRows` + lọc bằng `Set` trong JS (`gallery-drive-actions.ts:287,305`; comment `:300-304` ghi rõ "bản cũ dùng `.in(...)`"). Giữ đúng mẫu này khi thêm chế độ lọc mới — đừng quay lại `.in()`.
 - **Guard bằng state không chặn được hai lời gọi trong cùng một tick** → dùng `useRef`. Dedupe phải làm **bên trong** `setState(prev => …)`, không so với snapshot của closure.
 
 ## Lọc ảnh về Drive

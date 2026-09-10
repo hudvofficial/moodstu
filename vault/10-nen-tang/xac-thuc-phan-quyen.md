@@ -1,14 +1,17 @@
 ---
 title: "Xác thực & phân quyền"
 tags: [nen-tang, bao-mat]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/06-nen-tang.md §2 · vault/30-du-lieu/rls-va-quyen.md · lib/auth_utils.ts · types/roles.ts
 ---
 
 # Xác thực & phân quyền
 
 ## Ai thật sự dùng hệ thống
 
-Studio 1 người quản trị (admin) + 1 kinh doanh. **Nhân sự khác chưa được cấp đăng nhập.** Thiết bị: PC, mobile, iPad → mọi thay đổi giao diện phải kiểm cả 3 tầng, xem [[responsive-3-tier]].
+Studio 1 người quản trị (admin) + 1 kinh doanh. **Nhân sự khác chưa được cấp đăng nhập.**
+> ⚠️ CHƯA KIỂM (2026-08-31): con số này không đọc được từ code hay từ `pg_policies`/grant; cần đếm `auth.users` và `employees` có `auth_user_id IS NOT NULL` trên DB mới xác nhận được. Thiết bị: PC, mobile, iPad → mọi thay đổi giao diện phải kiểm cả 3 tầng, xem [[responsive-3-tier]].
 
 Nghĩa là: các vai trò `media` / `viewer` (ctv) **đã có code nhưng chưa có người dùng thật**. Đừng suy diễn hành vi đa-người-dùng từ code — thực tế gần như đơn người dùng. Xem [[so-lieu-van-hanh]].
 
@@ -63,7 +66,14 @@ Một số hành động không chỉ hỏi "vào được module không" mà c�
 | `requireCodebaseAccess` | **admin** |
 | `withAdmin` | người quản trị cài đặt (`canManageSettings`) |
 
+⚠️ **Cửa hậu có công tắc: `ALLOW_SETTINGS_JWT_ADMIN_FALLBACK`.** Khi tài khoản **không có hồ sơ `employees`**, `canManageSettings` được suy ra **thẳng từ role trong JWT** nếu biến môi trường này `=== "true"` — `lib/auth_utils.ts:212-215` (`canCurrentUserManageSettings`) và `:367-369` (`getAuthenticatedUserContext`). Có hồ sơ employee thì nhánh này không chạy. Biến **không có** trong `.env.local`/`.env.example` → mặc định tắt.
+> ⚠️ CHƯA KIỂM (2026-08-31): giá trị của `ALLOW_SETTINGS_JWT_ADMIN_FALLBACK` trên Vercel production. Bật nhầm = ai sửa được `app_metadata.role` là có quyền cài đặt mà không cần dòng `employees` nào.
+
 Các `requireXAccess` còn lại (crm, finance, printing, services, inventory, moodie, employees, contracts, dresses) chỉ gọi `canAccess(role, "<module>")` — tức bám đúng bảng ma trận trên.
+
+⚠️ **`withContractAccess` / `withContractWriteAccess` / `withContractDestructiveAccess` có định nghĩa (`lib/auth_utils.ts:852-877`) nhưng 0 call-site.** Module hợp đồng gọi `withAuth` + `require*` trực tiếp (`requireContractAccess` ở 63 chỗ). Đừng tưởng contract đi qua wrapper riêng khi đọc code.
+
+⚠️ **Không phải module nào cũng có guard ở tầng layout.** `crm` (`app/(protected)/crm/layout.tsx:1-7`) và `settings` (`app/(protected)/settings/layout.tsx:1-8`) là pass-through; `admin/*` **không có layout** (`app/(protected)/admin/vendors/page.tsx:7-11` không guard). Ở các route đó `requireXAccess()` trong server action là lớp chặn **duy nhất** — quên gọi một lần = trang mở cho mọi vai.
 
 ## ⚠️ Bẫy: `viewer` (app) vs `ctv` (DB)
 
@@ -84,7 +94,7 @@ Hệ quả: **role sai chính tả không báo lỗi, nó âm thầm tụt xuố
 
 ## Chống dò mật khẩu
 
-- Đăng nhập: bảng `login_attempts` (đây là **bảng duy nhất** vai `anon` còn quyền ghi — xem [[bao-mat-du-lieu-rls]]).
+- Đăng nhập: bảng `login_attempts` (đây là **bảng duy nhất** vai `anon` còn quyền ghi — xem [[bao-mat-du-lieu-rls]]). Xác nhận trên DB 2026-08-31: `anon=DELETE,INSERT,SELECT,UPDATE`; 92 bảng còn lại anon rỗng ([[rls-va-quyen]]).
 - Mật khẩu gallery: `gallery_password_attempts`, 10 lần sai / 15 phút / gallery.
 
 ## File liên quan

@@ -1,7 +1,9 @@
 ---
 title: "Bẫy — UI, React, CSS"
 tags: [bay, ui]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: agent/system-map/06-nen-tang.md §7 · agent/SYSTEM_MAP.md §6
 ---
 
 # Bẫy UI / React / CSS
@@ -62,6 +64,14 @@ Thay vào đó: tiêu đề thẻ = `section-heading`, nhãn ô số = `text-cap
 ## Ô nhập số xoá trắng búng về 0
 
 `Number("") === 0`. Dùng **state string + `placeholder="0"`**. Mẫu gốc: `stock-in-modal`.
+
+## Prefetch từ browser đụng bảng đã REVOKE
+
+`lib/hooks/use-prefetch-on-hover.ts:90-99` query thẳng bảng `dresses` từ trình duyệt (select cả `purchase_price`, `:53`) — trong khi `dresses` đã `REVOKE ALL … FROM PUBLIC, anon, authenticated` (`20260429110000:10`, không migration nào GRANT lại).
+
+⇒ Prefetch này **chắc chắn nhận `42501`**, im lặng, không ai thấy vì prefetch không hiển thị lỗi.
+
+**Luật:** thêm bất kỳ query client-direct nào (kể cả prefetch) → tra [[rls-va-quyen]] xem `authenticated`/`anon` còn quyền trên bảng đó không. Nhánh client-direct hợp lệ có hạ tầng RLS riêng (`contract_events`, `contract_checklists`, `work_tasks`, `payment_plans`, `payment_plan_allocations`, `employees_public`, `contract_notes`) — ngoài danh sách đó thì không.
 
 ## File trùng tên = dead code
 

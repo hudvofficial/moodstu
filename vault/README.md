@@ -1,7 +1,8 @@
 ---
 title: "Vault mood-studio — bộ nhớ thứ 2"
 tags: [meta]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
 ---
 
 # Vault mood-studio
@@ -17,16 +18,35 @@ Agent (Claude/Codex/Roo) mỗi phiên đều bắt đầu từ số 0: không nh
 
 Vault khắc phục bằng cách ghi sẵn **thứ không đọc ra được từ một file đơn lẻ**: bản đồ toàn cục, ràng buộc nghiệp vụ, và bẫy đã dẫm.
 
+## Ba mức tin cậy — đọc nhãn trước khi tin nội dung
+
+Mỗi file có `trang-thai:` trong frontmatter. Khi hai file mâu thuẫn, **mức cao thắng**.
+
+| Nhãn | Nghĩa | Tin được để |
+|---|---|---|
+| `sinh-tu-dong` | Máy sinh thẳng từ database production hoặc từ import graph. Không ai sửa tay. | **Ra quyết định** |
+| `da-kiem-<ngày>` | Viết tay, đã đối chiếu với lớp sinh tự động vào ngày đó. | Ra quyết định, trừ khi có migration mới sau ngày đó |
+| _(không nhãn)_ | Viết tay, **chưa từng đối chiếu**. | Chỉ để định hướng — phải kiểm lại trước khi dùng |
+
+Dòng `> ⚠️ CHƯA KIỂM (ngày): …` nằm giữa bài là chỗ tác giả **cố ý** để lộ khoảng mù. Đừng bỏ qua nó.
+
+**Luật xử mâu thuẫn:** database thắng code, code thắng vault. Vault sai thì sửa vault, đừng sửa thực tế cho khớp tài liệu.
+
 ## Đọc theo tình huống
 
-| Bạn đang làm gì | Đọc gì |
+| Bạn đang làm gì | Đọc đúng những file này, theo thứ tự |
 |---|---|
-| Mới vào, cần nắm hệ thống | [[kien-truc-tong-quan]] → [[so-lieu-van-hanh]] → [[00-INDEX]] |
-| Sắp sửa module X | `40-module/X.md` → `30-du-lieu/luoc-do-X.md` → [[bay-du-lieu]] |
-| Cần biết đổi cột này ảnh hưởng gì | [[bang-doc-ghi]] + [[ban-do-route]] |
+| **Mới vào phiên, chưa biết gì** | [`agent/SYSTEM_MAP.md`](../agent/SYSTEM_MAP.md) §0 cách đọc → §1 sơ đồ tổng → §5 phát hiện xuyên miền → rồi mới [[00-INDEX]] |
+| Sắp sửa module X | `40-module/X.md` → `30-du-lieu/luoc-do-X.md` → `30-du-lieu/than-ham/X.md` → [[bay-du-lieu]] |
+| **Sắp đụng tiền** | [[luong-tien]] → `30-du-lieu/than-ham/tai-chinh.md` → `agent/system-map/01-tien.md` |
+| **Sắp đụng quyền / RLS** | [[rls-va-quyen]] (chân lý) → [[xac-thuc-phan-quyen]]. Nhớ: server action dùng service-role nên **RLS không áp dụng cho đường đó** |
+| **Cần biết một hàm DB làm gì** | `30-du-lieu/than-ham/<nhóm>.md` — thân thật trên DB. **ĐỪNG đọc `supabase/migrations/`**: migration là lịch sử, có hàm bản trong repo cũ hơn bản đang chạy |
+| Sắp xoá hàm hoặc bảng | [[ham-mo-coi]] trước, rồi mới tìm nơi gọi |
+| Cần biết đổi cột này ảnh hưởng gì | [[bang-doc-ghi]] + [[ban-do-route]] — **và** `30-du-lieu/than-ham/` vì đường ghi qua RPC không hiện trong bang-doc-ghi |
 | Sắp viết spec | [[bay-du-lieu]] + [[bay-ui-react]] + [[adr-index]] |
 | Sắp deploy | [[trien-khai-va-verify]] |
-| Thắc mắc "sao hồi đó chọn thế" | [[adr-index]] |
+| Thắc mắc "sao hồi đó chọn thế" | [[adr-index]] → `agent/DECISIONS.md` |
+| Nghi tài liệu đã cũ | `npm run vault:db-truth` rồi so lại. Rẻ, chỉ đọc DB |
 
 ## Cấu trúc
 
@@ -46,7 +66,8 @@ Vault khắc phục bằng cách ghi sẵn **thứ không đọc ra được t�
 
 1. **Note sinh tự động không sửa tay.** `20-ban-do-code/` và `30-du-lieu/` có `sinh-tu:` trong frontmatter. Sửa tay sẽ bị ghi đè. Muốn cập nhật:
    ```bash
-   node scripts/vault-gen-schema.mjs     # đọc DB thật qua pooler
+   node scripts/vault-gen-schema.mjs     # lược đồ bảng/cột/FK/index từ DB
+   node scripts/vault-gen-db-truth.mjs   # thân hàm + nội dung RLS + hàm mồ côi
    node scripts/vault-gen-codemap.mjs    # đi theo import graph
    ```
    Chạy lại sau mỗi migration hoặc mỗi đợt thêm module.

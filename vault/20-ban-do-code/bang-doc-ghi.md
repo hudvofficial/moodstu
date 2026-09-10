@@ -2,14 +2,28 @@
 title: "Bảng → nơi đọc/ghi trong code"
 tags: [ban-do-code, du-lieu]
 sinh-tu: "scripts/vault-gen-codemap.mjs"
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: vault/30-du-lieu/rls-va-quyen.md · vault/30-du-lieu/than-ham/ · agent/system-map/06-nen-tang.md
 ---
 
 # Bảng → nơi đọc/ghi trong code
 
-> Chỉ bắt được truy cập **qua supabase-js** (`.from(...).insert/update/delete`). Ghi qua **RPC** không hiện ở đây — tra thêm [[rpc-va-enum]].
+> **⚠️ ĐỌC TRƯỚC — FILE NÀY KHÔNG THẤY ĐƯỜNG GHI QUAN TRỌNG NHẤT**
+>
+> Script sinh chỉ bắt truy cập **qua supabase-js** (`.from(...).insert/update/delete/upsert`). **Nó KHÔNG thấy đường ghi qua RPC** — mà ở dự án này phần lớn thao tác ghi quan trọng đi bằng RPC (`save_contract_atomic`, `process_contract_payment_v2`, `inventory_stock_in_atomic`, `record_payee_payment_atomic`, mọi hàm `*_atomic`/`*_cascade`…). 92/149 hàm DB là `SECURITY DEFINER`, tức chạy bằng quyền chủ hàm và **bỏ qua RLS**.
+>
+> **Hệ quả cụ thể:** 13 bảng đang sống trên DB **không có một dòng nào** trong file này vì không code nào `.from()` chúng — `attendance`, `documents`, `dress_rental_accessories`, `equipment`, `evaluations`, `moodie_brave_audit_events`, `moodie_brave_usage_daily`, `notifications`, `payment_plan_allocations`, `promotions`, `realtime_signals`, `requests`, `work_shifts`. Một số trong đó **vẫn bị ghi liên tục**, chỉ là từ bên trong Postgres: `payment_plan_allocations` (hàm tài chính), `realtime_signals` (trigger `emit_realtime_signal`), `moodie_brave_usage_daily` (`reserve_moodie_brave_call`).
+>
+> **"Không có trong file này" ≠ "không ai ghi".** Trước khi kết luận, tra thêm:
+> - [[rpc-va-enum]] — danh mục RPC + enum
+> - `30-du-lieu/than-ham/*.md` — **thân đầy đủ 149 hàm DB**, đọc thẳng `INSERT`/`UPDATE`/`DELETE` bên trong
+> - [[ban-do-server-action]] — cột RPC: action nào gọi hàm nào
+> - [[ham-mo-coi]] — hàm DB không có call-site trong code
 
-**Dùng khi nào:** trước khi viết rủi ro đồng thời hoặc đổi schema, tra bảng này xem *ai thật sự ghi được*.
+**Dùng khi nào:** trước khi viết rủi ro đồng thời hoặc đổi schema, tra bảng này xem *ai thật sự ghi được qua supabase-js* — rồi **bắt buộc** đối chiếu thân hàm RPC ở `30-du-lieu/than-ham/` cho phần còn lại.
+
+> Nội dung sinh ngày 2026-08-07, đối chiếu với DB production 2026-08-31. `employees_public` trong danh sách dưới là **view**, không phải bảng. Chạy lại `node scripts/vault-gen-codemap.mjs` sẽ ghi đè frontmatter `trang-thai`/`doi-chieu` ở trên.
 
 ## `addon_history`
 **Ghi (4):** `app/actions/addon-actions.ts (insert)` · `app/actions/addon-actions.ts (update)` · `lib/services/addon-sync-service.ts (insert)` · `lib/services/addon-sync-service.ts (update)`

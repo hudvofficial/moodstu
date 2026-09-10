@@ -1,7 +1,9 @@
 ---
 title: "Tích hợp ngoài"
 tags: [nen-tang, tich-hop]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: grep biến môi trường + endpoint trong lib//app//scripts/ · vault/30-du-lieu/rls-va-quyen.md · vercel.json
 ---
 
 # Tích hợp ngoài
@@ -35,7 +37,7 @@ Cấu hình provider lưu trong DB, sửa qua `api/moodie/provider/config`. → 
 
 ## Brave Search — cho Moodie
 
-`api.search.brave.com/res/v1`. Có hạn mức: bảng `moodie_brave_usage_daily` + `moodie_brave_audit_events` ghi lượt dùng.
+`api.search.brave.com/res/v1`. Có hạn mức: bảng `moodie_brave_usage_daily` + `moodie_brave_audit_events` ghi lượt dùng — cả hai còn sống trên DB (2026-08-31), `authenticated` chỉ có `SELECT` (không INSERT/UPDATE): quota **chỉ ghi được qua RPC `reserve_moodie_brave_call`** (`SECURITY DEFINER`), không qua `.from()`. → [[rls-va-quyen]], `30-du-lieu/than-ham/moodie-ai.md`
 
 ## Sentry
 
@@ -66,7 +68,8 @@ Speed Insights: `@vercel/speed-insights`.
 
 ## Biến môi trường: bẫy build-time
 
-`NEXT_PUBLIC_*` được **nướng vào lúc build**. Đặt trong `.env.local` chỉ ảnh hưởng dev; prod phải `vercel env add` + redeploy mới có tác dụng. Ví dụ đang có: `NEXT_PUBLIC_RPC_V3`.
+`NEXT_PUBLIC_*` được **nướng vào lúc build**. Đặt trong `.env.local` chỉ ảnh hưởng dev; prod phải `vercel env add` + redeploy mới có tác dụng. Ví dụ đang có: `NEXT_PUBLIC_RPC_V3` — `.env.local` đặt `=true` nên dev chạy `get_contract_detail_v3`; `!== "true"` thì rơi về `get_contract_detail_v2` (`app/actions/contract-queries.ts:550`).
+> ⚠️ CHƯA KIỂM (2026-08-31): giá trị `NEXT_PUBLIC_RPC_V3` trên Vercel production. Khác giá trị = **chạy RPC khác** giữa dev và prod, và không có gì báo.
 
 ## Không liên quan tới dự án này
 

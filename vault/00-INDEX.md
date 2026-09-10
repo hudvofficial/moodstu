@@ -1,7 +1,8 @@
 ---
 title: "INDEX — bản đồ vault"
 tags: [meta, moc]
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
 ---
 
 # INDEX — mood-studio
@@ -9,7 +10,13 @@ cap-nhat: 2026-08-07
 SaaS quản trị studio ảnh cưới. Next.js 16 (App Router) + Supabase, deploy Vercel region `sin1`, domain `stu.moodwedding.com`.
 Xem [[README]] để biết cách dùng vault.
 
-## Con số (đo 2026-08-07)
+## Con số
+
+⚠️ **Bảng dưới là ảnh chụp 2026-08-07 — phần lớn đã cũ.** Số sống lấy ở:
+`npm run vault:db-truth` (DB) · [`agent/SYSTEM_MAP.md`](../agent/SYSTEM_MAP.md) phụ lục (code).
+Đo lại 31/08: **93 bảng · 180 hàm DB · 217 RLS policy · 81 trigger · 16 enum · 61 trang · 26 API route · 85 file action · 203 migration · 5 vai trò**.
+
+### Ảnh chụp 2026-08-07 (giữ để tra lịch sử)
 
 | | |
 |---|---:|
@@ -24,6 +31,16 @@ Xem [[README]] để biết cách dùng vault.
 | Gallery / ảnh | 76 gallery / 17.704 ảnh (lớn nhất 780 ảnh) |
 
 Chi tiết + xu hướng: [[so-lieu-van-hanh]]
+
+## Sự thật DB — sinh tự động, đừng sửa tay
+
+Ba file dưới sinh từ database production bằng `npm run vault:db-truth`. Khi nghi tài liệu viết tay đã cũ, **tin ba file này**.
+
+- [[rls-va-quyen]] — nội dung đầy đủ 217 policy + grant từng bảng. RLS chỉ là cổng cho anon key; server action dùng service-role nên bỏ qua RLS.
+- [[ham-mo-coi]] — hàm DB không được code gọi, tách theo lý do (trigger / gọi bởi SQL / ứng viên chết).
+- `30-du-lieu/than-ham/<nhóm>.md` — **thân đầy đủ** của 149 hàm ứng dụng, chia theo 12 vùng. 92 hàm là `SECURITY DEFINER` (bỏ qua RLS, phải tự kiểm quyền bên trong).
+
+Lược đồ bảng/cột/FK/index: `npm run vault:schema` sinh `30-du-lieu/luoc-do-*.md`.
 
 ## Nền tảng
 

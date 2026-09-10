@@ -2,12 +2,19 @@
 title: "Bản đồ route → action → bảng"
 tags: [ban-do-code, route]
 sinh-tu: "scripts/vault-gen-codemap.mjs (đi theo import graph)"
-cap-nhat: 2026-08-07
+cap-nhat: 2026-08-31
+trang-thai: da-kiem-2026-08-31
+doi-chieu: find app -name page.tsx/route.ts · ls app/actions · agent/system-map/06-nen-tang.md §4
 ---
 
 # Bản đồ route → action → bảng
 
-61 trang · 25 API route · 87 file server action
+**Nội dung dưới đây sinh ngày 2026-08-07; số đo đã đối chiếu lại 2026-08-31.**
+Thực tế hiện nay: **61 trang** (khớp) · **27 API route** · **85 file server action**.
+
+> ⚠️ **Danh sách API route trong file này thiếu 2 cái**: `/auth/callback` (`app/auth/callback/route.ts`) và `/auth/confirm` (`app/auth/confirm/route.ts`) — cả hai là route xác thực public (`lib/supabase/middleware.ts:91`). Chạy lại `node scripts/vault-gen-codemap.mjs` để sinh đủ.
+> ⚠️ File này **không** ghi guard/quyền của route. Nhiều module **không có guard ở tầng layout** (`crm`, `settings` pass-through; `admin/*` không có layout) — tra [[xac-thuc-phan-quyen]] trước khi kết luận "route này đã được chặn".
+> Chạy lại script sinh sẽ **ghi đè frontmatter `trang-thai`/`doi-chieu`** ở trên.
 
 > Cột **Bảng/RPC** là *tất cả* bảng chạm được qua đồ thị import (kể cả gián tiếp qua component con), nên rộng hơn cái route thật sự dùng. Dùng để **khoanh vùng ảnh hưởng**, không phải để kết luận "route này chỉ đọc bảng X".
 
