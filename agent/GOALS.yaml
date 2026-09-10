@@ -8,9 +8,9 @@
 # done chỉ hợp lệ khi có `bang_chung` (lệnh verify + kết quả số) và `ngay_done`.
 
 version: 1
-updated: 2026-09-07
+updated: 2026-09-10
 giai_doan_hien_tai: 1
-buoc_hien_tai: 22
+buoc_hien_tai: 24
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 tuần (15/09, tự đo) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: mo }
@@ -215,7 +215,22 @@ buoc:
   - { id: 19, gd: 2, tuan: 4, ten: "T3 · audit inject actor tại withAuth + nối LOGIN", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "R11 — 169 điểm ghi, 10 có performedBy" }
   - { id: 20, gd: 2, tuan: 5, ten: "T2 · V4 hàng đợi tuổi đơn (RPC chỉ-đọc + section /contracts)", hinh_thuc: spec, gate: [14], status: todo, can_cu: "cơ chế trung tâm; C0 ngưỡng 26/43/14; chọn = hậu kỳ" }
   - { id: 21, gd: 2, tuan: 5, ten: "T2 · V5 trang nhịp 15' thứ Hai + chủ chạy nhịp đầu", hinh_thuc: spec, gate: [20], status: todo }
-  - { id: 22, gd: 2, tuan: 6, ten: "T3 · role-gate route-group /admin /settings; gỡ CRM khỏi sale (C1)", hinh_thuc: spec, gate: [3], status: todo }
+  - id: 22
+    gd: 2
+    tuan: 6
+    ten: "T3 · role-gate route-group /admin /settings /crm theo ma trận; gỡ CRM khỏi sale (C1)"
+    hinh_thuc: spec
+    gate: [3]
+    status: done
+    ngay_done: 2026-09-10
+    ngay_duyet: 2026-09-10
+    ngay_code: 2026-09-10
+    bang_chung: "commit bd9e3b5 · jest roles-matrix 4/4 · Playwright role-gate 3/3 (sale: crm+settings chặn, contracts vào, sidebar 0 CRM · ctv: /admin/* chặn · admin: 3 route vào) · contracts-table-desktop 5/5 · tsc 0 eslint 0 build OK · rác 0 · chủ 'đẩy' 10/09"
+    spec: agent/HANDOFFS/T-20260907-role-gate-route.spec.md
+    verify: "jest roles-matrix 4/4 · Playwright role-gate 3/3 (sale: crm+settings chặn, contracts vào, sidebar 0 CRM · ctv: /admin/* chặn · admin: 3 route vào) · contracts-table-desktop 5/5 hồi quy · tsc 0 eslint 0 build OK · rác 0"
+    diff: "6 file: types/roles.ts · app/(protected)/admin/layout.tsx (mới) · settings/layout.tsx · crm/layout.tsx · tests/unit/roles-matrix.test.ts · tests/e2e/role-gate.spec.ts"
+    ngay_spec: 2026-09-07
+    do_duoc: "9/14 module đã guard cùng mẫu; hở: /settings (layout pass-through), /admin/* (không layout), /crm (pass-through, sale còn trong ma trận). withAdmin đã chặn tầng action cho admin/settings; CRM action chỉ withAuth (→ #19). 1 admin · 3 sale · 8 ctv; 4 lead không do sale tạo"
   - { id: 23, gd: 2, tuan: 6, ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)", hinh_thuc: db, gate: [G1], status: todo }
   - { id: 24, gd: 2, tuan: 6, ten: "T3 · gỡ policy OR contracts_authenticated_read + vá R8 lịch WHERE theo vai", hinh_thuc: db, gate: [3, 10], status: todo }
   - { id: 25, gd: 2, tuan: 7, ten: "T3 · probe → khoá 4 action gallery + /api/drive-download", hinh_thuc: spec, gate: [G1], status: todo }
