@@ -57,23 +57,30 @@ export default defineConfig({
         viewport: { width: 1366, height: 768 },
       },
     },
+    // Thiết bị iOS: dùng THẲNG preset của Playwright, không tự chế viewport.
+    // Bản cũ "iPad A16 Landscape" spread `devices["Desktop Safari"]` → hasTouch=false,
+    // isMobile=false: là Safari desktop chứ không phải iPad, trong khi
+    // contracts-tablet-ipad.spec.ts có case "touch prefetch" + "touch target 44px".
+    // Cả 4 preset dưới đều là webkit + hasTouch + isMobile.
     {
-      name: "iPad A16 Portrait",
+      name: "iPhone 15 Pro",
       retries: 1,
-      use: {
-        ...devices["iPad (gen 7) landscape"],
-        viewport: { width: 768, height: 1180 },
-        deviceScaleFactor: 2,
-      },
+      use: { ...devices["iPhone 15 Pro"] },
     },
     {
-      name: "iPad A16 Landscape",
+      name: "iPhone 15 Pro Max",
       retries: 1,
-      use: {
-        ...devices["Desktop Safari"],
-        viewport: { width: 1024, height: 1366 },
-        deviceScaleFactor: 2,
-      },
+      use: { ...devices["iPhone 15 Pro Max"] },
+    },
+    {
+      name: "iPad Pro 11",
+      retries: 1,
+      use: { ...devices["iPad Pro 11"] },
+    },
+    {
+      name: "iPad Pro 11 landscape",
+      retries: 1,
+      use: { ...devices["iPad Pro 11 landscape"] },
     },
   ],
   webServer: shouldStartWebServer
