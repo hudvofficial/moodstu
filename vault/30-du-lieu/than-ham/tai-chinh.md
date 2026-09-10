@@ -1959,19 +1959,11 @@ BEGIN
   FROM expenses
   WHERE deleted_at IS NULL;
 
-  SELECT COALESCE(SUM(remaining), 0)
-  INTO v_receivables
-  FROM debts
-  WHERE type = 'receivable'
-    AND COALESCE(status, 'open') NOT IN ('closed', 'da_thanh_toan')
-    AND deleted_at IS NULL;
-
-  SELECT COALESCE(SUM(remaining), 0)
-  INTO v_payables
-  FROM debts
-  WHERE type = 'payable'
-    AND COALESCE(status, 'open') NOT IN ('closed', 'da_thanh_toan')
-    AND deleted_at IS NULL;
+  -- #18 (T1, 10/09): công nợ đọc sổ canonical finance_debt_stats() — HĐ còn nợ + phải trả lab/thợ (finance_payable_summary) + debts tay —
+  -- thay vì bảng debts rỗng (0 dòng từ ngày đầu → điểm công nợ luôn "Lanh manh" giả).
+  SELECT COALESCE(d.receivable, 0), COALESCE(d.payable, 0)
+  INTO v_receivables, v_payables
+  FROM public.finance_debt_stats() d;
 
   SELECT COALESCE(SUM(monthly_amount), 0)
   INTO v_fixed_cost

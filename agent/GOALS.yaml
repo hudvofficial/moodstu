@@ -240,7 +240,24 @@ buoc:
     ngay_spec: 2026-09-10
     can_cu: "sổ đối chiếu dòng 85 (R10): goals tự cộng 5 bảng, trừ lương + cố định 2 lần; C7 = gỡ khối lương/cố định khỏi Mục tiêu; ADR-016 M2 một nguồn sổ kỳ"
     do_duoc: "10/09: fetchGoalsCashflow 5 truy vấn (payments, receipts lẻ, expenses, monthly_salaries, fixed_costs); UI dùng availableForGoals ×9, salary/fixed chỉ ở goal-form-modal burn rate; finance_month_summary(p_month,p_year) có cash_in/cash_out/cash_net; T8 tay = RPC (18,35tr / 18,096tr / 253.600) và T9 tay = RPC (85,995tr / 0 / 85,995tr) vì monthly_salaries T5/T6 = 0, fixed_costs 0 dòng → hôm nay đúng tình cờ"
-  - { id: 18, gd: 2, tuan: 4, ten: "T1 · health-score thôi đọc debts rỗng → finance_debt_stats", hinh_thuc: db, gate: [G1], status: todo, can_cu: "sổ đối chiếu ⬛ debts 0 dòng; C8 gỡ health-score khỏi màn" }
+  - id: 18
+    gd: 2
+    tuan: 4
+    ten: "T1 · health-score thôi đọc debts rỗng → finance_debt_stats"
+    hinh_thuc: db
+    gate: [G1]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-11
+    ngay_ap_db: 2026-09-11
+    ngay_code: 2026-09-11
+    verify: "prod: thân hàm hết FROM debts, có finance_debt_stats() d · ACL {postgres, service_role} (authenticated/anon EXECUTE=false) · stats.receivables 0→8.500.000, payables 0→14.140.350, breakdown.receivables 15 'Lanh manh'→5 'No phai tra cao', health_score 100→90 · debts vẫn 0 dòng · Playwright finance-intel-c8 2/2 (/finance + /finance/dashboard: có Runway, 0 Điểm Sức Khỏe, 0 Tiến độ Hòa vốn) · tsc 0 eslint 0 · verify:dashboard đỏ CÓ SẴN từ 27/08 (sổ đối chiếu dòng 72, sửa ở #29) · verify:reports xanh trở lại · vault db-truth 152 hàm · sweep 0"
+    diff: "migration + revert.sql + spec · components/finance/dashboard/finance-intelligence-section.tsx · app/(protected)/finance/dashboard/page.tsx · tests/e2e/finance-intel-c8.spec.ts (mới) · DB-CHANGELOG 2 dòng · vault/30-du-lieu/than-ham/tai-chinh.md (sinh) · vault/40-module/tai-chinh.md (tay)"
+    spec: agent/HANDOFFS/T-20260910-health-score-debt-stats.spec.md
+    revert: agent/HANDOFFS/T-20260910-health-score-debt-stats.revert.sql
+    migration: supabase/migrations/20260910140000_t1_finance_intelligence_debt_stats.sql
+    ngay_spec: 2026-09-10
+    can_cu: "sổ đối chiếu dòng 35: debts 0 dòng nhưng get_finance_intelligence vẫn đọc → công nợ luôn 'Lanh manh'; C8 gỡ health-score + break-even khỏi màn cho tới khi đọc đúng nguồn"
+    do_duoc: "10/09: debts 0 dòng · finance_debt_stats() = 8,5tr thu / 14,14tr trả · get_finance_intelligence 230 dòng SECURITY DEFINER, ACL có cả anon/authenticated, dòng 79–91 đọc debts; còn lại tự cộng payments/expenses/fixed_costs/monthly_salaries → #29 · 1 caller withAuth · 2 màn render 3 thẻ (/finance, /finance/dashboard) · local: stats 0/0 → 92,575tr/13,905tr, ACL siết, revert ✓ áp lại ✓"
   - { id: 19, gd: 2, tuan: 4, ten: "T3 · audit inject actor tại withAuth + nối LOGIN", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "R11 — 169 điểm ghi, 10 có performedBy" }
   - { id: 20, gd: 2, tuan: 5, ten: "T2 · V4 hàng đợi tuổi đơn (RPC chỉ-đọc + section /contracts)", hinh_thuc: spec, gate: [14], status: todo, can_cu: "cơ chế trung tâm; C0 ngưỡng 26/43/14; chọn = hậu kỳ" }
   - { id: 21, gd: 2, tuan: 5, ten: "T2 · V5 trang nhịp 15' thứ Hai + chủ chạy nhịp đầu", hinh_thuc: spec, gate: [20], status: todo }

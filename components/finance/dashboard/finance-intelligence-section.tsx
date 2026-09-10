@@ -8,9 +8,9 @@ import {
   getReceivableAging, 
   getBudgetVsActual 
 } from "@/app/actions/finance-intelligence-queries";
-import { HealthScoreCard } from "./health-score-card";
+// #18 / C8 (10/09): HealthScoreCard + BreakEvenCard gỡ khỏi màn cho tới khi get_finance_intelligence đọc đúng sổ kỳ (#29).
+// File component vẫn giữ (./health-score-card, ./break-even-card) để mở lại.
 import { CashflowRunwayCard } from "./cashflow-runway-card";
-import { BreakEvenCard } from "./break-even-card";
 import { ForecastChart } from "./forecast-chart";
 import { ExpenseDonutChart } from "./expense-donut-chart";
 import { AgingBarsChart } from "./aging-bars-chart";
@@ -61,21 +61,17 @@ export function FinanceIntelligenceSection({ month, year }: FinanceIntelligenceS
   return (
     <div className="space-y-4">
 
-      {/* Zone 1: P0 Highlights */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Zone 1: P0 Highlights — C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29 */}
+      <section className="grid grid-cols-1 gap-4">
         {isLoadingHealth ? (
           <SkeletonCard className="h-40" />
         ) : healthData ? (
-          <>
-            <HealthScoreCard data={healthData} />
-            <CashflowRunwayCard data={healthData} />
-            <BreakEvenCard data={healthData} />
-          </>
+          <CashflowRunwayCard data={healthData} />
         ) : (
-          <div className="card-base p-8 text-center md:col-span-3">
+          <div className="card-base p-8 text-center">
             <h2 className="text-h3">Chưa có dữ liệu tài chính</h2>
             <p className="mx-auto mt-2 max-w-2xl text-body-sm text-text-secondary">
-              Các chỉ số sức khỏe, runway và hòa vốn sẽ xuất hiện sau khi có dữ liệu production.
+              Chỉ số runway sẽ xuất hiện sau khi có dữ liệu production.
             </p>
           </div>
         )}

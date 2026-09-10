@@ -14,12 +14,11 @@ import {
   getServiceDistribution,
 } from "@/app/actions/finance-dashboard-queries";
 import { AdvancedKpiGrid } from "@/components/finance/dashboard/advanced-kpi-grid";
-import { BreakEvenCard } from "@/components/finance/dashboard/break-even-card";
+// #18 / C8 (10/09): BreakEvenCard + HealthScoreCard gỡ khỏi màn cho tới khi get_finance_intelligence đọc đúng sổ kỳ (#29); file giữ để mở lại.
 import { BudgetVsActualList } from "@/components/finance/dashboard/budget-vs-actual-list";
 import { CashflowRunwayCard } from "@/components/finance/dashboard/cashflow-runway-card";
 import { CustomerMetricsCard } from "@/components/finance/dashboard/customer-metrics-card";
 import { DressRoiCard } from "@/components/finance/dashboard/dress-roi-card";
-import { HealthScoreCard } from "@/components/finance/dashboard/health-score-card";
 import { InventoryCostsCard } from "@/components/finance/dashboard/inventory-costs-card";
 import { RevenueBreakdownCard } from "@/components/finance/dashboard/revenue-breakdown-card";
 import { ScenarioPlanningCard } from "@/components/finance/dashboard/scenario-planning-card";
@@ -75,17 +74,16 @@ async function CriticalIntelligenceZone() {
       <section className="card-base p-8 text-center">
         <h2 className="text-h3">Chưa có dữ liệu tài chính</h2>
         <p className="mx-auto mt-2 max-w-2xl text-body-sm text-text-secondary">
-          Các chỉ số sức khỏe, runway và hòa vốn sẽ xuất hiện sau khi có dữ liệu production như hợp đồng, phiếu thu, chi phí hoặc công nợ.
+          Chỉ số runway sẽ xuất hiện sau khi có dữ liệu production như hợp đồng, phiếu thu, chi phí hoặc công nợ.
         </p>
       </section>
     );
   }
 
+  // C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29 khi hàm đọc đúng sổ kỳ
   return (
-    <section className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
-      <HealthScoreCard data={intelligence} />
+    <section className="grid min-w-0 grid-cols-1 gap-4">
       <CashflowRunwayCard data={intelligence} />
-      <BreakEvenCard data={intelligence} />
     </section>
   );
 }
