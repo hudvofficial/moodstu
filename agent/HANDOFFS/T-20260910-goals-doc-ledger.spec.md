@@ -1,6 +1,6 @@
 # T-20260910-goals-doc-ledger — T1: `/finance/goals` đọc sổ kỳ (diệt R10), gỡ khối lương + chi phí cố định (C7)
 
-**Owner:** claude (spec → chủ duyệt → claude code → verify → chủ xem diff) · **Trạng thái:** ✅ CODE + VERIFY XONG 10/09 (chủ "duyệt" 10/09) · chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 4, bước #17 (`agent/GOALS.yaml`), gate G1 ✅ (qua 10/09) · **Đổi:** 1 server action + 1 type + 2 component (overview gỡ 2 dòng lương/cố định, form modal burn rate) + 1 script verify + 1 e2e · **DB:** không đổi (đọc RPC `finance_month_summary` đã có) · **ADR:** không cần — đúng ADR-016 M2 "`finance_month_summary` / `finance_pnl_by_month` là nguồn duy nhất" · **Revert:** `git revert` 1 commit.
+**Owner:** claude (spec → chủ duyệt → claude code → verify → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — chủ "duyệt" 10/09 · commit `88776bc` · chủ "đẩy" 10/09 → `origin/main` · `/buoc done` 10/09 · **Chương trình:** GĐ2 tuần 4, bước #17 (`agent/GOALS.yaml`), gate G1 ✅ (qua 10/09) · **Đổi:** 1 server action + 1 type + 2 component (overview gỡ 2 dòng lương/cố định, form modal burn rate) + 1 script verify + 1 e2e · **DB:** không đổi (đọc RPC `finance_month_summary` đã có) · **ADR:** không cần — đúng ADR-016 M2 "`finance_month_summary` / `finance_pnl_by_month` là nguồn duy nhất" · **Revert:** `git revert` 1 commit.
 
 ## 0. Vì sao
 
