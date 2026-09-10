@@ -80,9 +80,10 @@ async function CriticalIntelligenceZone() {
     );
   }
 
-  // C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29 khi hàm đọc đúng sổ kỳ
+  // C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29 khi hàm đọc đúng sổ kỳ.
+  // Giữ lưới 3 cột: thẻ vẫn rộng 1/3 như cũ (không kéo trải hết màn 1920) và khớp ZoneSkeleton — #29 chỉ cần thêm lại 2 thẻ.
   return (
-    <section className="grid min-w-0 grid-cols-1 gap-4">
+    <section className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
       <CashflowRunwayCard data={intelligence} />
     </section>
   );
@@ -178,8 +179,9 @@ export default function FinanceSmartDashboardPage() {
             <div>
               <p className="text-overline text-text-muted">Tháng {month}/{year}</p>
               <h1 className="text-h1">Dashboard thông minh</h1>
+              {/* #18 / C8: bỏ "sức khỏe tài chính, hòa vốn" — 2 thẻ đó đã gỡ, câu này là thứ duy nhất còn hứa chúng (mở lại ở #29) */}
               <p className="mt-1 max-w-2xl text-body-sm text-text-secondary">
-                Sức khỏe tài chính, hòa vốn, runway và dự báo dòng tiền được tính từ dữ liệu production.
+                Runway, dự báo dòng tiền và phân tích chi phí được tính từ dữ liệu production.
               </p>
             </div>
           </div>

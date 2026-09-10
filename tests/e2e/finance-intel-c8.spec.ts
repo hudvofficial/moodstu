@@ -1,7 +1,11 @@
 /**
- * #18 (T-20260910-health-score-debt-stats) — C8: thẻ "Điểm Sức Khỏe" + "Tiến độ Hòa vốn" không còn trên
- * /finance và /finance/dashboard; thẻ "Cashflow Runway" vẫn hiện; 0 lỗi app trong console.
- * Seed 1 admin tạm (department E2E), không tạo dữ liệu tài chính; dọn ở afterAll.
+ * #18 (T-20260910-health-score-debt-stats) — hai nửa của bước:
+ *   (DB) get_finance_intelligence().stats.receivables/payables PHẢI bằng finance_debt_stats() — nửa này không lộ ra UI
+ *        sau C8 nên phải assert thẳng qua RPC, nếu không hồi quy sẽ im lặng.
+ *   (C8) "Điểm Sức Khỏe" + "Tiến độ Hòa vốn" — kể cả trong câu mô tả đầu trang — không còn trên /finance và
+ *        /finance/dashboard; "Cashflow Runway" vẫn hiện; không có lỗi app trong console/mạng.
+ * Spec KHÔNG seed tiền, NHƯNG global-setup của mỗi lần chạy bơm ~20 HĐ E2E vào prod (phải thu tạm phình) —
+ * vì thế phép so ở đây là RPC-vs-RPC cùng thời điểm, không so với con số tuyệt đối. Seed 1 admin tạm, dọn ở afterAll.
  * Chạy: $env:ALLOW_PROD_WRITE="1"; $env:PLAYWRIGHT_BASE_URL="http://127.0.0.1:3000"; npx playwright test tests/e2e/finance-intel-c8.spec.ts --project=chromium
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -75,21 +79,52 @@ test.describe.serial("#18 — C8 gỡ Health-score + Hòa vốn, giữ Runway", 
     await sweepStaleE2EOrphans(db);
   });
 
+  test("DB: stats.receivables/payables = finance_debt_stats() (nửa không lộ ra UI)", async () => {
+    const [{ data: intel, error: e1 }, { data: debt, error: e2 }] = await Promise.all([
+      db.rpc("get_finance_intelligence"),
+      db.rpc("finance_debt_stats"),
+    ]);
+    if (e1) throw new Error(`get_finance_intelligence: ${e1.message}`);
+    if (e2) throw new Error(`finance_debt_stats: ${e2.message}`);
+    const stats = (intel as { stats: { receivables: number; payables: number } }).stats;
+    const row = (Array.isArray(debt) ? debt[0] : debt) as { receivable: number | string; payable: number | string };
+
+    expect(Number(stats.receivables), "phải thu của health-score phải lấy từ sổ canonical").toBe(Number(row.receivable));
+    expect(Number(stats.payables), "phải trả của health-score phải lấy từ sổ canonical").toBe(Number(row.payable));
+    // bảng debts vẫn rỗng → nếu ai đó trả hàm về đọc debts thì 2 số này rơi lại về 0 và assert trên sẽ đỏ
+    const { count } = await db.from("debts").select("id", { count: "exact", head: true });
+    expect(count ?? 0, "debts vẫn là sổ tay rỗng — #18 không đụng dữ liệu").toBe(0);
+  });
+
   for (const route of ["/finance", "/finance/dashboard"]) {
     test(`${route}: có Runway, không Health-score / Hòa vốn, 0 lỗi app`, async ({ page }) => {
       const consoleErrors: string[] = [];
+      const badResponses: string[] = [];
       page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+      // Lọc lỗi mạng theo URL (thông điệp console "Failed to load resource" không kèm URL nên không lọc nổi):
+      // /monitoring = Sentry tunnel 403, /_vercel/speed-insights = 404 — hai thứ chỉ hỏng trên next start cục bộ.
+      page.on("response", (res) => {
+        if (res.status() < 400) return;
+        const u = res.url();
+        if (/\/monitoring|_vercel\/speed-insights|favicon/i.test(u)) return;
+        badResponses.push(`${res.status()} ${u.replace(/\?.*$/, "")}`);
+      });
 
       await login(page);
       await page.goto(route);
-      await expect(page.getByText("Cashflow Runway").first()).toBeVisible({ timeout: 60_000 });
+      const runway = page.getByText("Cashflow Runway").first();
+      await runway.waitFor({ state: "visible", timeout: 60_000 });
+      await runway.scrollIntoViewIfNeeded();
       await page.waitForTimeout(1500);
-      await expect(page.getByText("Điểm Sức Khỏe")).toHaveCount(0);
-      await expect(page.getByText("Tiến độ Hòa vốn")).toHaveCount(0);
+
+      // Phủ định theo NGỮ, không chỉ theo nhãn thẻ: bắt cả câu mô tả đầu trang từng hứa 2 chỉ số này.
+      // #29 mở lại 2 thẻ ⇒ test này sẽ đỏ, đó là chủ đích (buộc đảo ngược có ý thức).
+      await expect(page.getByText(/Điểm Sức Khỏe|Tiến độ Hòa vốn|hòa vốn|Sức khỏe tài chính/i)).toHaveCount(0);
 
       const bad = consoleErrors.filter((m) => !NOISE.test(m));
       expect(bad, `console: ${bad.join(" | ")}`).toEqual([]);
-      await page.screenshot({ path: `test-results/finance-intel-c8${route.replace(/\//g, "-")}.png`, fullPage: false });
+      expect(badResponses, `mạng: ${badResponses.join(" | ")}`).toEqual([]);
+      await page.screenshot({ path: `test-results/finance-intel-c8${route.replace(/\//g, "-")}.png`, fullPage: true });
     });
   }
 });

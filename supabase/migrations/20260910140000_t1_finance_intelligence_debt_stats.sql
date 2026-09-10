@@ -85,6 +85,10 @@ BEGIN
   SELECT COALESCE(d.receivable, 0), COALESCE(d.payable, 0)
   INTO v_receivables, v_payables
   FROM public.finance_debt_stats() d;
+  -- SELECT ... INTO gán NULL nếu nguồn trả 0 dòng (COALESCE trong SELECT-list không cứu vì không có dòng nào);
+  -- hàm sổ canonical luôn trả 1 dòng, nhưng tiền thì không để NULL lọt xuống 5 thang điểm phía dưới.
+  v_receivables := COALESCE(v_receivables, 0);
+  v_payables := COALESCE(v_payables, 0);
 
   SELECT COALESCE(SUM(monthly_amount), 0)
   INTO v_fixed_cost

@@ -44,7 +44,7 @@ Không đổi: chữ ký, kiểu trả về JSON (`health_score`, `breakdown`, `
 |---|---|---|
 | Local | §1 | ✓ |
 | Áp prod | `migrate-direct` | "completed"; thân hàm sống không còn `FROM debts`, có `finance_debt_stats()`; `has_function_privilege('authenticated', …)` = **false**, `service_role` = true |
-| Số | `get_finance_intelligence()->'stats'` trước/sau | `receivables` 0 → **8.500.000** · `payables` 0 → **14.140.350** (= `finance_debt_stats()`) · `breakdown.receivables` "Lanh manh" 15 → "No phai tra cao" 5 · các trường khác giữ nguyên |
+| Số | `get_finance_intelligence()->'stats'` trước/sau | `receivables` 0 → **8.500.000** · `payables` 0 → **14.140.350** (= `finance_debt_stats()`) · `breakdown.receivables` "Lanh manh" 15 → "No phai tra cao" 5 · `cashflow.projectedBalance` giảm đúng `net_debt` (−5.640.350) · `monthlyRevenue`/`monthlyExpense`/`prevRevenue`/`prevExpense` **giữ nguyên** |
 | Màn hình | Playwright admin tạm: `/finance` + `/finance/dashboard` | 0 chữ "Điểm Sức Khỏe", 0 "Tiến độ Hòa vốn", có "Cashflow Runway"; 0 lỗi app console (lọc nhiễu next start) |
 | Tĩnh | `tsc` · `eslint` 2 file · `npm run verify:dashboard` | 0 · 0 · pass |
 | Vault | `vault:db-truth` (1 hàm) · `40-module/tai-chinh.md` mục (5) | cập nhật |
@@ -69,3 +69,22 @@ Không đổi: chữ ký, kiểu trả về JSON (`health_score`, `breakdown`, `
 | `verify:reports` | **xanh trở lại** (07/09 đỏ vì mốc `giao_san_pham` `hoan_thanh` `event_date` NULL) — dữ liệu vận hành đã đổi sau khi chủ đóng 24 HĐ ngày 06/09 |
 | Vault | `vault:db-truth`: 152 hàm, `than-ham/tai-chinh.md` mang `finance_debt_stats() d` · `40-module/tai-chinh.md` mục (5) |
 | Rác | sweep 22 bảng/nhóm = **0** (`audit_logs` E2E = 0 — vá gốc teardown ở #17 có hiệu lực); `realtime_signals` 48 = tín hiệu thật |
+
+### 6b. Vòng review chéo (11/09) — 5 lens × verify đối kháng, 69 agent
+
+32 phát hiện thô → 50 phiếu phản bác → **14 sống sót**. Đã sửa trong chính bước này (áp lại migration idempotent + 1 commit code):
+
+| # | Phát hiện | Đã làm |
+|---|---|---|
+| 1 | `page.tsx:182` — câu mô tả **luôn hiển thị** đầu `/finance/dashboard` vẫn hứa *"Sức khỏe tài chính, hòa vốn…"* dù 2 thẻ đã gỡ (diff chỉ sửa câu empty-state hiếm khi hiện). 4 lens độc lập cùng bắt | Đổi thành *"Runway, dự báo dòng tiền và phân tích chi phí…"*; e2e assert phủ định theo **ngữ** `/Điểm Sức Khỏe\|Tiến độ Hòa vốn\|hòa vốn\|Sức khỏe tài chính/i` |
+| 2 | Lưới đổi 3 cột → 1 cột khiến thẻ Runway **trải hết bề ngang** (≈1830px ở màn 1920) và **lệch skeleton** 3 ô → nhảy bố cục | Giữ `lg:grid-cols-3` / `md:grid-cols-3`, thẻ vẫn 1/3 như cũ, khớp `ZoneSkeleton`/`IntelligenceSkeleton`; #29 mở lại 2 thẻ chỉ còn thêm 2 dòng |
+| 3 | **Nửa DB không có bài kiểm nào**: sau C8, `stats.receivables/payables` không lộ ra UI → hồi quy sẽ im lặng | Thêm test RPC-vs-RPC trong cùng spec: `stats.receivables === finance_debt_stats().receivable`, `payables` tương tự, và `debts` vẫn 0 dòng |
+| 4 | `SELECT … INTO` gán **NULL** nếu nguồn trả 0 dòng (COALESCE trong SELECT-list không cứu) | Thêm 2 dòng chốt `v_receivables := COALESCE(v_receivables, 0)` (+ `v_payables`); áp lại prod (idempotent), diễn tập local trước |
+| 5 | `revert.sql` **cấp lại EXECUTE cho `anon`** — quay lui thân hàm kéo theo mở lại lỗ ACL | Tách khối ACL: mặc định chỉ `GRANT … TO service_role`, dòng `anon, authenticated` để **comment** kèm cảnh báo; diễn tập local xác nhận revert không mở lại (`anon_exec=false`) |
+| 6 | Bộ lọc console nuốt cả `Failed to load resource` → "0 lỗi app" hứa nhiều hơn thực chứng | Bắt riêng theo **URL** qua `page.on("response")`, chỉ bỏ qua `/monitoring`, `_vercel/speed-insights`, `favicon`; mọi 4xx/5xx khác làm đỏ test |
+| 7 | Ảnh chụp `fullPage:false` ở 1366×768 không chứa Zone 1 của `/finance` | `scrollIntoViewIfNeeded()` + `fullPage: true` |
+| 8 | Header spec e2e ghi "không tạo dữ liệu tài chính" — sai ở mức run: global-setup bơm ~20 HĐ E2E vào prod | Viết lại header cho đúng; phép so đổi sang RPC-vs-RPC **cùng thời điểm** nên seed không làm sai kết luận |
+
+**Kiểm lại sau khi sửa (11/09, build `pa8dsPO2Bb6ZFOhwugTC4`):** migration vá áp lại prod (idempotent) — `has_coalesce_guard` = true, `has_from_debts` = false, ACL vẫn `{postgres, service_role}`; local diễn tập revert → thân hàm cũ **mà `anon_exec` vẫn false** → áp lại ✓. Playwright `finance-intel-c8` **3/3** (RPC parity + 2 màn), 0 lỗi console, **0 phản hồi 4xx/5xx ngoài nhiễu đã biết**. `tsc` 0 · `eslint` 0 · mojibake 0 · sweep 22 bảng = 0. Ảnh `test-results/finance-intel-c8-finance-dashboard.png`: câu mô tả mới, thẻ Runway rộng đúng 1/3 khung.
+
+Ghi sổ, **không** sửa trong bước này (đã vào `agent/inventory/00-lech-thiet-ke.md`): **4 RPC tài chính cùng lớp còn mở EXECUTE cho `anon`** (`get_cashflow_forecast`, `get_expense_breakdown`, `get_budget_vs_actual`, `get_finance_advanced_intelligence`) — chờ chủ quyết mở bước mới hay gộp #25 · ngưỡng `rec_ratio` chấm trên phải thu lũy kế thay vì `overdue` → #29 · phụ thuộc hàm-gọi-hàm `get_finance_intelligence` → `finance_debt_stats()` không được Postgres theo dõi · `repo-map.json` còn khai 2 import đã gỡ (sinh lại ở bước dọn) · nhánh "Chưa có dữ liệu tài chính" vẫn nuốt lỗi RPC lẫn trạng thái trống → #29.

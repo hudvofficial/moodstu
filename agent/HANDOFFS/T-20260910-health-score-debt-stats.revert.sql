@@ -232,4 +232,11 @@ BEGIN
 END;
 $function$;
 
-GRANT EXECUTE ON FUNCTION public.get_finance_intelligence() TO anon, authenticated, service_role;
+-- ─────────────────────────────────────────────────────────────────────────────
+-- KHỐI ACL — CỐ Ý ĐỂ COMMENT. Quay lui thân hàm KHÔNG cần mở lại quyền.
+-- Trước #18, `anon` và `authenticated` EXECUTE được hàm SECURITY DEFINER này, tức bất kỳ ai cầm anon key
+-- gọi được /rest/v1/rpc/get_finance_intelligence và nhận TOÀN BỘ số tài chính của studio. Đó là lỗ, không phải tính năng.
+-- App chỉ gọi qua server action bọc withAuth (service role) nên để nguyên {postgres, service_role} là đủ.
+-- Chỉ bỏ comment dòng dưới nếu THỰC SỰ cần trả lại quyền đọc số tài chính cho vai anon/authenticated:
+-- GRANT EXECUTE ON FUNCTION public.get_finance_intelligence() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_finance_intelligence() TO service_role;

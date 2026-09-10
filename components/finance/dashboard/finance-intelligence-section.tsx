@@ -61,14 +61,15 @@ export function FinanceIntelligenceSection({ month, year }: FinanceIntelligenceS
   return (
     <div className="space-y-4">
 
-      {/* Zone 1: P0 Highlights — C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29 */}
-      <section className="grid grid-cols-1 gap-4">
+      {/* Zone 1: P0 Highlights — C8: chỉ còn Runway; Health-score + Hòa vốn mở lại ở #29.
+          Giữ lưới 3 cột để thẻ không trải hết bề ngang và khớp IntelligenceSkeleton. */}
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {isLoadingHealth ? (
           <SkeletonCard className="h-40" />
         ) : healthData ? (
           <CashflowRunwayCard data={healthData} />
         ) : (
-          <div className="card-base p-8 text-center">
+          <div className="card-base p-8 text-center md:col-span-3">
             <h2 className="text-h3">Chưa có dữ liệu tài chính</h2>
             <p className="mx-auto mt-2 max-w-2xl text-body-sm text-text-secondary">
               Chỉ số runway sẽ xuất hiện sau khi có dữ liệu production.

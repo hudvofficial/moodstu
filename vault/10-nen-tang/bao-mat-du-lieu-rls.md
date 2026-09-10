@@ -92,6 +92,15 @@ Số đo 2026-08-31 (từ `pg_proc`): **92/149 hàm** trên DB là `SECURITY DEF
 
 Hệ quả cần nhớ khi viết code mới: **ghi 9 bảng này bằng cookie client hay browser client sẽ bị `42501`** — đó là chủ đích; đường ghi duy nhất là server action. Nhánh client-direct (`lib/client-direct/contract-drawer.ts`, `payslip-modal.tsx`) chỉ đọc, vẫn chạy cho admin/manager/sale. Vì sao bỏ scope "HĐ của tôi": `contracts.created_by` lưu **auth uid**, còn `get_current_employee_id()` trả `employees.id` → nhánh đó chưa bao giờ khớp (0/63); ma trận Mood là theo vai. RPC `calendar_month_events(p_month, p_year, p_employee_id DEFAULT NULL)` chỉ `service_role` EXECUTE; lọc lịch tay theo người khi app truyền (`app/actions/calendar-queries.ts`). Probe REST 10/09 bằng user sale/ctv tạm: 15/15 đúng ma trận. Trước đó (02/09–10/09) số policy toàn DB 217 → nay **187**.
 
+## Quyền EXECUTE của RPC — chỗ RLS không với tới (đo 11/09/2026)
+
+Hàm `SECURITY DEFINER` **bỏ qua RLS**, nên với RPC thì `EXECUTE` chính là cổng duy nhất. Supabase cấp EXECUTE mặc định cho `anon`/`authenticated` với **mọi hàm mới trong schema `public`** (`pg_default_acl`), nên hàm nào không REVOKE tay là hàm đó mở — và `REVOKE ... FROM PUBLIC` **không** gỡ hai grant đó, phải nêu đích danh `anon, authenticated`.
+
+- **Đã siết:** `calendar_month_events(int,int,uuid)` (#24, 10/09) · `get_finance_intelligence()` (**#18, 11/09** — trước đó `anon` gọi được `/rest/v1/rpc/get_finance_intelligence` và nhận toàn bộ số tài chính studio) · `customer_phone_report()` (#27) · nhóm sổ kỳ `finance_period_ledger` · `finance_month_summary` · `finance_pnl_by_month` · `finance_debt_stats` · `finance_payable_summary` · `finance_pending_collections` · `finance_reports_snapshot` · `get_receivable_aging` — tất cả `{postgres, service_role}`.
+- **Còn mở cho `anon` + `authenticated`** (đo 11/09, đều `SECURITY DEFINER`, đều trả số tài chính): `get_cashflow_forecast` · `get_expense_breakdown` · `get_budget_vs_actual` · `get_finance_advanced_intelligence`. App chỉ gọi chúng qua server action bọc `withAuth` → siết được mà không gãy gì; **chưa có trong sổ 32 bước**, đã ghi vào `agent/inventory/00-lech-thiet-ke.md` chờ chủ quyết.
+
+Khi viết RPC mới: mặc định `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role;` ngay trong migration — và nhớ `DROP` + `CREATE` lại hàm sẽ nhận lại default ACL, phải REVOKE lần nữa (bài học #24).
+
 ## Liên quan
 
 [[cache-va-realtime]] · [[bay-du-lieu]] · [[luong-gallery]]
