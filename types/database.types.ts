@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -5597,7 +5597,7 @@ export type Database = {
       }
       backfill_payment_plan_ssot_v2: { Args: never; Returns: Json }
       calendar_month_events: {
-        Args: { p_month: number; p_year: number; p_employee_id?: string | null }
+        Args: { p_employee_id?: string | null; p_month: number; p_year: number }
         Returns: {
           assigned_to: string
           color_id: string
@@ -5792,6 +5792,15 @@ export type Database = {
         }
         Returns: Json
       }
+      customer_phone_report: {
+        Args: never
+        Returns: {
+          chi_tiet: string
+          loai: string
+          sdt_chuan: string
+          so_dong: number
+        }[]
+      }
       dashboard_critical_kpis: {
         Args: { p_month: number; p_year: number }
         Returns: {
@@ -5890,7 +5899,29 @@ export type Database = {
         }
         Returns: string
       }
+      finance_cash_entries: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          cash_in_contract: number
+          cash_in_retail: number
+          cash_out: number
+          cash_out_fixed: number
+          cash_out_salary: number
+          cash_out_settlement: number
+          cost_direct: number
+          cost_overhead: number
+          entry_date: string
+        }[]
+      }
       finance_cashflow_timeline: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          date: string
+          inflow: number
+          outflow: number
+        }[]
+      }
+      finance_cashflow_timeline_legacy: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
           date: string
@@ -6466,6 +6497,7 @@ export type Database = {
       nextval_customer_code: { Args: never; Returns: number }
       nextval_inventory_code: { Args: never; Returns: string }
       nextval_printing_order_code: { Args: never; Returns: string }
+      normalize_phone: { Args: { p_phone: string }; Returns: string }
       payable_items: {
         Args: { p_payee_id: string; p_payee_type: string }
         Returns: {
@@ -6725,6 +6757,10 @@ export type Database = {
         Args: { p_rental_id: string; p_user_id?: string }
         Returns: Json
       }
+      sync_employee_salary_paid: {
+        Args: { p_salary_id: string }
+        Returns: undefined
+      }
       sync_payment_plan_statuses_v2: {
         Args: { p_contract_id: string }
         Returns: undefined
@@ -6860,12 +6896,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6889,11 +6925,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6914,11 +6950,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6939,11 +6975,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6956,11 +6992,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

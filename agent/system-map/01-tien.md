@@ -301,9 +301,11 @@ HUỶ HỢP ĐỒNG ─── cancel_contract_cascade → contracts.status='da_h
 | `finance_month_summary` | ✅ 2 lần (kỳ này + kỳ trước) | `20260826180000:229-230` |
 | `finance_pnl_by_month` | ✅ LATERAL × 12 | `20260826120000:200` |
 | `finance_reports_snapshot` | ✅ | `20260826120000:219` |
-| `finance_cashflow_timeline` | ❌ **KHÔNG** — tự query lại `payments` + `receipts` + `expenses` | `20260826120000:324-336` |
+| `finance_cashflow_timeline` | ✅ qua `finance_cash_entries` — **#23, 11/09/2026** | `20260911160000` |
 
 ### Chỗ TỰ CỘNG LẠI (vi phạm / rủi ro kiến trúc)
+
+> **CẬP NHẬT 11/09/2026 — #23 đã đóng mục 1 và 2.** Phần tiền của sổ kỳ tách ra hàm dùng chung `finance_cash_entries(start, end)`; `finance_cashflow_timeline` đọc nó, `buildCloseSnapshot` đọc `finance_period_ledger` (`fixedCost` nay = `cash_out_fixed`, tức phiếu chi `[Auto-Fixed]` thật). Cửa an toàn: `finance_cashflow_timeline_legacy` giữ 1 kỳ + `npm run verify:cashflow-ledger`. **Còn lại ngoài sổ kỳ:** `depreciationCost` (khấu hao, không phải tiền mặt) → **#29**.
 
 1. **`buildCloseSnapshot` — `app/actions/finance-close-actions.ts:30-137` — vi phạm nặng nhất.**
    Snapshot chốt sổ tự cộng tiền **trong TypeScript**, không gọi `finance_month_summary`/`finance_period_ledger`:

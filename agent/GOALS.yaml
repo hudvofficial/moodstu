@@ -8,7 +8,7 @@
 # done chỉ hợp lệ khi có `bang_chung` (lệnh verify + kết quả số) và `ngay_done`.
 
 version: 1
-updated: 2026-09-10
+updated: 2026-09-11
 giai_doan_hien_tai: 2
 buoc_hien_tai: 23
 
@@ -298,7 +298,25 @@ buoc:
     diff: "6 file: types/roles.ts · app/(protected)/admin/layout.tsx (mới) · settings/layout.tsx · crm/layout.tsx · tests/unit/roles-matrix.test.ts · tests/e2e/role-gate.spec.ts"
     ngay_spec: 2026-09-07
     do_duoc: "9/14 module đã guard cùng mẫu; hở: /settings (layout pass-through), /admin/* (không layout), /crm (pass-through, sale còn trong ma trận). withAdmin đã chặn tầng action cho admin/settings; CRM action chỉ withAuth (→ #19). 1 admin · 3 sale · 8 ctv; 4 lead không do sale tạo"
-  - { id: 23, gd: 2, tuan: 6, ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)", hinh_thuc: db, gate: [G1], status: todo }
+  - id: 23
+    gd: 2
+    tuan: 6
+    ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)"
+    hinh_thuc: db
+    gate: [G1]
+    status: cho-xem-diff
+    ngay_spec: 2026-09-11
+    ngay_duyet: 2026-09-11
+    ngay_ap_db: 2026-09-11
+    ngay_code: 2026-09-11
+    spec: agent/HANDOFFS/T-20260911-close-timeline-ve-ledger.spec.md
+    verify: "prod: 9 thang 2026 `Σ timeline == Σ legacy == so ky` (hang rao trong migration khong no) · 5 ky co so lech **0đ** (T5 32.165.000/3.270.000 · T6 55.680.000/1.300.000 · T7 72.325.000/0 · T8 18.350.000/18.096.400 · T9 85.995.000/0) · `finance_reports_snapshot` T8 giong tung truong · than 2 ham deu chua `finance_cash_entries`, het `FROM public.payments` · ACL 4 ham {postgres, service_role}, anon/authenticated false · vault:db-truth 152→154 ham · toc do A/B local +1,6…2,3 ms/lan goi · verify:cashflow-ledger 9/9 · verify:reports + verify:goals pass · tsc 0 eslint 0 · Playwright cashflow-ledger-c23 2/2 · sweep 0 rac/24 bang"
+    diff: "migration 20260911160000 + migration go legacy 20260911170000 (chua ap) + revert.sql + spec · app/actions/finance-close-actions.ts · scripts/verify-cashflow-ledger.mjs (moi) + package.json · scripts/verify-reports.mjs · tests/e2e/cashflow-ledger-c23.spec.ts (moi) · types/database.types.ts (db:types + tra lai | null cua #24) · DB-CHANGELOG 2 dong · vault: luong-tien + tai-chinh + than-ham/rls (sinh) · agent/system-map 01-tien + 09-baocao · SYSTEM_MAP · inventory/00-lech-thiet-ke (gach dong 86 + them dong khau hao → #29)"
+    revert: agent/HANDOFFS/T-20260911-close-timeline-ve-ledger.revert.sql
+    migration: supabase/migrations/20260911160000_t1_close_timeline_ve_ledger.sql
+    migration_go_legacy: supabase/migrations/20260911170000_t1_drop_timeline_legacy.sql
+    can_cu: "ADR-016 M2 đặt finance_period_ledger là hàm DUY NHẤT cộng tiền; sổ đối chiếu 00-lech-thiet-ke.md:86 — buildCloseSnapshot + finance_cashflow_timeline là 2 công thức tiền song song còn sống; vault/50-luong/luong-tien.md:54 phát biểu sai 'bốn hàm đọc nó'"
+    do_duoc: "11/09: 5 kỳ có số (T5–T9) — sổ kỳ vs biểu đồ tiền lệch **0đ** (trùng bộ lọc, không phải cùng nguồn); fixed_costs 0 dòng · phiếu [Auto-Fixed] 0 dòng · investments 0 dòng · finance_monthly_closes **0 kỳ** → lỗi còn ngủ đông, vá trước khi chủ nhập chi phí cố định đầu tiên; buildCloseSnapshot.fixedCost đọc BẢNG KẾ HOẠCH fixed_costs (trái vault/40-module/tai-chinh.md:70) trong khi sổ kỳ đọc phiếu chi thật; không cho biểu đồ gọi sổ kỳ từng ngày vì EXPLAIN ANALYZE prod: LATERAL 366 ngày 164,4ms vs 2,35ms (×70); ACL 2 hàm cũ đã là {postgres, service_role}; diễn tập local mood_restore: 9/9 tháng y nguyên, revert ✓, áp lại ✓, gỡ legacy ✓"
   - id: 24
     gd: 2
     tuan: 6

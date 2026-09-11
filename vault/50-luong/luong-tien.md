@@ -53,19 +53,25 @@ Bán lẻ (vật tư, dịch vụ rời): `create_sale_receipt_atomic` → **`re
 
 ## Ba số, một bộ sổ (ADR-016 M2, 2026-08-26)
 
-Một hàm sổ kỳ **`finance_period_ledger(p_start, p_end)`** tính mọi cột (tiền vào/ra, doanh thu, từng loại chi phí) theo luật ngày ở trên. **Ba hàm đọc nó — hàm thứ tư thì không:**
+Một hàm sổ kỳ **`finance_period_ledger(p_start, p_end)`** tính mọi cột (tiền vào/ra, doanh thu, từng loại chi phí) theo luật ngày ở trên. **Từ 11/09/2026 (#23) cả bốn hàm đều đọc chung một nguồn:**
 
 | Hàm | Dùng ở | Đọc ledger? | Trả |
 |---|---|:---:|---|
 | `finance_month_summary(m, y)` | `/finance` 3 khối | ✅ 2 lần (kỳ này + kỳ trước) | két (`cash_*`), lãi/lỗ (`revenue`, `cost_*`, `profit`), công nợ (`receivable`, `payable_*`), `contracts_missing_work_date` |
 | `finance_pnl_by_month(y)` | chart 12 tháng | ✅ LATERAL × 12 | `revenue`, `cost`, `profit`, `cash_in`, `cash_out`, `signed_revenue` |
 | `finance_reports_snapshot(start, end)` | `/reports`, Moodie `financial_summary` | ✅ | JSON cũ + `signedRevenue`; `cashflowSummary.totalOutflow` = Σ `expenses` |
-| `finance_cashflow_timeline(start, end)` | biểu đồ tiền | ❌ **KHÔNG** | tự query lại `payments` + `receipts` + `expenses` (`20260826120000:324-336`) |
+| `finance_cashflow_timeline(start, end)` | biểu đồ tiền | ✅ qua `finance_cash_entries` (#23, `20260911160000`) | `date`, `inflow`, `outflow` theo ngày |
 
-⚠️ **Bản cũ của trang này viết "bốn hàm đọc nó — không hàm nào tự cộng lại". Sai.** Hiện còn **hai** công thức tiền chạy song song ngoài ledger:
+**Tiền vào/ra có đúng MỘT định nghĩa** kể từ #23 (11/09/2026): hàm `finance_cash_entries(start, end)` trả tiền vào/ra **theo ngày** (9 cột, cùng bộ lọc cũ kể cả luật hoàn tiền R2 của #12). `finance_period_ledger` cộng nó lại theo kỳ; `finance_cashflow_timeline` vẽ thẳng từng ngày của nó. Đổi bộ lọc ở một chỗ là cả hai đổi theo — không còn cảnh "số khớp nhờ may".
 
-1. **`buildCloseSnapshot`** (`app/actions/finance-close-actions.ts:30-137`) — **vi phạm nặng nhất, và là công thức TypeScript, không phải SQL.** Snapshot chốt sổ tự cộng tiền trong TS: `operatingOutflow` loại phiếu `[Auto-Fixed]` rồi cộng `fixed_costs.monthly_amount` (ledger thì **đếm chính phiếu chi `[Auto-Fixed]`**), và đặt `netProfit = netCashflow − depreciationCost` — tức **lấy két trừ khấu hao rồi gọi là "lợi nhuận"**, đúng lớp lỗi mà ADR-016 M2 đã DROP `finance_dashboard_metrics` để diệt. ADR-016 M2 §6 đã ghi nợ này, M5 mới chỉ vá phần lương.
-2. **`finance_cashflow_timeline`** — số **hiện khớp** vì dùng đúng bộ lọc, và `scripts/verify-reports.mjs:164-165` assert `Σ timeline == snapshot.cashflowSummary`. Nhưng đổi ledger mà quên nó là lệch ngay.
+| Chỗ từng tự cộng | Trước #23 | Sau #23 |
+|---|---|---|
+| `finance_cashflow_timeline` | tự query `payments` + `receipts` + `expenses` (`20260826120000:324-336`) | đọc `finance_cash_entries` |
+| `buildCloseSnapshot` (`app/actions/finance-close-actions.ts`) | tự cộng 5 bảng trong TypeScript; `fixedCost` lấy từ **bảng kế hoạch** `fixed_costs` (ledger đếm phiếu chi `[Auto-Fixed]` thật) | đọc `finance_period_ledger`; `fixedCost` = `cash_out_fixed` |
+
+Cửa an toàn: `finance_cashflow_timeline_legacy` (bản sao công thức cũ) **giữ đúng 1 kỳ** để so chéo; `npm run verify:cashflow-ledger` đối chiếu từng tháng; migration gỡ `20260911170000` đã viết sẵn, áp sau 01/10/2026. `buildCloseSnapshot` cũng ghi khối `legacy` + `legacyDelta` vào `snapshot_metrics`.
+
+⚠️ Vẫn còn **ngoài** sổ kỳ: `depreciationCost` của bản chốt sổ (khấu hao đường thẳng từ `investments`, trùng công thức `investmentBookValue()`) — không phải tiền mặt nên không thuộc sổ kỳ, để **#29** xử lý.
 
 Còn 4 chỗ tự cộng khác **chỉ chạy fallback / không phải nguồn tổng**: `calculateFallbackSnapshot` (chỉ khi `NODE_ENV !== 'production'`), `get_finance_intelligence` / `_advanced_` / `get_cashflow_forecast` (card sức khoẻ, runway, hoà vốn — nhãn "biên lợi nhuận" vẫn tính theo két), `getServiceDistributionFallback` (lọc `contract_date` thay vì `work_date`), `fetchLedgerFallback`. → `agent/system-map/01-tien.md` §5.
 

@@ -91,7 +91,7 @@ Mọi khoá bí mật đi qua `encryptSecret` (AES-256-GCM, tiền tố `enc:v1:
 `REVOKE ALL … FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE … TO service_role`:
 - `finance_reports_snapshot`, `finance_ledger_range`, `finance_debt_stats`, `finance_contract_profit_report`, `finance_ledger` — `20260428150000_reports_rpc_security_hardening.sql:4-14`
 - `finance_pending_collections`, `finance_month_summary`, `get_receivable_aging`, `payable_*` — `20260826180000:412-429`
-- `finance_cashflow_timeline` chỉ có `GRANT … TO service_role` (`20260826120000:483`) — **không thấy lệnh REVOKE tường minh** trong migration (xem §8).
+- `finance_cashflow_timeline` chỉ có `GRANT … TO service_role` (`20260826120000:483`) — không có REVOKE tường minh trong migration, nhưng **đo trên prod 11/09/2026 (#23): ACL thực tế `{postgres=X, service_role=X}`** ⇒ `anon`/`authenticated` không gọi được. `20260911160000` đã viết REVOKE tường minh cho cả 4 hàm tiền.
 
 Cổng canh: `scripts/verify-reports.mjs:238-241` gọi lại **toàn bộ** danh sách RPC bằng anon client và bắt buộc bị từ chối (`assertAnonDenied` `:69-79`).
 
@@ -402,7 +402,7 @@ getAuthenticatedUserContext  lib/auth_utils.ts:362-369  → cùng logic, đặt 
 
 1. **Nội dung 2 policy của `audit_logs`.** Vault ghi "RLS bật · 2 policy" (`luoc-do-he-thong.md:16`) nhưng **không migration nào** trong repo tạo bảng, policy, `REVOKE` hay `GRANT` cho `audit_logs` — chỉ 1 lệnh tạo index (`20260422070000:218-220`). ⇒ **Không kết luận được vai `authenticated` có `SELECT`/`DELETE`/`UPDATE` trên bảng này hay không.** Đây là câu hỏi quan trọng nhất còn treo của miền: nếu `authenticated` có `DELETE`, nhật ký kiểm toán có thể bị xoá từ browser qua nhánh client-direct.
 2. **Thân thật của `finance_reports_snapshot` / `finance_debt_stats` trên prod.** `agent/SYSTEM_MAP.md:218` đã ghi nhận repo lệch DB. Tôi đọc file migration mới nhất, không đọc `pg_proc`.
-3. **`finance_cashflow_timeline` có bị `REVOKE` khỏi `anon`/`authenticated` không.** Chỉ tìm thấy `GRANT … TO service_role` (`20260826120000:483`), không thấy `REVOKE`. `verify-reports.mjs:238` **có** kiểm anon bị chặn cho hàm này, nên nhiều khả năng đã revoke ở đâu đó ngoài migration — chưa xác minh.
+3. ~~**`finance_cashflow_timeline` có bị `REVOKE` khỏi `anon`/`authenticated` không.**~~ → **ĐÃ XÁC MINH 11/09/2026 (#23):** ACL sống trên prod là `{postgres=X, service_role=X}` — cả `anon` lẫn `authenticated` đều `false`. `20260911160000` viết REVOKE tường minh cho 4 hàm tiền; `verify-reports.mjs` nay kiểm thêm `finance_cash_entries` + `finance_cashflow_timeline_legacy`.
 4. **Giá trị `ALLOW_SETTINGS_JWT_ADMIN_FALLBACK` trên Vercel production.** Không có trong file env nào của repo. Nếu = `"true"` thì §4.6 là lỗ hổng thật.
 5. **Có dòng `audit_logs` nào `source='trigger'` không** — nếu có thì tồn tại trigger DB ngoài lịch sử migration (giống nhận định "lịch sử migration không đầy đủ" ở `01-tien.md §8.2`).
 6. **Số dòng thật của `audit_logs`** (mâu thuẫn #2 ở §7) và tỉ lệ dòng không có actor (bất biến #26). Không chạy DB.

@@ -115,6 +115,15 @@ const rpcArgs = {
     p_start_date: RANGE.startDate,
     p_end_date: RANGE.endDate,
   },
+  // #23 - hai ham tien moi cung phai kin voi anon
+  finance_cash_entries: {
+    p_start: RANGE.startDate,
+    p_end: RANGE.endDate,
+  },
+  finance_cashflow_timeline_legacy: {
+    p_start_date: RANGE.startDate,
+    p_end_date: RANGE.endDate,
+  },
   // ADR-016 M2 — ba số, một bộ sổ
   finance_month_summary: { p_month: 4, p_year: 2026 },
   finance_pnl_by_month: { p_year: 2026 },

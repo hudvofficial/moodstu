@@ -10,7 +10,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Thân hàm DB — tai-chinh
 
-41 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
+43 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
@@ -22,7 +22,9 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | [`create_default_payment_schedule_v2`](#create_default_payment_schedule_v2) | `p_contract_id uuid, p_total numeric, p_initial_amount numeric, p_initial_stage text, p_contract_date date, p_work_date date` | `uuid` | **DEFINER** | plpgsql |
 | [`dashboard_revenue_chart`](#dashboard_revenue_chart) | `p_month integer, p_year integer, p_months integer` | `TABLE(month_index integer, month_label text, revenue numeric)` | invoker | plpgsql |
 | [`decrement_goal_amount`](#decrement_goal_amount) | `p_goal_id uuid, p_amount numeric` | `void` | invoker | plpgsql |
+| [`finance_cash_entries`](#finance_cash_entries) | `p_start date, p_end date` | `TABLE(entry_date date, cash_in_contract numeric, cash_in_retail numeric, cash_out numeric, cash_out_settlement numeric, cash_out_salary numeric, cash_out_fixed numeric, cost_direct numeric, cost_overhead numeric)` | **DEFINER** | sql |
 | [`finance_cashflow_timeline`](#finance_cashflow_timeline) | `p_start_date date, p_end_date date` | `TABLE(date date, inflow numeric, outflow numeric)` | **DEFINER** | sql |
+| [`finance_cashflow_timeline_legacy`](#finance_cashflow_timeline_legacy) | `p_start_date date, p_end_date date` | `TABLE(date date, inflow numeric, outflow numeric)` | **DEFINER** | sql |
 | [`finance_expense_stats`](#finance_expense_stats) | `p_month integer, p_year integer` | `TABLE(total_expenses bigint, total_amount numeric, approved_count bigint, pending_count bigint)` | invoker | sql |
 | [`finance_lab_debt_summary`](#finance_lab_debt_summary) | `—` | `TABLE(lab_id uuid, lab_name text, order_count bigint, total_orders numeric, total_paid numeric, remaining numeric, last_order_date timestamp with time zone)` | **DEFINER** | sql |
 | [`finance_ledger`](#finance_ledger) | `p_page integer, p_page_size integer, p_month integer, p_year integer, p_type text` | `TABLE(id uuid, source_table text, direction text, transaction_date date, amount numeric, code text, customer_name text, category_name text, payment_method text, description text, status text, total_count integer)` | invoker | plpgsql |
@@ -655,9 +657,96 @@ END;
 
 ---
 
+## finance_cash_entries
+
+`finance_cash_entries(p_start date, p_end date)` → `TABLE(entry_date date, cash_in_contract numeric, cash_in_retail numeric, cash_out numeric, cash_out_settlement numeric, cash_out_salary numeric, cash_out_fixed numeric, cost_direct numeric, cost_overhead numeric)` · **SECURITY DEFINER — bỏ qua RLS** · sql · STABLE
+
+```sql
+WITH raw AS (
+    -- tien vao: khach tra theo hop dong
+    SELECT p.payment_date::date AS d,
+           COALESCE(p.amount, 0)::numeric AS in_contract,
+           0::numeric AS in_retail,
+           0::numeric AS out_all, 0::numeric AS out_settlement, 0::numeric AS out_salary,
+           0::numeric AS out_fixed, 0::numeric AS c_direct, 0::numeric AS c_overhead
+    FROM public.payments p
+    WHERE p.deleted_at IS NULL AND p.payment_date BETWEEN p_start AND p_end
+
+    UNION ALL
+
+    -- tien vao: phieu thu le (khong gan hop dong)
+    SELECT r.receipt_date::date,
+           0::numeric, COALESCE(r.receipt_amount, 0)::numeric,
+           0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric, 0::numeric
+    FROM public.receipts r
+    WHERE r.deleted_at IS NULL AND r.contract_id IS NULL AND r.receipt_date BETWEEN p_start AND p_end
+
+    UNION ALL
+
+    -- tien ra: moi phieu chi, kem cac lat cat cua so ky
+    SELECT e.expense_date::date,
+           0::numeric, 0::numeric,
+           COALESCE(e.amount, 0)::numeric,
+           CASE WHEN al.expense_id IS NOT NULL
+                THEN COALESCE(e.amount, 0) ELSE 0 END::numeric,
+           CASE WHEN e.payee_type = 'employee'
+                THEN COALESCE(e.amount, 0) ELSE 0 END::numeric,
+           CASE WHEN e.payee_type = 'other' AND e.contract_id IS NULL
+                     AND COALESCE(e.description, '') LIKE '[Auto-Fixed]%'
+                THEN COALESCE(e.amount, 0) ELSE 0 END::numeric,
+           -- R2 (#12, 2026-09-07): phieu HOAN TIEN la tien ra nhung KHONG phai chi phi
+           CASE WHEN e.payee_type = 'other' AND e.contract_id IS NOT NULL
+                     AND COALESCE(tc.category_code, '') NOT IN ('contract_refund', 'refund', 'hoan_tien')
+                THEN COALESCE(e.amount, 0) ELSE 0 END::numeric,
+           CASE WHEN e.payee_type = 'other' AND e.contract_id IS NULL
+                     AND COALESCE(e.description, '') NOT LIKE '[Auto-Fixed]%'
+                THEN COALESCE(e.amount, 0) ELSE 0 END::numeric
+    FROM public.expenses e
+    LEFT JOIN LATERAL (SELECT a.expense_id FROM public.expense_allocations a WHERE a.expense_id = e.id LIMIT 1) al ON TRUE
+    LEFT JOIN public.transaction_categories tc ON tc.id = e.category_id
+    WHERE e.deleted_at IS NULL AND e.expense_date BETWEEN p_start AND p_end
+  )
+  SELECT raw.d,
+         COALESCE(SUM(raw.in_contract), 0)::numeric,
+         COALESCE(SUM(raw.in_retail), 0)::numeric,
+         COALESCE(SUM(raw.out_all), 0)::numeric,
+         COALESCE(SUM(raw.out_settlement), 0)::numeric,
+         COALESCE(SUM(raw.out_salary), 0)::numeric,
+         COALESCE(SUM(raw.out_fixed), 0)::numeric,
+         COALESCE(SUM(raw.c_direct), 0)::numeric,
+         COALESCE(SUM(raw.c_overhead), 0)::numeric
+  FROM raw
+  GROUP BY raw.d
+  ORDER BY raw.d;
+```
+
+---
+
 ## finance_cashflow_timeline
 
 `finance_cashflow_timeline(p_start_date date, p_end_date date)` → `TABLE(date date, inflow numeric, outflow numeric)` · **SECURITY DEFINER — bỏ qua RLS** · sql · STABLE
+
+```sql
+WITH params AS (
+    SELECT
+      LEAST(COALESCE(p_start_date, p_end_date, current_date), COALESCE(p_end_date, p_start_date, current_date)) AS start_date,
+      GREATEST(COALESCE(p_start_date, p_end_date, current_date), COALESCE(p_end_date, p_start_date, current_date)) AS end_date
+  )
+  SELECT ce.entry_date AS date,
+         (COALESCE(ce.cash_in_contract, 0) + COALESCE(ce.cash_in_retail, 0))::numeric,
+         COALESCE(ce.cash_out, 0)::numeric
+  FROM params pr
+  CROSS JOIN LATERAL public.finance_cash_entries(pr.start_date, pr.end_date) ce
+  WHERE (COALESCE(ce.cash_in_contract, 0) + COALESCE(ce.cash_in_retail, 0)) <> 0
+     OR COALESCE(ce.cash_out, 0) <> 0
+  ORDER BY ce.entry_date;
+```
+
+---
+
+## finance_cashflow_timeline_legacy
+
+`finance_cashflow_timeline_legacy(p_start_date date, p_end_date date)` → `TABLE(date date, inflow numeric, outflow numeric)` · **SECURITY DEFINER — bỏ qua RLS** · sql · STABLE
 
 ```sql
 WITH params AS (

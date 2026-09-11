@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 152 hàm
+# Danh mục RPC — 154 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -74,7 +74,9 @@ cap-nhat: 2026-08-07
 | `contribute_to_goal` | p_goal_id uuid, p_amount numeric, p_notes text | void |  |
 | `dashboard_revenue_chart` | p_month integer, p_year integer, p_months integer | TABLE(month_index integer, month_label text, revenue numeric |  |
 | `decrement_goal_amount` | p_goal_id uuid, p_amount numeric | void |  |
+| `finance_cash_entries` | p_start date, p_end date | TABLE(entry_date date, cash_in_contract numeric, cash_in_ret | ⚠️ có |
 | `finance_cashflow_timeline` | p_start_date date, p_end_date date | TABLE(date date, inflow numeric, outflow numeric) | ⚠️ có |
+| `finance_cashflow_timeline_legacy` | p_start_date date, p_end_date date | TABLE(date date, inflow numeric, outflow numeric) | ⚠️ có |
 | `finance_debt_stats` | — | TABLE(receivable numeric, payable numeric, overdue numeric,  | ⚠️ có |
 | `finance_expense_stats` | p_month integer, p_year integer | TABLE(total_expenses bigint, total_amount numeric, approved_ |  |
 | `finance_lab_debt_summary` | — | TABLE(lab_id uuid, lab_name text, order_count bigint, total_ | ⚠️ có |

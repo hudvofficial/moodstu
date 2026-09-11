@@ -143,6 +143,8 @@ ADR-016 M2 dựng `finance_period_ledger` làm sổ duy nhất và DROP `finance
 - **`buildCloseSnapshot`** (`app/actions/finance-close-actions.ts:30-137`) tự cộng tiền trong TypeScript, lấy chi phí cố định từ `fixed_costs.monthly_amount:91-97` (ledger thì đếm phiếu chi `[Auto-Fixed]`), rồi đặt `netProfit = két − khấu hao:121`. **Đây đúng là lớp lỗi M2 đã xoá.**
 - **`finance_cashflow_timeline`** không đọc ledger mà tự query lại `payments`+`receipts`+`expenses` (`20260826120000:324-336`) — trái hẳn câu `luong-tien.md:54`. Số hiện khớp, nhưng là công thức thứ hai.
 
+> **ĐÃ ĐÓNG 11/09/2026 (#23).** Cả hai chuyển sang một nguồn: `finance_cash_entries(start, end)` định nghĩa tiền vào/ra theo ngày; sổ kỳ cộng lại, biểu đồ vẽ từng ngày, `buildCloseSnapshot` đọc sổ kỳ. Còn `depreciationCost` ngoài sổ kỳ → #29.
+
 ### 5.3 — DB không chặn enum ⇒ lỗi chính tả im lặng
 
 - **[CODE]** DB **không có** `task_status_enum`; `work_tasks.status` và `contract_events.status` là `text` nullable (02-hop-dong §7 M8).
@@ -241,7 +243,7 @@ Nhóm lớn nhất:
 1. **Dump schema thật + diff repo** → đóng ~70 mục [?], và cho biết repo lệch DB tới đâu.
 2. **Sửa R1** (5 hợp đồng đang không huỷ được) — nhỏ, đã rõ nguyên nhân, cần cổng người.
 3. **Sửa quy trình migration** (`migrate-direct.mjs`) để repo ngừng trôi khỏi DB — nếu không, mọi bản đồ đều sẽ cũ lại.
-4. **Đóng 2 công thức tiền song song** (§5.2) — trả `buildCloseSnapshot` và `finance_cashflow_timeline` về đọc ledger.
+4. ~~**Đóng 2 công thức tiền song song** (§5.2) — trả `buildCloseSnapshot` và `finance_cashflow_timeline` về đọc ledger.~~ → **xong 11/09/2026, bước #23**.
 5. **Danh mục bất biến chạy trên dữ liệu thật** — giờ mới đủ căn cứ để viết, vì đã biết nguồn chân lý là hàm nào (§4).
 
 ---

@@ -24,13 +24,69 @@ function monthRangeFromPeriod(period: string) {
     throw new Error("Ky chot so khong hop le.");
   }
 
-  return { year, month, start, end };
+  // finance_period_ledger nhan moc cuoi BAO GOM (BETWEEN), khac `end` loai tru ben tren.
+  const endInclusive = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+
+  return { year, month, start, end, endInclusive };
 }
 
-async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
-  const range = monthRangeFromPeriod(period);
+// Khau hao duong thang — cung cong thuc investmentBookValue() (finance-operations-queries.ts),
+// nhung tinh theo moc cuoi ky dang chot thay vi "hom nay" (day la so cua 1 ky qua khu cu the).
+// Khong phai tien mat nen KHONG nam trong so ky (finance_period_ledger) — xem #29.
+type InvestmentRow = {
+  purchase_date: string | null;
+  purchase_price: number | null;
+  useful_life_months: number | null;
+  salvage_value: number | null;
+  sold_date: string | null;
+};
 
-  const [paymentsResult, receiptsResult, expensesResult, salaryResult, fixedCostsResult, investmentsResult] = await Promise.all([
+function depreciationForPeriod(rows: InvestmentRow[] | null, rangeEnd: string) {
+  return (rows || []).reduce((sum, row) => {
+    if (row.sold_date && row.sold_date < rangeEnd) return sum; // da thanh ly truoc ky nay
+    if (!row.purchase_date || row.purchase_date >= rangeEnd) return sum; // chua mua toi ky nay
+    const usefulLife = row.useful_life_months || 36;
+    const salvage = Number(row.salvage_value) || 0;
+    const monthly = usefulLife > 0 ? Math.max(0, Number(row.purchase_price) - salvage) / usefulLife : 0;
+    if (!monthly) return sum;
+    const purchased = new Date(row.purchase_date);
+    const periodEnd = new Date(rangeEnd);
+    const monthsElapsed = (periodEnd.getFullYear() - purchased.getFullYear()) * 12 + (periodEnd.getMonth() - purchased.getMonth());
+    if (monthsElapsed > usefulLife) return sum; // da khau hao het truoc ky nay
+    return sum + Math.round(monthly);
+  }, 0);
+}
+
+// #23 (ADR-016 M2): giữ bản tính CŨ đúng 1 kỳ để so chéo với sổ kỳ.
+// Gỡ cùng lúc áp `supabase/migrations/20260911170000_t1_drop_timeline_legacy.sql`
+// (điều kiện: ≥ 01/10/2026 và `npm run verify:cashflow-ledger` xanh) — bỏ hằng này,
+// bỏ hàm buildLegacyCloseSnapshot và 2 trường `legacy`/`legacyDelta` trong snapshot_metrics.
+const GIU_BAN_LEGACY = true;
+
+type CloseMoneyFields = {
+  totalInflow: number;
+  totalOutflow: number;
+  paymentRevenue: number;
+  standaloneReceiptRevenue: number;
+  operatingOutflow: number;
+  salaryCost: number;
+  fixedCost: number;
+  depreciationCost: number;
+  netCashflow: number;
+  netProfit: number;
+};
+
+/**
+ * Bản tính TIỀN của kỳ TRƯỚC #23: tự cộng lại payments + receipts + expenses + fixed_costs.
+ * Khác bản mới đúng một chỗ — `fixedCost` đọc BẢNG KẾ HOẠCH `fixed_costs` thay vì phiếu chi
+ * `[Auto-Fixed]` thật (trái `vault/40-module/tai-chinh.md` §sổ kỳ). Chỉ còn dùng để so chéo.
+ */
+async function buildLegacyCloseSnapshot(
+  supabase: AdminSupabase,
+  range: ReturnType<typeof monthRangeFromPeriod>,
+  depreciationCost: number,
+): Promise<CloseMoneyFields> {
+  const [paymentsResult, receiptsResult, expensesResult, fixedCostsResult] = await Promise.all([
     supabase
       .from("payments")
       .select("amount")
@@ -50,41 +106,23 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
       .is("deleted_at", null)
       .gte("expense_date", range.start)
       .lt("expense_date", range.end),
-    // ADR-016 M5: tiền lương của kỳ = phiếu chi payee_type='employee' (đã nằm trong expenses) — không đọc sheet
-    // monthly_salaries (kế hoạch/accrual) rồi cộng chồng lên phiếu chi như trước.
-    Promise.resolve({ data: null, error: null }),
     supabase
       .from("fixed_costs")
       .select("monthly_amount, start_date, end_date")
       .is("deleted_at", null),
-    supabase
-      .from("investments")
-      .select("purchase_date, purchase_price, useful_life_months, salvage_value, sold_date")
-      .is("deleted_at", null),
   ]);
 
-  const firstError =
-    paymentsResult.error ||
-    receiptsResult.error ||
-    expensesResult.error ||
-    salaryResult.error ||
-    fixedCostsResult.error ||
-    investmentsResult.error;
-
+  const firstError = paymentsResult.error || receiptsResult.error || expensesResult.error || fixedCostsResult.error;
   if (firstError) {
-    throw new Error(`Khong the tao snapshot chot so: ${firstError.message}`);
+    throw new Error(`Khong the tao ban _legacy de so cheo: ${firstError.message}`);
   }
 
   const paymentRevenue = (paymentsResult.data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
   const standaloneReceiptRevenue = (receiptsResult.data || []).reduce((sum, row) => sum + (Number(row.receipt_amount) || 0), 0);
-  // Phiếu chi phí cố định tự động hóa ([Auto-Fixed], sinh bởi generateMonthlyFixedCosts) đã được
-  // tính riêng trong fixedCost bên dưới (prorate theo ngày từ bảng fixed_costs) — cộng thêm ở đây
-  // sẽ đếm trùng. Cùng nguyên tắc RPC finance_contract_profit_report đã áp dụng cho [Auto-Print].
   const operatingOutflow = (expensesResult.data || []).reduce((sum, row) => {
     if (row.description?.startsWith("[Auto-Fixed]")) return sum;
     return sum + (Number(row.amount) || 0);
   }, 0);
-  void salaryResult;
   const salaryCost = (expensesResult.data || []).reduce((sum, row) => {
     return (row as { payee_type?: string | null }).payee_type === "employee" ? sum + (Number(row.amount) || 0) : sum;
   }, 0);
@@ -96,31 +134,69 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     return sum + amount;
   }, 0);
   const totalInflow = paymentRevenue + standaloneReceiptRevenue;
-  // M5: operatingOutflow đã gồm phiếu chi lương → không cộng salaryCost lần nữa (salaryCost chỉ để hiển thị)
   const totalOutflow = operatingOutflow + fixedCost;
   const netCashflow = totalInflow - totalOutflow;
 
-  // Khấu hao đường thẳng — cùng công thức investmentBookValue() (finance-operations-queries.ts),
-  // nhưng tính theo mốc cuối kỳ đang chốt thay vì "hôm nay" (đây là số của 1 kỳ quá khứ cụ thể).
-  const depreciationCost = (investmentsResult.data || []).reduce((sum, row) => {
-    if (row.sold_date && row.sold_date < range.end) return sum; // đã thanh lý trước kỳ này
-    if (!row.purchase_date || row.purchase_date >= range.end) return sum; // chưa mua tới kỳ này
-    const usefulLife = row.useful_life_months || 36;
-    const salvage = Number(row.salvage_value) || 0;
-    const monthly = usefulLife > 0 ? Math.max(0, Number(row.purchase_price) - salvage) / usefulLife : 0;
-    if (!monthly) return sum;
-    const purchased = new Date(row.purchase_date);
-    const periodEnd = new Date(range.end);
-    const monthsElapsed = (periodEnd.getFullYear() - purchased.getFullYear()) * 12 + (periodEnd.getMonth() - purchased.getMonth());
-    if (monthsElapsed > usefulLife) return sum; // đã khấu hao hết trước kỳ này
-    return sum + Math.round(monthly);
-  }, 0);
+  return {
+    totalInflow,
+    totalOutflow,
+    paymentRevenue,
+    standaloneReceiptRevenue,
+    operatingOutflow,
+    salaryCost,
+    fixedCost,
+    depreciationCost,
+    netCashflow,
+    netProfit: netCashflow - depreciationCost,
+  };
+}
+
+async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
+  const range = monthRangeFromPeriod(period);
+
+  // ADR-016 M2 + #23: tiền của kỳ đọc MỘT sổ kỳ (finance_period_ledger) — không tự cộng lại
+  // payments/receipts/expenses/fixed_costs nữa. `investments` vẫn đọc riêng vì khấu hao
+  // không phải tiền mặt nên không nằm trong sổ kỳ.
+  const [ledgerResult, investmentsResult] = await Promise.all([
+    supabase.rpc("finance_period_ledger", { p_start: range.start, p_end: range.endInclusive }),
+    supabase
+      .from("investments")
+      .select("purchase_date, purchase_price, useful_life_months, salvage_value, sold_date")
+      .is("deleted_at", null),
+  ]);
+
+  const firstError = ledgerResult.error || investmentsResult.error;
+  if (firstError) {
+    throw new Error(`Khong the tao snapshot chot so: ${firstError.message}`);
+  }
+
+  const ledger = ledgerResult.data?.[0];
+  if (!ledger) {
+    throw new Error(`Khong the tao snapshot chot so: so ky ${period} khong tra dong nao.`);
+  }
+
+  const toNumber = (value: unknown) => Number(value) || 0;
+  const paymentRevenue = toNumber(ledger.cash_in_contract);
+  const standaloneReceiptRevenue = toNumber(ledger.cash_in_retail);
+  const cashOut = toNumber(ledger.cash_out);
+  // Chi phí cố định = phiếu chi [Auto-Fixed] ĐÃ SINH (tiền thật), không phải bảng kế hoạch
+  // fixed_costs như trước — `fixed_costs` là kế hoạch, không vào két (ADR-016 M2).
+  const fixedCost = toNumber(ledger.cash_out_fixed);
+  // Phần còn lại của két sau khi tách chi phí cố định tự động ra, để không đếm trùng.
+  const operatingOutflow = cashOut - fixedCost;
+  // M5: operatingOutflow đã gồm phiếu chi lương → salaryCost chỉ để hiển thị, không cộng lần nữa.
+  const salaryCost = toNumber(ledger.cash_out_salary);
+  const totalInflow = paymentRevenue + standaloneReceiptRevenue;
+  const totalOutflow = operatingOutflow + fixedCost; // == cashOut của sổ kỳ
+  const netCashflow = totalInflow - totalOutflow;
+
+  const depreciationCost = depreciationForPeriod(investmentsResult.data, range.end);
 
   // P&L thật của kỳ: dòng tiền ròng trừ đi khấu hao (chi phí phi tiền mặt) —
   // khác "Dòng tiền ròng" (netCashflow), không gộp khấu hao vào đó vì nó không phải chi tiền mặt.
   const netProfit = netCashflow - depreciationCost;
 
-  return {
+  const snapshot = {
     period,
     totalInflow,
     totalOutflow,
@@ -132,8 +208,20 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     depreciationCost,
     netCashflow,
     netProfit,
+    source: "finance_period_ledger" as const,
     generatedAt: new Date().toISOString(),
   };
+
+  if (!GIU_BAN_LEGACY) return snapshot;
+
+  const legacy = await buildLegacyCloseSnapshot(supabase, range, depreciationCost);
+  const legacyDelta: Record<string, number> = {};
+  for (const key of Object.keys(legacy) as (keyof CloseMoneyFields)[]) {
+    const delta = snapshot[key] - legacy[key];
+    if (delta !== 0) legacyDelta[key] = delta;
+  }
+
+  return { ...snapshot, legacy, legacyDelta };
 }
 
 async function updateCloseSnapshot(supabase: AdminSupabase, closeId: string, period: string) {

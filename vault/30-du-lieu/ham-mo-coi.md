@@ -10,7 +10,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Hàm DB không được code gọi
 
-Tổng 152 hàm trên DB · **122** được nhắc tới trong code ứng dụng · **30** không.
+Tổng 154 hàm trên DB · **124** được nhắc tới trong code ứng dụng · **30** không.
 
 Quét theo tên hàm xuất hiện dạng chuỗi trong `app/ components/ lib/ hooks/ scripts/ types/ tests/`. Trùng tên có thể gây dương tính giả — dùng file này để **khoanh vùng cần kiểm**, không dùng để xoá thẳng.
 

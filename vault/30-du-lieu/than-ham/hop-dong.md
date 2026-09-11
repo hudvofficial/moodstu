@@ -928,30 +928,23 @@ WITH rows AS (
 `finance_period_ledger(p_start date, p_end date)` → `TABLE(cash_in_contract numeric, cash_in_retail numeric, cash_out numeric, cash_out_settlement numeric, cash_out_salary numeric, cash_out_fixed numeric, revenue_contract numeric, revenue_retail numeric, signed_revenue numeric, signed_contracts bigint, contracts_shot bigint, contracts_completed bigint, cost_task numeric, cost_print numeric, cost_cogs_contract numeric, cost_cogs_retail numeric, cost_direct numeric, cost_overhead numeric, cost_fixed numeric, cost_salary_base numeric)` · **SECURITY DEFINER — bỏ qua RLS** · sql · STABLE
 
 ```sql
-WITH cash_in AS (
-    SELECT
-      COALESCE((SELECT SUM(p.amount) FROM public.payments p
-                WHERE p.deleted_at IS NULL AND p.payment_date BETWEEN p_start AND p_end), 0)::numeric AS contract_amt,
-      COALESCE((SELECT SUM(r.receipt_amount) FROM public.receipts r
-                WHERE r.deleted_at IS NULL AND r.contract_id IS NULL AND r.receipt_date BETWEEN p_start AND p_end), 0)::numeric AS retail_amt
+WITH cash_entries AS (
+    -- #23: mot dinh nghia tien vao/ra (public.finance_cash_entries) — timeline doc cung ham nay
+    SELECT * FROM public.finance_cash_entries(p_start, p_end)
+  ),
+  cash_in AS (
+    SELECT COALESCE(SUM(ce.cash_in_contract), 0)::numeric AS contract_amt,
+           COALESCE(SUM(ce.cash_in_retail), 0)::numeric AS retail_amt
+    FROM cash_entries ce
   ),
   exp AS (
-    SELECT
-      COALESCE(SUM(e.amount), 0)::numeric AS all_out,
-      COALESCE(SUM(e.amount) FILTER (WHERE al.expense_id IS NOT NULL), 0)::numeric AS settlement,
-      COALESCE(SUM(e.amount) FILTER (WHERE e.payee_type = 'employee'), 0)::numeric AS salary_paid,
-      -- R2 (#12, 2026-09-07): phiếu HOÀN TIỀN (danh mục contract_refund/refund/hoan_tien) là trả lại tiền khách —
-      -- vẫn là tiền ra (all_out) nhưng KHÔNG phải chi phí; HĐ da_huy đã bị loại khỏi doanh thu nên không được đối ứng vào cost.
-      COALESCE(SUM(e.amount) FILTER (WHERE e.payee_type = 'other' AND e.contract_id IS NOT NULL
-                                       AND COALESCE(tc.category_code, '') NOT IN ('contract_refund', 'refund', 'hoan_tien')), 0)::numeric AS direct,
-      COALESCE(SUM(e.amount) FILTER (WHERE e.payee_type = 'other' AND e.contract_id IS NULL
-                                       AND COALESCE(e.description, '') NOT LIKE '[Auto-Fixed]%'), 0)::numeric AS overhead,
-      COALESCE(SUM(e.amount) FILTER (WHERE e.payee_type = 'other' AND e.contract_id IS NULL
-                                       AND COALESCE(e.description, '') LIKE '[Auto-Fixed]%'), 0)::numeric AS fixed
-    FROM public.expenses e
-    LEFT JOIN LATERAL (SELECT a.expense_id FROM public.expense_allocations a WHERE a.expense_id = e.id LIMIT 1) al ON TRUE
-    LEFT JOIN public.transaction_categories tc ON tc.id = e.category_id
-    WHERE e.deleted_at IS NULL AND e.expense_date BETWEEN p_start AND p_end
+    SELECT COALESCE(SUM(ce.cash_out), 0)::numeric AS all_out,
+           COALESCE(SUM(ce.cash_out_settlement), 0)::numeric AS settlement,
+           COALESCE(SUM(ce.cash_out_salary), 0)::numeric AS salary_paid,
+           COALESCE(SUM(ce.cost_direct), 0)::numeric AS direct,
+           COALESCE(SUM(ce.cost_overhead), 0)::numeric AS overhead,
+           COALESCE(SUM(ce.cash_out_fixed), 0)::numeric AS fixed
+    FROM cash_entries ce
   ),
   contracts_shot AS (
     SELECT COALESCE(SUM(c.total_amount), 0)::numeric AS amt, COUNT(*)::bigint AS n,
@@ -966,7 +959,7 @@ WITH cash_in AS (
     WHERE c.deleted_at IS NULL AND c.status <> 'da_huy' AND c.contract_date BETWEEN p_start AND p_end
   ),
   tasks AS (
-    -- cùng luật contract_financials(): mọi task không huỷ có cost (kể cả dang_lam) → Σ tháng = Σ hợp đồng
+    -- cung luat contract_financials(): moi task khong huy co cost (ke ca dang_lam) -> tong thang = tong hop dong
     SELECT COALESCE(SUM(wt.cost), 0)::numeric AS amt
     FROM public.work_tasks wt
     LEFT JOIN public.contract_events ev ON ev.id = wt.event_id
@@ -990,15 +983,15 @@ WITH cash_in AS (
       AND COALESCE(r.receipt_date, public.vn_date(t.created_at)) BETWEEN p_start AND p_end
   ),
   month_ratios AS (
-    -- lương cứng prorate theo số ngày của tháng nằm trong kỳ (kỳ = tháng tròn → ratio 1)
+    -- luong cung prorate theo so ngay cua thang nam trong ky (ky = thang tron -> ratio 1)
     SELECT EXTRACT(year FROM gs)::int AS year, EXTRACT(month FROM gs)::int AS month,
            ((LEAST(p_end, (gs + interval '1 month - 1 day')::date) - GREATEST(p_start, gs::date) + 1)::numeric
              / ((gs + interval '1 month - 1 day')::date - gs::date + 1)::numeric) AS ratio
     FROM generate_series(date_trunc('month', p_start)::date, date_trunc('month', p_end)::date, interval '1 month') gs
   ),
   salary AS (
-    -- ADR-016 M5: lương cứng = employee_salaries.total_salary (lương cơ bản + thưởng − phạt; product_salary = 0 từ M3).
-    -- Cột monthly_salary không code nào ghi (M2 dùng nhầm → luôn 0). Sheet là accrual, không phải tiền.
+    -- ADR-016 M5: luong cung = employee_salaries.total_salary (luong co ban + thuong - phat; product_salary = 0 tu M3).
+    -- Cot monthly_salary khong code nao ghi (M2 dung nham -> luon 0). Sheet la accrual, khong phai tien.
     SELECT COALESCE(SUM(COALESCE(s.total_salary, 0) * mr.ratio), 0)::numeric AS amt
     FROM month_ratios mr
     LEFT JOIN public.employee_salaries s ON s.year = mr.year AND s.month = mr.month
