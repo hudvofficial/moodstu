@@ -1,6 +1,6 @@
 # T-20260910-health-score-debt-stats — T1: `get_finance_intelligence` thôi đọc bảng `debts` rỗng → `finance_debt_stats()`; gỡ Health-score + Hòa vốn khỏi màn (C8)
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 2 component → commit ngay) · **Trạng thái:** ✅ ĐÃ ÁP PROD 11/09 (chủ "duyệt" 11/09) · app + verify xong, chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 4, bước #18 (`agent/GOALS.yaml`), gate G1 ✅ · **DB:** `CREATE OR REPLACE` 1 hàm (đổi đúng 1 khối) + siết ACL về `service_role`; 0 bảng, 0 dữ liệu · **ADR:** không cần — sửa hàm cho khớp nguồn canonical đã có (ADR-016), C8 đã chốt 02/09 · **Revert:** `agent/HANDOFFS/T-20260910-health-score-debt-stats.revert.sql` (thân hàm + ACL sống).
+**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 2 component → commit ngay) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — chủ "duyệt" 11/09 · ĐÃ ÁP PROD · commit `5de4776` + vá review `8cc4f98` · chủ "đẩy" 11/09 → `origin/main` · `/buoc done` 11/09 · **Chương trình:** GĐ2 tuần 4, bước #18 (`agent/GOALS.yaml`), gate G1 ✅ · **DB:** `CREATE OR REPLACE` 1 hàm (đổi đúng 1 khối) + siết ACL về `service_role`; 0 bảng, 0 dữ liệu · **ADR:** không cần — sửa hàm cho khớp nguồn canonical đã có (ADR-016), C8 đã chốt 02/09 · **Revert:** `agent/HANDOFFS/T-20260910-health-score-debt-stats.revert.sql` (thân hàm + ACL sống).
 
 ## 0. Vì sao
 

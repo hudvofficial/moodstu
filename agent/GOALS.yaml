@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-10
 giai_doan_hien_tai: 2
-buoc_hien_tai: 18
+buoc_hien_tai: 19
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 mốc (02/09, 06/09, 10/09 — mốc 3 chạy sớm theo lệnh chủ 10/09 thay 15/09) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: qua, ngay_qua: 2026-09-10 }
@@ -246,10 +246,12 @@ buoc:
     ten: "T1 · health-score thôi đọc debts rỗng → finance_debt_stats"
     hinh_thuc: db
     gate: [G1]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-11
     ngay_duyet: 2026-09-11
     ngay_ap_db: 2026-09-11
     ngay_code: 2026-09-11
+    bang_chung: "ĐÃ ÁP prod 11/09 (migrate-direct, cờ S3) · commit 5de4776 + vá review 8cc4f98 · chủ 'đẩy' 11/09 → origin/main 8cc4f98 (hook 58s) · thân hàm sống: hết FROM debts, có finance_debt_stats() d + chốt COALESCE · ACL {postgres, service_role}, anon/authenticated EXECUTE = false · stats.receivables 0→8.500.000, payables 0→14.140.350 (= finance_debt_stats), breakdown.receivables 15 'Lanh manh'→5 'No phai tra cao', health_score 100→90, projectedBalance −5.640.350 · debts vẫn 0 dòng · Playwright finance-intel-c8 3/3 (RPC parity + /finance + /finance/dashboard: có Runway, 0 Điểm Sức Khỏe, 0 Tiến độ Hòa vốn, 0 lỗi console + 0 phản hồi 4xx/5xx ngoài nhiễu) · tsc 0 eslint 0 mojibake 0 · sweep 22 bảng = 0 · vault db-truth 152 hàm + bao-mat-du-lieu-rls mục quyền EXECUTE RPC · review chéo 69 agent: 32→14 sống sót, sửa 8, ghi sổ 5 · verify:dashboard đỏ CÓ SẴN từ 27/08 (sổ đối chiếu dòng 72 → #29), verify:reports xanh"
     review: "vòng review chéo 11/09 (5 lens × verify đối kháng, 69 agent): 32 phát hiện thô → 50 phiếu bác → 14 sống sót; sửa 8 trong bước (câu mô tả đầu /finance/dashboard còn hứa Sức khỏe/Hòa vốn · lưới 1 cột làm thẻ trải hết màn + lệch skeleton · nửa DB không có test → thêm assert RPC-vs-RPC · SELECT INTO gán NULL → chốt COALESCE, áp lại prod · revert.sql cấp lại quyền anon → tách khối ACL comment sẵn · lọc lỗi mạng theo URL · ảnh chụp fullPage + scrollIntoView · header spec e2e sai về seed); ghi sổ 5 mục cho #29/#25 gồm 4 RPC tài chính còn mở EXECUTE cho anon"
     verify: "prod: thân hàm hết FROM debts, có finance_debt_stats() d + chốt COALESCE · ACL {postgres, service_role} (authenticated/anon EXECUTE=false) · stats.receivables 0→8.500.000, payables 0→14.140.350, breakdown.receivables 15 'Lanh manh'→5 'No phai tra cao', health_score 100→90 · debts vẫn 0 dòng · Playwright finance-intel-c8 2/2 (/finance + /finance/dashboard: có Runway, 0 Điểm Sức Khỏe, 0 Tiến độ Hòa vốn) · tsc 0 eslint 0 · verify:dashboard đỏ CÓ SẴN từ 27/08 (sổ đối chiếu dòng 72, sửa ở #29) · verify:reports xanh trở lại · vault db-truth 152 hàm · sweep 0"
     diff: "migration + revert.sql + spec · components/finance/dashboard/finance-intelligence-section.tsx · app/(protected)/finance/dashboard/page.tsx · tests/e2e/finance-intel-c8.spec.ts (mới, 3 test) · DB-CHANGELOG 2 dòng · vault/30-du-lieu/than-ham/tai-chinh.md (sinh) · vault/40-module/tai-chinh.md + vault/10-nen-tang/bao-mat-du-lieu-rls.md (tay: mục quyền EXECUTE của RPC) · agent/inventory/00-lech-thiet-ke.md (3 dòng mới)"

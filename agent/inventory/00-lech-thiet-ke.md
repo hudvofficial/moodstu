@@ -32,7 +32,7 @@ Thang mức độ: **✅ khớp** · **⬛ chết** (tồn tại nhưng không c
 
 | Phần tử | Thiết kế ban đầu | Thực tế | Bằng chứng |
 |---|---|---|---|
-| Bảng `debts` | sổ công nợ riêng | ⬛ 0 dòng — nhưng `get_finance_intelligence` **vẫn đọc** → điểm công nợ trong health_score luôn "Lành mạnh" | `luong_cung_m5.sql:354-362,439-441` |
+| ~~Bảng `debts`~~ **→ ✅ #18 áp 11/09 (commit 5de4776 + 8cc4f98):** `get_finance_intelligence` lấy phải thu/phải trả từ `finance_debt_stats()`; ACL hàm siết còn `{postgres, service_role}`; theo C8 gỡ thẻ Điểm Sức Khỏe + Tiến độ Hòa vốn khỏi 2 màn | sổ công nợ riêng | ~~⬛ 0 dòng — nhưng `get_finance_intelligence` **vẫn đọc** → điểm công nợ luôn "Lành mạnh"~~ → đọc sổ canonical; **bảng `debts` vẫn 0 dòng và vẫn là sổ tay** (chỉ `/finance/debts` ghi), nay chỉ còn vào hệ qua nhánh `manual` của `finance_debt_stats` | trước: 15 "Lanh manh" giả · sau: 5 "No phai tra cao", phải thu 8,5tr / phải trả 14,14tr; e2e khoá bằng assert RPC-vs-RPC |
 | `get_contract_balance` | công nợ 1 HĐ (vault từng khuyên dùng) | ⬛ 0 caller, không có CREATE trong repo | `ham-mo-coi.md` |
 | `get_customer_ltv` | LTV cho CRM — vòng khách quay lại | ⬛ 0 caller; `getCustomers` vẫn cộng ở JS | `customer-actions.ts:92-98` |
 | `finance_receipt_stats` · `decrement_goal_amount` · `backfill_payment_plan_ssot_v2` | — | ⬛ 0 caller | `ham-mo-coi.md` |
