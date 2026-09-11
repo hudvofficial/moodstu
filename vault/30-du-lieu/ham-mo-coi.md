@@ -1,7 +1,7 @@
 ---
 title: "Hàm DB không được code gọi"
 tags: [sinh-tu-dong, db, ham, no-ky-thuat]
-cap-nhat: 2026-09-10
+cap-nhat: 2026-09-11
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -10,18 +10,17 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Hàm DB không được code gọi
 
-Tổng 152 hàm trên DB · **121** được nhắc tới trong code ứng dụng · **31** không.
+Tổng 152 hàm trên DB · **122** được nhắc tới trong code ứng dụng · **30** không.
 
 Quét theo tên hàm xuất hiện dạng chuỗi trong `app/ components/ lib/ hooks/ scripts/ types/ tests/`. Trùng tên có thể gây dương tính giả — dùng file này để **khoanh vùng cần kiểm**, không dùng để xoá thẳng.
 
-## Hàm trigger — 11
+## Hàm trigger — 10
 
 Không code nào gọi là **đúng** — chúng chạy bằng trigger. Đối chiếu với danh sách trigger trong `luoc-do-*.md`.
 
 | Hàm | Trả về | Quyền |
 |---|---|---|
 | `handle_new_user` | `trigger` | **DEFINER** |
-| `log_audit_action` | `trigger` | **DEFINER** |
 | `restore_inventory_on_contract_payment_void` | `trigger` | invoker |
 | `restore_inventory_on_receipt_void` | `trigger` | invoker |
 | `sync_ai_conversation_message_count` | `trigger` | **DEFINER** |

@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { getAuditActor } from "@/lib/audit-context";
 import type { Json } from "@/types/database.types";
 
 // ═══════════════════════════════════════════
@@ -28,6 +29,8 @@ export type AuditAction =
   | "DELETE"
   | "APPROVE"
   | "LOGIN"
+  /** #19: đăng xuất. Cột audit_logs.action là varchar không ràng buộc nên không cần migration. */
+  | "LOGOUT"
   | "EXPORT"
   | "DETECT"
   | "FAIL";
@@ -46,6 +49,10 @@ interface BaseLogParams {
   performedBy?: string | null;
   /** employees.id of the actor, when known. */
   employeeId?: string | null;
+  /** #19: IP người thao tác — chụp bằng headers() TRONG thân action rồi truyền chuỗi vào đây. */
+  ipAddress?: string | null;
+  /** #19: user-agent — chụp như trên. */
+  userAgent?: string | null;
 }
 
 // ─── Core: writeAuditLog ─────────────────
@@ -55,10 +62,14 @@ export async function writeAuditLog(params: BaseLogParams) {
     // This runs in a floating Promise in Server Actions. Calling cookies()
     // after the action has returned will cause Next.js to throw "Dynamic server usage"
     // and abort concurrent RSC streams, leading to weird UI redirects.
-    // The actor MUST be passed in via params (performedBy/employeeId) by the caller,
-    // which already has it in scope — we never resolve it from cookies here.
-    const employeeId: string | null = params.employeeId ?? null;
-    const userId: string | null = params.performedBy ?? null;
+    //
+    // ✅ #19: danh tính đến từ NGỮ CẢNH (lib/audit-context.ts) do withAuth/withAuthRead/withAdmin đặt,
+    // hoặc do call-site truyền tay. ALS chỉ CHỞ giá trị đã đọc sẵn — lệnh cấm ở trên KHÔNG được nới:
+    // vẫn tuyệt đối không gọi cookies()/headers()/auth.getUser() trong hàm này.
+    // Thứ tự ưu tiên: giá trị truyền tay > ngữ cảnh > null.
+    const actor = getAuditActor();
+    const employeeId: string | null = params.employeeId ?? null; // cố ý KHÔNG lấy từ ngữ cảnh: cột này có khoá ngoại tới employees(id)
+    const userId: string | null = params.performedBy ?? actor?.performedBy ?? null;
 
     // We can still safely use createAdminClient because it doesn't read cookies()!
     const adminSupabase = await createAdminClient();
@@ -74,7 +85,11 @@ export async function writeAuditLog(params: BaseLogParams) {
       description: params.description || null,
       log_type: params.logType || "GENERAL",
       severity: params.severity || "INFO",
-      source: params.source || "system",
+      // #19: hàm này chỉ chạy trong server action / route handler, không phải trigger DB.
+      // Mặc định cũ "system" trùng DEFAULT của cột nên dòng app lẫn dòng trigger — không tách được khi đo.
+      source: params.source || "server_action",
+      ip_address: params.ipAddress ?? actor?.ipAddress ?? null,
+      user_agent: params.userAgent ?? actor?.userAgent ?? null,
     });
   } catch (err) {
     // Last resort: console.error (can't log to DB if DB fails)

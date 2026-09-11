@@ -57,6 +57,7 @@
     "verify:contracts": "node scripts/verify-contracts.mjs",
     "verify:customers": "node scripts/verify-customers-phone.mjs",
     "verify:goals": "node scripts/verify-goals.mjs",
+    "verify:audit": "node scripts/verify-audit-actor.mjs",
     "verify:settings": "node scripts/verify-settings.mjs",
     "verify:employees": "node scripts/verify-employees.mjs",
     "smoke:employees": "node scripts/smoke-employees.mjs",

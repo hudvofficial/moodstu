@@ -35,7 +35,14 @@ export const createClient = cache(async () => {
 });
 
 // Admin client — bypasses RLS. Use ONLY in Server Actions after manual auth check.
-export const createAdminClient = cache(async () => {
+//
+// #19 (T-20260911-audit-co-danh-tinh): `actorId` tuỳ chọn = auth.users.id của người đang thao tác.
+// Khi có, client gắn header `x-actor-id`; PostgREST đưa header vào `request.headers`, nhờ đó TRIGGER
+// nhật ký trong DB (log_audit_action) biết ai làm — trước đây trigger đọc auth.uid(), mà đường ghi của
+// app dùng service role nên luôn rỗng (64% dòng nhật ký vô danh vì lý do này).
+// Giữ nguyên chữ ký cũ: 110 nơi gọi không tham số vẫn chạy y như trước, chỉ là dòng trigger của chúng
+// không mang danh tính. `cache()` của React tách theo tham số nên mỗi actor có client riêng trong request.
+export const createAdminClient = cache(async (actorId?: string) => {
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -44,6 +51,7 @@ export const createAdminClient = cache(async () => {
         getAll() { return []; },
         setAll() { },
       },
+      ...(actorId ? { global: { headers: { "x-actor-id": actorId } } } : {}),
     }
   );
 });

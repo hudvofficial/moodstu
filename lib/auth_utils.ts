@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { SupabaseClient, type User } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { runWithAuditActor } from "@/lib/audit-context";
 import {
   AUTH_PROXY_SOURCE_HEADER,
   AUTH_PROXY_SUB_HEADER,
@@ -408,8 +409,12 @@ export async function withAuth<T>(
       return { success: false, error: "Chưa đăng nhập" };
     }
 
-    const adminSupabase = await createAdminClient();
-    const result = await action(adminSupabase, user.id);
+    // #19: client mang header x-actor-id để TRIGGER DB cũng biết ai thao tác (trigger chạy dưới
+    // service role nên auth.uid() rỗng); ALS để mọi writeAuditLog phía app tự có danh tính.
+    const adminSupabase = await createAdminClient(user.id);
+    const result = await runWithAuditActor({ performedBy: user.id }, () =>
+      action(adminSupabase, user.id),
+    );
     return { success: true, data: result };
   } catch (err: unknown) {
     console.error("[withAuth] Error:", err);
@@ -443,8 +448,10 @@ export async function withAuthRead<T>(
       return { success: false, error: "Chưa đăng nhập" };
     }
 
-    const adminSupabase = await createAdminClient();
-    const result = await action(adminSupabase, user.id);
+    const adminSupabase = await createAdminClient(user.id); // #19
+    const result = await runWithAuditActor({ performedBy: user.id }, () =>
+      action(adminSupabase, user.id),
+    );
     return { success: true, data: result };
   } catch (err: unknown) {
     console.error("[withAuthRead] Error:", err);
@@ -474,8 +481,10 @@ export async function withAdmin<T>(
       return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
     }
 
-    const adminSupabase = await createAdminClient();
-    const result = await action(adminSupabase, user.id);
+    const adminSupabase = await createAdminClient(user.id); // #19
+    const result = await runWithAuditActor({ performedBy: user.id }, () =>
+      action(adminSupabase, user.id),
+    );
     return { success: true, data: result };
   } catch (err: unknown) {
     console.error("[withAdmin] Error:", err);

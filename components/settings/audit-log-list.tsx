@@ -36,6 +36,9 @@ interface AuditLog {
   source: string | null;
   created_at: string | null; // audit_logs.created_at NULLABLE trong DB
   employee: AuditLogEmployee | AuditLogEmployee[] | null;
+  /** #19: tên tra từ performed_by ở tầng server action; null khi không tra được. */
+  actor_name?: string | null;
+  performed_by?: string | null;
 }
 
 interface AuditLogListProps {
@@ -69,7 +72,14 @@ function formatLogTime(dateStr: string) {
   });
 }
 
-function getEmployeeName(emp: AuditLog["employee"]): string {
+/**
+ * #19: ưu tiên tên tra từ performed_by (cột mà cả server action lẫn trigger DB đều điền được).
+ * employee_id chỉ là dự phòng — trước #19 chỉ 4/3.466 dòng từng có. "Hệ thống" nay chỉ còn dành cho
+ * việc máy chạy máy (cron, webhook), không phải cho thao tác của người.
+ */
+function getEmployeeName(log: Pick<AuditLog, "employee" | "actor_name">): string {
+  if (log.actor_name) return log.actor_name;
+  const emp = log.employee;
   if (!emp) return "Hệ thống";
   if (Array.isArray(emp)) return emp[0]?.full_name || "Hệ thống";
   return emp.full_name || "Hệ thống";
@@ -165,7 +175,7 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-text-muted shrink-0" />
                     <span className="text-body-sm text-text-primary">
-                      {getEmployeeName(log.employee)}
+                      {getEmployeeName(log)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -215,7 +225,7 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
                       <span className="flex items-center gap-2">
                         <User className="w-4 h-4 text-text-muted shrink-0" />
                         <span className="text-body-sm truncate max-w-35">
-                          {getEmployeeName(log.employee)}
+                          {getEmployeeName(log)}
                         </span>
                       </span>
                     </TD>

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers, cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { fireAuditLog } from "@/lib/audit";
 import { normalizeAuthIdentifier } from "@/lib/validations/auth.schema";
 
 type LoginResult = { success: true } | { error: string };
@@ -141,7 +142,7 @@ export async function login(formData: FormData): Promise<LoginResult> {
     timing.mark("rate-limit-skip");
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: finalEmail,
     password,
   });
@@ -214,12 +215,51 @@ export async function login(formData: FormData): Promise<LoginResult> {
   }
 
   timing.mark("cookies");
+
+  // #19: đăng nhập để lại vết. Đọc headers() TRONG thân action rồi chỉ truyền chuỗi vào promise trôi —
+  // gọi headers()/cookies() bên trong fireAuditLog sẽ ném "Dynamic server usage" (xem lib/audit.ts).
+  // Không ghi dòng cho lần sai mật khẩu: không có danh tính để gắn, và login_attempts đã lo chống dò.
+  await logAuthEvent("LOGIN", signInData.user?.id ?? null, `Đăng nhập: ${finalEmail}`);
+
   timing.done("success");
   return { success: true };
 }
 
+/** #19: ghi vết đăng nhập/đăng xuất kèm IP + trình duyệt. Nuốt mọi lỗi — không bao giờ chặn luồng auth. */
+async function logAuthEvent(
+  action: "LOGIN" | "LOGOUT",
+  userId: string | null,
+  description: string,
+) {
+  try {
+    const h = await headers();
+    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+    const ua = h.get("user-agent")?.slice(0, 300) || null;
+    void fireAuditLog({
+      action,
+      tableName: "auth.users",
+      recordId: userId ?? undefined,
+      performedBy: userId,
+      description,
+      logType: "GENERAL",
+      severity: "INFO",
+      source: "server_action",
+      ipAddress: ip,
+      userAgent: ua,
+    });
+  } catch (err) {
+    console.error("[auth] audit", action, err);
+  }
+}
+
 export async function logout() {
   const supabase = await createClient();
+
+  // #19: lấy danh tính TRƯỚC signOut và ghi TRƯỚC redirect — redirect() ném NEXT_REDIRECT nên
+  // mọi lệnh đặt sau nó không bao giờ chạy.
+  const { data: userData } = await supabase.auth.getUser();
+  await logAuthEvent("LOGOUT", userData.user?.id ?? null, `Đăng xuất: ${userData.user?.email ?? "?"}`);
+
   await supabase.auth.signOut();
 
   const cookieStore = await cookies();

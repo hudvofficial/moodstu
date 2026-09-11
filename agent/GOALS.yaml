@@ -261,7 +261,23 @@ buoc:
     ngay_spec: 2026-09-10
     can_cu: "sổ đối chiếu dòng 35: debts 0 dòng nhưng get_finance_intelligence vẫn đọc → công nợ luôn 'Lanh manh'; C8 gỡ health-score + break-even khỏi màn cho tới khi đọc đúng nguồn"
     do_duoc: "10/09: debts 0 dòng · finance_debt_stats() = 8,5tr thu / 14,14tr trả · get_finance_intelligence 230 dòng SECURITY DEFINER, ACL có cả anon/authenticated, dòng 79–91 đọc debts; còn lại tự cộng payments/expenses/fixed_costs/monthly_salaries → #29 · 1 caller withAuth · 2 màn render 3 thẻ (/finance, /finance/dashboard) · local: stats 0/0 → 92,575tr/13,905tr, ACL siết, revert ✓ áp lại ✓"
-  - { id: 19, gd: 2, tuan: 4, ten: "T3 · audit inject actor tại withAuth + nối LOGIN", hinh_thuc: spec, gate: [G1], status: todo, can_cu: "R11 — 169 điểm ghi, 10 có performedBy" }
+  - id: 19
+    gd: 2
+    tuan: 4
+    ten: "T3 · audit có danh tính: inject actor tại withAuth (ALS) + actor cho trigger DB + nối LOGIN"
+    hinh_thuc: db  # 11/09: sổ ghi 'spec' nhưng trace cho thấy 64% dòng audit do trigger DB sinh → phải sửa 1 hàm trigger, kèm revert.sql + dòng DB-CHANGELOG
+    gate: [G1]
+    status: cho-xem-diff
+    ngay_duyet: 2026-09-11
+    ngay_ap_db: 2026-09-11
+    ngay_code: 2026-09-11
+    verify: "jest audit-context 5/5 · thăm dò header trên prod trước khi áp (header xuống tới DB) · diễn tập local (không header → NULL, có header → đúng người, header rác → NULL không nổ, revert ✓ áp lại ✓) · áp prod: thân hàm có x-actor-id + source='trigger', 5 trigger dùng chung · đường thật trigger trên prod 5/5 (tạo+xoá 1 váy E2E, đã dọn) · e2e audit-actor 3/3 (LOGIN có người + IP + trình duyệt · createGoal KHÔNG truyền actor vẫn ra dòng có người = ngữ cảnh chạy thật · /audit-logs hiện tên thật) · tsc 0 eslint 0 mojibake 0 · sweep 0 · vault db-truth + 40-module/he-thong.md"
+    moc_do_g2: "2026-09-11T11:08:41Z (18:08 giờ VN) — npm run verify:audit -- --since <mốc này>; 11 dòng trong 24h trước mốc đều là thao tác thật tối 10/09 nên không tính. Chốt tỉ lệ sau ít nhất 7 ngày vận hành"
+    diff: "migration + revert.sql + spec · lib/audit-context.ts (mới) · lib/audit.ts · lib/auth_utils.ts (3 wrapper) · lib/supabase/server.ts · app/actions/auth.ts (LOGIN/LOGOUT) · app/actions/audit-log-actions.ts · app/(protected)/audit-logs/page.tsx · components/settings/audit-log-list.tsx · scripts/verify-audit-actor.mjs + package.json · scripts/sweep-e2e-residue.sql · tests/unit/audit-context.test.ts + tests/e2e/audit-actor.spec.ts (mới) · DB-CHANGELOG 2 dòng · vault (sinh + 40-module/he-thong.md)"
+    spec: agent/HANDOFFS/T-20260911-audit-co-danh-tinh.spec.md
+    ngay_spec: 2026-09-11
+    can_cu: "R11 (sổ đối chiếu dòng 62) — 162 điểm ghi, 9 truyền performedBy; dòng 48 — LOGIN 0 call-site; điều kiện G2 'audit ≥95% dòng mới có danh tính'"
+    do_duoc: "11/09: 30 ngày qua 883 dòng nhật ký, CHỈ 2 dòng có danh tính (0,2%). Hai nguồn: trigger DB log_audit_action trên 5 bảng = 566 dòng (64%, luôn NULL vì app ghi bằng service role nên auth.uid() rỗng) · mã app = 223 dòng (25%). Chỉ vá withAuth thì trần là 25%, KHÔNG đạt 95% → phải vá cả trigger (truyền actor qua header PostgREST). 163/171 điểm ghi nằm trong wrapper đã có user.id. Hồi quy: T5/2026 có 54% dòng mang performed_by, từ T6 gần 0. audit_logs.performed_by không FK, employee_id CÓ FK (không tự điền). 2 cột ip_address/user_agent rỗng 3.466/3.466. Màn nhật ký join employee_id nên 322 dòng có performed_by vẫn hiện 'không tên'. Thiết kế chọn qua 3 phương án + 3 giám khảo + 2 vòng soi rủi ro"
   - { id: 20, gd: 2, tuan: 5, ten: "T2 · V4 hàng đợi tuổi đơn (RPC chỉ-đọc + section /contracts)", hinh_thuc: spec, gate: [14], status: todo, can_cu: "cơ chế trung tâm; C0 ngưỡng 26/43/14; chọn = hậu kỳ" }
   - { id: 21, gd: 2, tuan: 5, ten: "T2 · V5 trang nhịp 15' thứ Hai + chủ chạy nhịp đầu", hinh_thuc: spec, gate: [20], status: todo }
   - id: 22

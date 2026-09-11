@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — he-thong"
 tags: [sinh-tu-dong, db, ham, he-thong]
-cap-nhat: 2026-09-10
+cap-nhat: 2026-09-11
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -52,6 +52,7 @@ END;
 ```sql
 DECLARE
   emp_id UUID;
+  actor_id UUID;
 BEGIN
   -- Try to get employee from auth, fallback to NULL (service_role case)
   BEGIN
@@ -60,17 +61,24 @@ BEGIN
     emp_id := NULL;
   END;
 
+  -- #19: danh tính do app gửi kèm request (header x-actor-id). Header lạ/không phải uuid -> NULL, không nổ.
+  BEGIN
+    actor_id := (nullif(current_setting('request.headers', true), '')::json ->> 'x-actor-id')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    actor_id := NULL;
+  END;
+
   IF (TG_OP = 'DELETE') THEN
-    INSERT INTO audit_logs (employee_id, action, table_name, record_id, old_data)
-    VALUES (emp_id, 'DELETE', TG_TABLE_NAME, OLD.id, to_jsonb(OLD));
+    INSERT INTO audit_logs (employee_id, performed_by, source, action, table_name, record_id, old_data)
+    VALUES (emp_id, actor_id, 'trigger', 'DELETE', TG_TABLE_NAME, OLD.id, to_jsonb(OLD));
     RETURN OLD;
   ELSIF (TG_OP = 'UPDATE') THEN
-    INSERT INTO audit_logs (employee_id, action, table_name, record_id, old_data, new_data)
-    VALUES (emp_id, 'UPDATE', TG_TABLE_NAME, NEW.id, to_jsonb(OLD), to_jsonb(NEW));
+    INSERT INTO audit_logs (employee_id, performed_by, source, action, table_name, record_id, old_data, new_data)
+    VALUES (emp_id, actor_id, 'trigger', 'UPDATE', TG_TABLE_NAME, NEW.id, to_jsonb(OLD), to_jsonb(NEW));
     RETURN NEW;
   ELSIF (TG_OP = 'INSERT') THEN
-    INSERT INTO audit_logs (employee_id, action, table_name, record_id, new_data)
-    VALUES (emp_id, 'CREATE', TG_TABLE_NAME, NEW.id, to_jsonb(NEW));
+    INSERT INTO audit_logs (employee_id, performed_by, source, action, table_name, record_id, new_data)
+    VALUES (emp_id, actor_id, 'trigger', 'CREATE', TG_TABLE_NAME, NEW.id, to_jsonb(NEW));
     RETURN NEW;
   END IF;
   RETURN NULL;

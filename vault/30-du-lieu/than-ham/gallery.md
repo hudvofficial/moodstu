@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — gallery"
 tags: [sinh-tu-dong, db, ham, gallery]
-cap-nhat: 2026-09-10
+cap-nhat: 2026-09-11
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---

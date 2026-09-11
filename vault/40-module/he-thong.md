@@ -1,8 +1,8 @@
 ---
 title: "Module Hệ thống (dashboard, lịch, báo cáo, cài đặt)"
 tags: [module, he-thong]
-cap-nhat: 2026-08-31
-trang-thai: da-kiem-2026-08-31
+cap-nhat: 2026-09-11
+trang-thai: da-kiem-2026-09-11
 doi-chieu: agent/system-map/06-nen-tang.md · 07-lich-dashboard.md · 09-baocao-caidat-admin.md · vault/30-du-lieu/than-ham/he-thong.md
 ---
 
@@ -55,6 +55,23 @@ Web Push qua VAPID: `api/push/subscribe`, `api/push/send`, service worker `push-
 Enum: `log_source_enum` (trigger · server_action · frontend · system), `log_type_enum` (EVENT_CHANGE · ASSIGNMENT · CONFLICT · ERROR · GENERAL), `severity_enum` (INFO · WARNING · ERROR · CRITICAL).
 
 ⚠️ **Bộ lọc UI đang mang enum của V1.** `components/settings/audit-log-list.tsx:47-53` chào 4 lựa chọn `AUTH · DATA · SYSTEM · ERROR` trong khi `log_type_enum` thật là 5 giá trị ở trên → 3/5 lựa chọn vô nghĩa và giá trị phổ biến nhất (`GENERAL`) không lọc được. Sửa bộ lọc phải lấy từ vựng ở `lib/audit.ts:15-20`.
+
+### Ai làm gì — luật từ 11/09/2026 (#19)
+
+Nhật ký có **hai nguồn**, và trước #19 cả hai đều vô danh (30 ngày chỉ 2/883 dòng biết ai làm):
+
+| Nguồn | Ghi bởi | Lấy danh tính từ |
+|---|---|---|
+| `source = 'trigger'` | 5 trigger `log_audit_action` trên `contracts`, `expenses`, `payments`, `dresses`, `employee_salaries` — sinh ~64% số dòng | header **`x-actor-id`** do `createAdminClient(actorId)` gắn, trigger đọc qua `current_setting('request.headers')` |
+| `source = 'server_action'` | `writeAuditLog`/`fireAuditLog`, 162 điểm gọi | **ngữ cảnh** `lib/audit-context.ts` do `withAuth`/`withAuthRead`/`withAdmin` đặt; call-site không phải truyền gì |
+
+Ba luật phải nhớ khi viết code mới:
+
+1. **Đừng đọc `cookies()`/`headers()` trong `writeAuditLog`** — hàm chạy trong promise trôi sau khi action đã trả về, Next.js sẽ ném "Dynamic server usage". Ngữ cảnh chỉ **chở** giá trị đã đọc sẵn ở thân action. Cùng lý do: đừng gọi `fireAuditLog` bên trong `after()`.
+2. **Ghi bằng client không có actor thì dòng trigger sẽ vô danh.** `createAdminClient()` gọi trần (110 nơi) vẫn chạy bình thường, chỉ là `performed_by` để NULL. Muốn có vết thì đi qua wrapper, hoặc truyền `actorId`.
+3. **`employee_id` có khoá ngoại tới `employees(id)`, `performed_by` thì không.** Vì thế hệ chỉ tự điền `performed_by`; bơm đại một uuid vào `employee_id` sẽ làm hỏng cả dòng log chứ không chỉ mất danh tính.
+
+Đăng nhập và đăng xuất nay có vết (`action = 'LOGIN' | 'LOGOUT'`, kèm `ip_address` + `user_agent`); lần sai mật khẩu **không** ghi, vì không có ai để gắn, và `login_attempts` đã lo chống dò. Màn `/audit-logs` hiển thị tên tra từ `performed_by` (không join được trực tiếp nên tra một lượt qua `employees.auth_user_id`), `employee_id` chỉ còn là dự phòng. Đo tỉ lệ bằng `npm run verify:audit` (ngưỡng cổng G2 là 95%).
 
 ## Kiểm tra toàn vẹn
 
