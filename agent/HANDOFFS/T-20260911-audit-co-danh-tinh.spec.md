@@ -100,6 +100,6 @@ Thực trạng còn nặng hơn sổ: **30 ngày gần nhất có 883 dòng nh�
 | Tĩnh | `tsc` 0 · `eslint` 9 file 0 · mojibake 0 |
 | Rác | sweep (đã thêm luật bắt `LOGIN`/`LOGOUT` của e2e) = **0**; `realtime_signals` 104 là tín hiệu thật |
 | Vault | `vault:db-truth` 152 hàm · `40-module/he-thong.md` thêm mục "Ai làm gì — luật từ 11/09" (hai nguồn nhật ký, ba luật cho code mới) |
-| Ngưỡng G2 | **chưa chốt được hôm nay, đúng như spec §4 đã định**: 11 dòng trong 24h qua đều sinh **trước** lúc áp (thao tác thật của chủ tối 10/09) nên tỉ lệ cũ 0% không phản ánh bản vá. Mốc neo: **2026-09-11 18:08 giờ VN**. Đo bằng `npm run verify:audit -- --since "2026-09-11T11:08:41Z"` sau ít nhất 7 ngày vận hành |
+| Ngưỡng G2 | **chưa chốt được hôm nay**: 11 dòng trong 24h qua đều sinh **trước** lúc áp (thao tác thật tối 10/09) nên tỉ lệ cũ 0% không phản ánh bản vá; đo lại lúc 18:5x cùng ngày từ mốc áp → **0 dòng** (chưa ai thao tác sau khi deploy). Mốc neo: **2026-09-11 18:08 giờ VN** (`npm run verify:audit -- --since "2026-09-11T11:08:41Z"`). Điều kiện chốt là **đủ thao tác thật**, không phải đủ số ngày: vài chục dòng, đi qua nhiều loại đường ghi, và không phải dòng do Claude tự sinh — tự bấm cho đủ số sẽ ra tỉ lệ đẹp giả, đúng cái bẫy vòng review đã cảnh báo. Một buổi vận hành bình thường là đo được |
 
 **Việc còn lại của bước, đã biết trước:** `lib/moodie/engine.ts` và `app/api/**` chạy ngoài ba wrapper nên chưa có ngữ cảnh; `logError()` chưa nhận actor. Ghi sổ đối chiếu cho #31 ("luật audit thành văn") thay vì nong phạm vi #19.
