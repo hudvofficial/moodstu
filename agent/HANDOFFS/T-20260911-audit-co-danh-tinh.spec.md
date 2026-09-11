@@ -1,6 +1,6 @@
 # T-20260911-audit-co-danh-tinh — T3 #19: nhật ký có danh tính (app + trigger DB) và nối LOGIN
 
-**Owner:** claude (spec → chủ duyệt → claude code + áp DB → verify → chủ xem diff) · **Trạng thái:** ✅ ĐÃ ÁP PROD 11/09 (chủ "duyệt" 11/09) · app + verify xong, chờ chủ xem diff / "đẩy" · **Chương trình:** GĐ2 tuần 4, bước #19 (`agent/GOALS.yaml`), gate G1 ✅ · **Hình thức thực tế:** `spec` **+ `db`** (1 hàm trigger `CREATE OR REPLACE`, kèm `revert.sql` và dòng DB-CHANGELOG) · **ADR:** không mở — không đổi data-flow, chỉ gắn metadata danh tính vào đường ghi đã có · **Revert:** `agent/HANDOFFS/T-20260911-audit-co-danh-tinh.revert.sql` + `git revert` 1 commit.
+**Owner:** claude (spec → chủ duyệt → claude code + áp DB → verify → chủ xem diff) · **Trạng thái:** ✅ IMPLEMENTED + VERIFIED — chủ "duyệt" 11/09 · ĐÃ ÁP PROD · commit `6a6e018` · chủ "đẩy" 11/09 → `origin/main` · `/buoc done` 11/09 · **Chương trình:** GĐ2 tuần 4, bước #19 (`agent/GOALS.yaml`), gate G1 ✅ · **Hình thức thực tế:** `spec` **+ `db`** (1 hàm trigger `CREATE OR REPLACE`, kèm `revert.sql` và dòng DB-CHANGELOG) · **ADR:** không mở — không đổi data-flow, chỉ gắn metadata danh tính vào đường ghi đã có · **Revert:** `agent/HANDOFFS/T-20260911-audit-co-danh-tinh.revert.sql` + `git revert` 1 commit.
 
 ## 0. Vì sao
 

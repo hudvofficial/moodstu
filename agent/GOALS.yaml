@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-09-10
 giai_doan_hien_tai: 2
-buoc_hien_tai: 19
+buoc_hien_tai: 23
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 mốc (02/09, 06/09, 10/09 — mốc 3 chạy sớm theo lệnh chủ 10/09 thay 15/09) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: qua, ngay_qua: 2026-09-10 }
@@ -267,10 +267,12 @@ buoc:
     ten: "T3 · audit có danh tính: inject actor tại withAuth (ALS) + actor cho trigger DB + nối LOGIN"
     hinh_thuc: db  # 11/09: sổ ghi 'spec' nhưng trace cho thấy 64% dòng audit do trigger DB sinh → phải sửa 1 hàm trigger, kèm revert.sql + dòng DB-CHANGELOG
     gate: [G1]
-    status: cho-xem-diff
+    status: done
+    ngay_done: 2026-09-11
     ngay_duyet: 2026-09-11
     ngay_ap_db: 2026-09-11
     ngay_code: 2026-09-11
+    bang_chung: "ĐÃ ÁP prod 11/09 (migrate-direct, cờ S3) · commit 6a6e018 · chủ 'đẩy' 11/09 → origin/main 6a6e018 (hook 15s) · thân hàm log_audit_action có x-actor-id + source='trigger', 5 trigger dùng chung · đường thật trigger trên prod 5/5 (có header → đúng người; không header → NULL không bịa; header rác → không nổ) · e2e audit-actor 3/3: LOGIN có performed_by + user_agent + source server_action; createGoal KHÔNG truyền actor vẫn ra dòng đúng người (chứng minh ngữ cảnh ở withAdmin); /audit-logs hiện tên thật · jest audit-context 5/5 · tsc 0 eslint 0 mojibake 0 · sweep 0 · vault db-truth 152 hàm + 40-module/he-thong.md mục 'Ai làm gì' · CHƯA chốt tỉ lệ 95% của G2: mốc neo 2026-09-11T11:08:41Z, đo bằng npm run verify:audit sau ≥7 ngày vận hành"
     verify: "jest audit-context 5/5 · thăm dò header trên prod trước khi áp (header xuống tới DB) · diễn tập local (không header → NULL, có header → đúng người, header rác → NULL không nổ, revert ✓ áp lại ✓) · áp prod: thân hàm có x-actor-id + source='trigger', 5 trigger dùng chung · đường thật trigger trên prod 5/5 (tạo+xoá 1 váy E2E, đã dọn) · e2e audit-actor 3/3 (LOGIN có người + IP + trình duyệt · createGoal KHÔNG truyền actor vẫn ra dòng có người = ngữ cảnh chạy thật · /audit-logs hiện tên thật) · tsc 0 eslint 0 mojibake 0 · sweep 0 · vault db-truth + 40-module/he-thong.md"
     moc_do_g2: "2026-09-11T11:08:41Z (18:08 giờ VN) — npm run verify:audit -- --since <mốc này>; 11 dòng trong 24h trước mốc đều là thao tác thật tối 10/09 nên không tính. Chốt tỉ lệ sau ít nhất 7 ngày vận hành"
     diff: "migration + revert.sql + spec · lib/audit-context.ts (mới) · lib/audit.ts · lib/auth_utils.ts (3 wrapper) · lib/supabase/server.ts · app/actions/auth.ts (LOGIN/LOGOUT) · app/actions/audit-log-actions.ts · app/(protected)/audit-logs/page.tsx · components/settings/audit-log-list.tsx · scripts/verify-audit-actor.mjs + package.json · scripts/sweep-e2e-residue.sql · tests/unit/audit-context.test.ts + tests/e2e/audit-actor.spec.ts (mới) · DB-CHANGELOG 2 dòng · vault (sinh + 40-module/he-thong.md)"
