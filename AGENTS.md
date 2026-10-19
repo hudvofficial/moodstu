@@ -7,6 +7,8 @@ metadata:
   version: "1.0.0"
 ---
 
+> **Mọi agent (Codex, Orbital, Claude…) đọc theo thứ tự:** `agent/AGENT_RULES.md` (luật; §4 là bảng tài liệu + quy tắc bàn giao) → `agent/GOALS.yaml` (sổ chuẩn duy nhất, trạng thái hiện tại) → `vault/00-INDEX.md` (kiến trúc & nghiệp vụ). `agent/CURRENT_STATE.md` và `agent/TASKS.yaml` chỉ là lưu trữ.
+
 # ⛔ GOVERNANCE — file này KHÔNG còn hiệu lực điều phối
 
 > **Chốt 2026-08-29 (ADR-018): pipeline 3-agent đã BÃI BỎ.** Codex + Roo không còn chạy.

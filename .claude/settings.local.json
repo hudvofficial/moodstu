@@ -34,19 +34,6 @@
     "chrome-devtools"
   ],
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '# QUY TẮC DỰ ÁN — CLAUDE.md (đọc & tuân thủ TRƯỚC khi làm bất kỳ việc gì với project mood-studio):'; echo; cat 'C:/Users/Admin/Desktop/Ai/mood saas/mood-studio/CLAUDE.md' 2>/dev/null || true",
-            "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Nạp quy tắc CLAUDE.md"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
