@@ -10,7 +10,7 @@
 version: 1
 updated: 2026-10-19
 giai_doan_hien_tai: 2
-buoc_hien_tai: 23
+buoc_hien_tai: 20
 
 cong:
   G1: { dieu_kien: "backup 7/7 + restore ok · biên bản C0–C9 · V0 ≥3 mốc (02/09, 06/09, 10/09 — mốc 3 chạy sớm theo lệnh chủ 10/09 thay 15/09) · R1+R2 đã áp (bug hệ thống, không phải việc tay) — sửa 07/09: bỏ '0 HĐ kẹt huỷ' và 'nợ lab xác nhận' vì đó là vận hành thật, không phải điều kiện kỹ thuật", trang_thai: qua, ngay_qua: 2026-09-10 }
@@ -315,13 +315,15 @@ buoc:
     ten: "T1 · buildCloseSnapshot + finance_cashflow_timeline → ledger (giữ _legacy 1 kỳ)"
     hinh_thuc: db
     gate: [G1]
-    status: cho-xem-diff
+    status: done
     ngay_spec: 2026-09-11
     ngay_duyet: 2026-09-11
     ngay_ap_db: 2026-09-11
     ngay_code: 2026-09-11
+    ngay_done: 2026-10-19
     spec: agent/HANDOFFS/T-20260911-close-timeline-ve-ledger.spec.md
     verify: "prod: 9 thang 2026 `Σ timeline == Σ legacy == so ky` (hang rao trong migration khong no) · 5 ky co so lech **0đ** (T5 32.165.000/3.270.000 · T6 55.680.000/1.300.000 · T7 72.325.000/0 · T8 18.350.000/18.096.400 · T9 85.995.000/0) · `finance_reports_snapshot` T8 giong tung truong · than 2 ham deu chua `finance_cash_entries`, het `FROM public.payments` · ACL 4 ham {postgres, service_role}, anon/authenticated false · vault:db-truth 152→154 ham · toc do A/B local +1,6…2,3 ms/lan goi · verify:cashflow-ledger 9/9 · verify:reports + verify:goals pass · tsc 0 eslint 0 · Playwright cashflow-ledger-c23 2/2 · sweep 0 rac/24 bang"
+    bang_chung: "chủ xem diff 19/10: ổn (commit 51e215c) · bằng chứng 11/09 ở trường verify: verify:cashflow-ledger 9/9 · tsc 0 eslint 0 · Playwright cashflow-ledger-c23 2/2 · sweep 0 rác/24 bảng · ACL 4 hàm {postgres, service_role} · đối chiếu lại prod 19/10 (chỉ SELECT): timeline mới == legacy cả 10 tháng 2026 — T1–T4 0/0 · T5 32.165.000/3.270.000 · T6 55.680.000/1.300.000 · T7 72.325.000/0 · T8 18.350.000/18.096.400 · T9 88.295.000/0 · T10 500.000/0 · finance_cash_entries tồn tại, finance_period_ledger + finance_cashflow_timeline đều đọc nó và không còn FROM payments (chỉ finance_cash_entries — nguồn chung — và _legacy còn đọc payments) · ACL 4 hàm chỉ service_role, anon/authenticated false · finance_monthly_closes 0 kỳ, fixed_costs 0 dòng · CÒN MỞ: gỡ _legacy (migration 20260911170000) CHƯA áp — cần chủ gật + dòng DB-CHANGELOG, rồi bỏ GIU_BAN_LEGACY trong finance-close-actions.ts"
     diff: "migration 20260911160000 + migration go legacy 20260911170000 (chua ap) + revert.sql + spec · app/actions/finance-close-actions.ts · scripts/verify-cashflow-ledger.mjs (moi) + package.json · scripts/verify-reports.mjs · tests/e2e/cashflow-ledger-c23.spec.ts (moi) · types/database.types.ts (db:types + tra lai | null cua #24) · DB-CHANGELOG 2 dong · vault: luong-tien + tai-chinh + than-ham/rls (sinh) · agent/system-map 01-tien + 09-baocao · SYSTEM_MAP · inventory/00-lech-thiet-ke (gach dong 86 + them dong khau hao → #29)"
     revert: agent/HANDOFFS/T-20260911-close-timeline-ve-ledger.revert.sql
     migration: supabase/migrations/20260911160000_t1_close_timeline_ve_ledger.sql
