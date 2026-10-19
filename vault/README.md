@@ -83,6 +83,6 @@ Dòng `> ⚠️ CHƯA KIỂM (ngày): …` nằm giữa bài là chỗ tác gi�
 ## Cái vault này KHÔNG chứa
 
 - Hướng dẫn hành vi agent → [`CLAUDE.md`](../CLAUDE.md), [`agent/AGENT_RULES.md`](../agent/AGENT_RULES.md)
-- Trạng thái task đang chạy → [`agent/TASKS.yaml`](../agent/TASKS.yaml), [`agent/CURRENT_STATE.md`](../agent/CURRENT_STATE.md)
+- Trạng thái task đang chạy → [`agent/GOALS.yaml`](../agent/GOALS.yaml) (sổ chuẩn duy nhất); [`agent/TASKS.yaml`](../agent/TASKS.yaml) và [`agent/CURRENT_STATE.md`](../agent/CURRENT_STATE.md) chỉ còn là lưu trữ
 - Spec của task cụ thể → `agent/HANDOFFS/`
 - Mood Pro (panel Photoshop + bridge ComfyUI) — **dự án khác, không liên quan**

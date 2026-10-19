@@ -87,15 +87,20 @@ Sai lệch ở đây làm mọi kết luận vô giá trị. Bắt buộc:
 |---|---|---|
 | `PROJECT_BRIEF.md` | Claude (hiếm) | Biết mood-studio là gì, mục tiêu, stack |
 | `ARCHITECTURE.md` | Claude (khi có DECISION) | Bất biến kiến trúc — thứ CẤM đổi khi chưa duyệt |
-| `CURRENT_STATE.md` | Claude (mỗi phiên) | Trạng thái thật hiện tại (đã ship gì, đang dở gì) |
-| `TASKS.yaml` | Agent đang `owner` | Hàng đợi việc + bảng khóa/quyền sở hữu |
+| `CURRENT_STATE.md` | — (lưu trữ) | Nhật ký các phiên đã qua; KHÔNG còn là nguồn trạng thái hiện tại |
+| `TASKS.yaml` | — (lưu trữ) | Hàng đợi + khóa của pipeline 3-agent cũ (ADR-018); giữ để tra lịch sử |
+| `GOALS.yaml` | Claude (mỗi bước `/buoc`) | **Sổ chuẩn duy nhất** của việc đang làm: bước hiện tại, status, bằng chứng |
 | `DECISIONS.md` | Claude (append-only) | Nhật ký quyết định kiến trúc (ADR) |
 | `AGENT_RULES.md` | User | Chính file này |
 | `HANDOFFS/` | Agent bàn giao | Gậy tiếp sức giữa các bước |
 
+**Bàn giao cho agent khác (Codex, Orbital…):** sổ duy nhất là `GOALS.yaml`. Sau mỗi bước cập nhật `status`, `bang_chung`, `buoc_hien_tai`, `updated` (theo `/buoc`). Việc không có trong sổ thì không làm — cần việc mới thì xin chủ thêm bước. Orbital (`proj_1eaceaf66cbd`) chỉ đọc file này; không tạo sổ task riêng trong `orbital/` và không POST vào `queue/items` để "ghi task" (Orbital sẽ điều agent chạy task đó).
+
 ---
 
 ## 5. Vòng đời status (TASKS.yaml)
+
+> ⚠️ **Lưu trữ:** vòng đời dưới đây mô tả `TASKS.yaml` của pipeline cũ (ADR-018). Việc đang làm theo status của `GOALS.yaml` (`todo | spec | cho-duyet | dang-lam | verify | cho-xem-diff | done | hoan | bo`) — xem phần đầu file đó.
 
 ```
 spec → approved → implementing → verifying → merged

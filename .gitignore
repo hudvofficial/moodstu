@@ -102,6 +102,7 @@ check-rpc-items.*
 .codex/
 .engram/
 .codegraph/daemon.pid
+/orbital/
 
 # Codex/dev-session logs and temporary helpers
 /.codex-*.log

@@ -11,7 +11,7 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 **Tradeoff:** thiên về *cẩn trọng hơn tốc độ* cho việc non-trivial. Typo/one-liner hiển nhiên → dùng judgment.
 
 ## 0. Vai trò + cổng an toàn
-> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md).** Đọc nó + `agent/CURRENT_STATE.md` trước khi bắt đầu.
+> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md).** Đọc nó + `agent/GOALS.yaml` (trạng thái hiện tại) trước khi bắt đầu.
 
 **Chỉ có Claude Code.** (Chốt 2026-08-29 — ADR-018. Pipeline 3-agent Claude/Codex/Roo đã **bãi bỏ**: Codex + Roo không còn chạy, 40/40 commit gần nhất cùng một tác giả, "đường lùi" đã thành đường duy nhất.)
 

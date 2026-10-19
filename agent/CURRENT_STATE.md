@@ -1,9 +1,16 @@
 # CURRENT_STATE.md — Trạng thái thật (mood-studio)
 
-> **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
-> PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
-> thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `572e700` (+ commit docs) · sạch hoàn toàn; việc user còn lại duy nhất: 8,55tr ekip đã trả ngoài sổ chưa. Không có task nào chờ gật.
+> **📦 NHẬT KÝ LƯU TRỮ — không còn là nguồn "trạng thái hiện tại".**
+> Trạng thái hiện tại + bước đang làm: [`GOALS.yaml`](GOALS.yaml) (`buoc_hien_tai`). File này chỉ giữ nhật ký các phiên đã qua,
+> mục mới nhất ở trên; không còn cập nhật mỗi phiên. (Chốt 2026-10-19.)
+> Ảnh chụp cũ, KHÔNG còn đúng — cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `572e700` (+ commit docs) · sạch hoàn toàn; việc user còn lại duy nhất: 8,55tr ekip đã trả ngoài sổ chưa. Không có task nào chờ gật.
+
+## 2026-10-19 — Setup Claude Code: main=Sonnet 5.5, advisor=Opus 5.5, 3 subagent Haiku 5.5 read-only
+- Kiểm: cả 3 yêu cầu đã có từ 2026-10-14 ở user scope (`~/.claude/settings.json:12-13`, `~/.claude/agents/{search,grep,docs}.md`, `~/.claude/CLAUDE.md:4`). Transcript phiên xác nhận lời gọi advisor chạy `claude-opus-5-5`.
+- Đổi: `model: haiku` → `model: claude-haiku-5-5` ở 3 agent (ghim phiên bản; alias hiện đã = 5.5, hành vi không đổi; có hiệu lực từ phiên sau).
+- Nguồn sự thật = user scope; dự án KHÔNG nhân bản settings/agent/rule advisor (GLOBAL_RULES luật 3). Không đụng `CLAUDE.md` dự án.
+- Orbital: đăng ký dự án `mood-studio` (`proj_1eaceaf66cbd`, Supervised, không ngân sách); Orbital tạo `orbital/` (chưa commit). Scan do user bấm 2026-10-19 21:27; nguồn sự thật vẫn là `agent/` + `vault/`.
+- `/orbital/` đã vào `.gitignore`.
 
 ## 2026-08-27 — BUG USER BÁO: giảm 50% lưu thành `discount_amount = 50` → **FIXED + MERGED `572e700` + PROD OK** (`T-20260827-contract-discount-percent`)
 - Trace: form gửi `discount_amount: financials.discount` (giá trị ô nhập) trong khi tổng dùng `discountAmount` đã quy đổi → 2 HĐ (0060, 0062) lưu 50; "Tạm tính" = tổng + 50 = 475.050. Hạng mục "trùng" chỉ là dòng xoá mềm (RPC đúng). Sửa: form gửi số tiền; migration `20260827160000` data-fix 2 HĐ (áp prod); thẻ Tài chính hiện "Giảm: −475.000 (50%)". Render local + prod đúng. Ngoài scope: HĐ-0064/0047 tổng nhập tay lệch hạng mục.
