@@ -8,7 +8,7 @@
 # done chỉ hợp lệ khi có `bang_chung` (lệnh verify + kết quả số) và `ngay_done`.
 
 version: 1
-updated: 2026-09-11
+updated: 2026-10-19
 giai_doan_hien_tai: 2
 buoc_hien_tai: 23
 
@@ -30,6 +30,17 @@ buoc:
     ngay_bat_dau: 2026-09-10
     bang_chung: "commit ca456cd (47 file vault vào git, +9.839 dòng) · 15e76ad (9 file đối chiếu → da-kiem-2026-09-10) · 1f69371 (vá 3 chỗ còn chạm chủ đề đã đổi, giữ nhãn cũ) · rà 24 file 31/08 bằng grep chủ đề đã đổi: chỉ 1 câu sai · mojibake gate xanh · nhãn cuối: 14 sinh-tu-dong · 9 da-kiem-09-10 · 24 da-kiem-08-31 · 1 da-chot"
     can_cu: "chủ 10/09 hỏi 'có nắm toàn bộ obsidian không' → đo: 33 file da-kiem-2026-08-31 (trước chương trình), 0/62 nhắc GOALS/S3/restore/V0, 47 file vault chưa commit từ 02/09"
+  - id: 0c
+    gd: 2
+    tuan: 6
+    ten: "Thiết lập ngữ cảnh agent — Claude Sonnet 5.5 + advisor Opus 5.5 + 3 subagent Haiku 5.5 read-only; Orbital đọc repo; GOALS.yaml là sổ chuẩn duy nhất"
+    hinh_thuc: chung
+    gate: []
+    status: done
+    ngay_bat_dau: 2026-10-19
+    ngay_done: 2026-10-19
+    bang_chung: "commit 6cde9d4 (6 file: GOALS.yaml sổ chuẩn, CURRENT_STATE/TASKS lưu trữ, vault/README, /orbital/ ignore) · 8bbecba (gỡ hook nạp lặp CLAUDE.md, AGENTS.md trỏ luật) · mỗi diff cmp giống hệt bản đã duyệt, 0 dòng LF-trần ở file CRLF, git diff --stat khớp · transcript: lời gọi advisor chạy claude-opus-5-5 · Orbital proj_1eaceaf66cbd: projects.json đọc lại instructions khớp chữ đã duyệt, 3 file orbital/ trỏ GOALS.yaml, 0 từ khoá kiến trúc · CHƯA đo: token tiết kiệm sau khi gỡ hook (cần phiên mới), worker Orbital/Codex thật đọc qua AGENTS.md"
+    can_cu: "chủ 19/10 yêu cầu dựng lại setup Claude Code và thêm repo vào Orbital để agent khác nắm ngữ cảnh; advisor chấm 5/10 rồi 5,5/10 (độ mới 4: sổ chuẩn đứng 38 ngày, việc hôm nay chưa có chỗ trong sổ)"
   - id: 1
     gd: 1
     tuan: 1
