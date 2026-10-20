@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { deliverPdf, isCoarsePointer, PDF_SCALE, shouldDeliverAfterPrepare } from "@/lib/contracts/pdf-export";
+import { deliverFile, deliverPdf, IMAGE_MIME, isCoarsePointer, PDF_SCALE, shouldDeliverAfterPrepare } from "@/lib/contracts/pdf-export";
 
 const blob = new Blob(["%PDF-1.4 test"], { type: "application/pdf" });
 
@@ -68,6 +68,39 @@ describe("deliverPdf", () => {
 
   it("không có document và không chia sẻ được: báo lỗi rõ ràng", async () => {
     await expect(deliverPdf(blob, "a.pdf", { preferShare: false, nav: undefined, doc: undefined })).rejects.toThrow();
+  });
+});
+
+describe("deliverFile — ảnh hợp đồng (JPG)", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const image = new Blob(["jpeg-bytes"], { type: "image/jpeg" });
+
+  it("cảm ứng: chia sẻ file ảnh đúng tên + loại image/jpeg (iPhone: có \"Lưu hình ảnh\")", async () => {
+    const { doc, createElement } = fakeDoc();
+    const nav = fakeNav({ canShare: true });
+    await expect(deliverFile(image, "HOP-DONG-1.jpg", { mimeType: IMAGE_MIME, preferShare: true, nav, doc })).resolves.toBe("shared");
+    const shared = (nav.share as jest.Mock).mock.calls[0][0] as { files: File[] };
+    expect(shared.files[0].name).toBe("HOP-DONG-1.jpg");
+    expect(shared.files[0].type).toBe("image/jpeg");
+    expect(createElement).not.toHaveBeenCalled();
+  });
+
+  it("máy tính: tải file .jpg bằng thẻ <a download>", async () => {
+    const { doc, link } = fakeDoc();
+    const nav = fakeNav({ canShare: true });
+    await expect(deliverFile(image, "HOP-DONG-1.jpg", { mimeType: IMAGE_MIME, preferShare: false, nav, doc })).resolves.toBe("downloaded");
+    expect(link.download).toBe("HOP-DONG-1.jpg");
+    expect(nav.share).not.toHaveBeenCalled();
+  });
+
+  it("deliverPdf vẫn gửi đúng loại application/pdf (dùng chung deliverFile)", async () => {
+    const { doc } = fakeDoc();
+    const nav = fakeNav({ canShare: true });
+    await deliverPdf(blob, "a.pdf", { preferShare: true, nav, doc });
+    const shared = (nav.share as jest.Mock).mock.calls[0][0] as { files: File[] };
+    expect(shared.files[0].type).toBe("application/pdf");
   });
 });
 

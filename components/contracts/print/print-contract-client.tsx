@@ -1,13 +1,24 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Printer, Download, ArrowLeft, Share2 } from "lucide-react";
+import { Printer, Download, ArrowLeft, Share2, ImageDown } from "lucide-react";
 import Link from "next/link";
 import type { Contract, ContractEvent, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
 import type { Customer } from "@/types/crm";
 import ContractTemplate from "./contract-template";
 import { Button } from "@/components/ui/button";
-import { deliverPdf, isCoarsePointer, PDF_SCALE, renderContractPdfBlob, shouldDeliverAfterPrepare } from "@/lib/contracts/pdf-export";
+import {
+  deliverFile,
+  IMAGE_MIME,
+  isCoarsePointer,
+  PDF_MIME,
+  PDF_SCALE,
+  renderContractExports,
+  shouldDeliverAfterPrepare,
+} from "@/lib/contracts/pdf-export";
+
+type ExportKind = "pdf" | "image";
+type ContractExports = { pdf: Blob; image: Blob };
 
 // Bề rộng thật của tờ in (96dpi): A5 148mm, A4 ngang 297mm. Trên điện thoại thu nhỏ bản xem trước cho vừa khung (không đổi PDF).
 const MM_TO_PX = 96 / 25.4;
@@ -43,9 +54,10 @@ export default function PrintContractClient({
   const [deliverNote, setDeliverNote] = useState<string | null>(null);
   const [previewScale, setPreviewScale] = useState(1);
   const [isTouch, setIsTouch] = useState(false);
-  const pdfBlobRef = useRef<Blob | null>(null);
+  const exportsRef = useRef<ContractExports | null>(null);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const pdfFilename = `HOP-DONG-${contract.contract_code}.pdf`;
+  const imageFilename = `HOP-DONG-${contract.contract_code}.jpg`;
   const sheetWidthPx = (isExportMode ? 148 : 297) * MM_TO_PX;
 
   useEffect(() => {
@@ -99,20 +111,20 @@ export default function PrintContractClient({
     window.print();
   }, []);
 
-  // Dựng PDF thành Blob (chưa tải). Điện thoại: bấm nút sau đó mới chia sẻ/lưu (cần thao tác chạm).
-  const preparePdf = useCallback(async (): Promise<Blob | null> => {
-    if (pdfBlobRef.current) return pdfBlobRef.current;
+  // Dựng MỘT lần ra cả PDF lẫn ảnh JPG (chưa tải). Điện thoại: bấm nút sau đó mới chia sẻ/lưu (cần thao tác chạm).
+  const prepareExports = useCallback(async (): Promise<ContractExports | null> => {
+    if (exportsRef.current) return exportsRef.current;
     if (!templateRef.current) return null;
     setIsGenerating(true);
     setPdfError(null);
     try {
-      const blob = await renderContractPdfBlob(templateRef.current, {
+      const result = await renderContractExports(templateRef.current, {
         filename: pdfFilename,
         scale: PDF_SCALE,
       });
-      pdfBlobRef.current = blob;
+      exportsRef.current = result;
       setPdfReady(true);
-      return blob;
+      return result;
     } catch (err) {
       console.error("PDF generation error:", err);
       setPdfError(err instanceof Error && err.message ? err.message : "Không rõ nguyên nhân");
@@ -122,26 +134,39 @@ export default function PrintContractClient({
     }
   }, [pdfFilename]);
 
-  const handleDownload = useCallback(async () => {
+  const handleDeliver = useCallback(async (kind: ExportKind) => {
     if (isGenerating) return;
     const touch = isCoarsePointer();
-    const hadBlobBeforeTap = Boolean(pdfBlobRef.current);
-    const blob = await preparePdf();
-    if (!blob) return;
+    const hadBlobBeforeTap = Boolean(exportsRef.current);
+    const files = await prepareExports();
+    if (!files) return;
     if (!shouldDeliverAfterPrepare({ touch, hadBlobBeforeTap })) {
-      setDeliverNote('PDF đã sẵn sàng — bấm "Lưu / chia sẻ PDF" để lưu hoặc gửi.');
+      setDeliverNote("File đã sẵn sàng — bấm \"Lưu PDF\" hoặc \"Lưu ảnh\" để lưu hoặc gửi.");
       return;
     }
+    const isImage = kind === "image";
     try {
-      const result = await deliverPdf(blob, pdfFilename, { preferShare: isCoarsePointer() });
-      setDeliverNote(result === "shared" ? "Đã mở bảng chia sẻ/lưu file" : result === "downloaded" ? "Đã tải file PDF" : null);
+      const result = await deliverFile(isImage ? files.image : files.pdf, isImage ? imageFilename : pdfFilename, {
+        mimeType: isImage ? IMAGE_MIME : PDF_MIME,
+        preferShare: touch,
+      });
+      setDeliverNote(
+        result === "shared"
+          ? "Đã mở bảng chia sẻ/lưu file"
+          : result === "downloaded"
+            ? (isImage ? "Đã tải ảnh hợp đồng" : "Đã tải file PDF")
+            : null,
+      );
     } catch (err) {
       console.error("PDF deliver error:", err);
       setPdfError(err instanceof Error && err.message ? err.message : "Không tải được file");
     }
-  }, [isGenerating, preparePdf, pdfFilename]);
+  }, [isGenerating, prepareExports, pdfFilename, imageFilename]);
 
-  // Xuất file: máy tính tự tải như cũ; điện thoại chỉ dựng sẵn PDF rồi chờ người dùng bấm (trình duyệt di động chặn tải ngầm).
+  const handleDownload = useCallback(() => handleDeliver("pdf"), [handleDeliver]);
+  const handleDownloadImage = useCallback(() => handleDeliver("image"), [handleDeliver]);
+
+  // Xuất file: máy tính tự tải PDF như cũ; điện thoại chỉ dựng sẵn (PDF + ảnh) rồi chờ người dùng bấm (trình duyệt di động chặn tải ngầm).
   useEffect(() => {
     if (!isExportMode) return;
 
@@ -150,11 +175,11 @@ export default function PrintContractClient({
       // nếu đánh dấu sớm thì lần gắn lại bị bỏ qua và PDF không bao giờ được dựng.
       if (autoDownloadStartedRef.current) return;
       autoDownloadStartedRef.current = true;
-      if (isCoarsePointer()) void preparePdf();
+      if (isCoarsePointer()) void prepareExports();
       else void handleDownload();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [handleDownload, preparePdf, isExportMode]);
+  }, [handleDownload, prepareExports, isExportMode]);
 
   // Thu nhỏ bản xem trước cho vừa chiều ngang màn hình (chỉ giao diện; PDF dựng từ bản gốc nên không đổi).
   useEffect(() => {
@@ -177,28 +202,37 @@ export default function PrintContractClient({
     <div className="contract-print-page min-h-screen bg-neutral-100">
       <div className="contract-print-controls sticky top-0 z-50 bg-white shadow-sm border-b border-border">
         <div className="max-w-4xl mx-auto flex items-center justify-between px-4 h-14">
-          <Link href={`/contracts/${contract.id}`} className="btn btn-outline">
+          <Link href={`/contracts/${contract.id}`} className="btn btn-outline" aria-label="Quay lại">
             <ArrowLeft size={16} />
-            <span>Quay lại</span>
+            <span className={isExportMode ? "max-sm:hidden" : undefined}>Quay lại</span>
           </Link>
 
           <div className="hidden md:block text-caption text-text-muted">
-            {isExportMode ? "Xuất file PDF (A5 - 1 bản)" : "In hợp đồng (A4 ngang - 2 bản)"}
+            {isExportMode ? "Xuất file PDF / ảnh (A5 - 1 bản)" : "In hợp đồng (A4 ngang - 2 bản)"}
           </div>
 
           <div className="flex items-center gap-2">
             {isExportMode ? (
-              <Button
-                unstyled
-                onClick={handleDownload}
-                disabled={isGenerating}
-                className="btn btn-primary disabled:opacity-50"
-              >
-                {isTouch && pdfReady ? <Share2 size={16} /> : <Download size={16} />}
-                <span>
-                  {isGenerating ? "Đang tạo PDF..." : isTouch && pdfReady ? "Lưu / chia sẻ PDF" : isTouch ? "Tạo & lưu PDF" : "Tải PDF (A5)"}
-                </span>
-              </Button>
+              <>
+                <Button
+                  unstyled
+                  onClick={handleDownloadImage}
+                  disabled={isGenerating}
+                  className="btn btn-outline disabled:opacity-50"
+                >
+                  {isTouch && pdfReady ? <Share2 size={16} /> : <ImageDown size={16} />}
+                  <span>{isTouch ? "Lưu ảnh" : "Tải ảnh (JPG)"}</span>
+                </Button>
+                <Button
+                  unstyled
+                  onClick={handleDownload}
+                  disabled={isGenerating}
+                  className="btn btn-primary disabled:opacity-50"
+                >
+                  {isTouch && pdfReady ? <Share2 size={16} /> : <Download size={16} />}
+                  <span>{isGenerating ? "Đang tạo..." : isTouch ? "Lưu PDF" : "Tải PDF (A5)"}</span>
+                </Button>
+              </>
             ) : (
               <Button unstyled onClick={handlePrint} className="btn btn-primary">
                 <Printer size={16} />
@@ -213,11 +247,11 @@ export default function PrintContractClient({
         <div className="contract-print-controls max-w-4xl mx-auto px-4 pt-3 text-caption" role="status" aria-live="polite">
           {pdfError ? (
             <div className="flex items-center justify-between gap-3 rounded-md bg-danger/10 p-3 text-danger">
-              <span>Không tạo được file PDF: {pdfError}</span>
+              <span>Không tạo được file: {pdfError}</span>
               <Button unstyled onClick={handleDownload} className="btn btn-outline shrink-0">Thử lại</Button>
             </div>
           ) : isGenerating ? (
-            <p className="text-text-secondary">Đang dựng file PDF, vài giây nữa là xong…</p>
+            <p className="text-text-secondary">Đang dựng file PDF và ảnh, vài giây nữa là xong…</p>
           ) : (
             <p className="text-text-secondary">{deliverNote}</p>
           )}
