@@ -119,3 +119,15 @@ Chủ chọn **bỏ qua giai đoạn 0** ("Bỏ qua đo thêm, làm luôn bướ
 - Bắt lỗi vẫn chạy: lỗi ném thử được Sentry đóng thành envelope `event` (chặn ở transport, không gửi lên Sentry thật). Integrations còn đủ trừ `BrowserTracing`.
 - Tracing phía máy chủ giữ nguyên (cờ chỉ áp build client; `.next/server` vẫn chứa mã tracing).
 - **Chưa đo:** thời gian trên iPhone thật. Ít JS hơn ~10 % thì dịch + chạy ít hơn tương ứng, nhưng mức PO cảm nhận được chưa biết — xem lại Speed Insights sau vài ngày dùng thật.
+
+**Kiểm trên prod sau push `4dcacad2` (20/10, không đăng nhập):** tải HTML `/login` → tải mọi `/_next/static/chunks/*.js` nó tham chiếu → gzip mức 9 + tìm mã tracing.
+
+| `/login` trên prod | Trước (bản f08d1d2) | Sau (bản 4dcacad2) | Chênh |
+|---|---:|---:|---:|
+| Số file JS | 20 | 20 | 0 |
+| JS gzip | 352,7 KB | 305,0 KB | **−47,7 KB (−13,5 %)** |
+| JS giải nén | 1.084,9 KB | 934,9 KB | −150 KB |
+| Chunk Sentry (gzip) | 143,7 KB (`4078-…`) | 94,3 KB (`8461-…`) | −49,4 KB |
+| File còn mã tracing | 1 | **0** | |
+
+Bản mới lên prod ~7 phút sau push. `/login` 200; `/contracts`, `/dashboard` → 307 `/login?next=…` (đúng ADR-021).
