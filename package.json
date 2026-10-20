@@ -24,6 +24,7 @@
     "verify:moodie-runtime": "node scripts/verify-moodie-runtime-policy.mjs",
     "verify:moodie-ui": "node scripts/verify-moodie-chat-ui.mjs",
     "verify:payment-stage-key": "node scripts/verify-payment-stage-key.mjs",
+    "verify:payment-plans-sync": "node scripts/verify-payment-plans-sync.mjs",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:e2e": "playwright test",
     "test:e2e:setup": "playwright test --project=setup",
