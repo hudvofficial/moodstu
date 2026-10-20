@@ -19,6 +19,15 @@ export type PaymentPlanRow = PaymentPlan & {
   }> | null;
 };
 
+/**
+ * Còn khoản để thu theo số còn nợ của HĐ? Không biết số còn nợ (null/undefined) → coi là còn (giữ hành vi cũ).
+ * Dùng để thẻ kế hoạch thanh toán không mời "Thu" trên HĐ đã thu đủ (form thu lúc đó thành phiếu PHÁT SINH, đổi tổng HĐ).
+ */
+export function hasCollectableBalance(remaining: number | null | undefined): boolean {
+  if (remaining === null || remaining === undefined) return true;
+  return Number(remaining) > 0.01;
+}
+
 export function normalizePlanStatus(status: string | null | undefined, paidAmount: number, amount: number) {
   const raw = String(status || "pending").toLowerCase();
   if (raw === "cancelled" || raw === "da_huy" || raw === "huy") return "cancelled";

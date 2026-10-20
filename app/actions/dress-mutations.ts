@@ -434,7 +434,8 @@ export async function reserveDressForContract(rawData: unknown) {
 
       if (itemError) throw new Error(`Loi them phat sinh: ${itemError.message}`);
       contractItemId = newItem.id;
-      await supabase.rpc("recalc_contract_totals", { p_contract_id: input.contractId });
+      const { error: recalcError } = await supabase.rpc("recalc_contract_totals", { p_contract_id: input.contractId });
+      if (recalcError) throw new Error(`Loi tinh lai tong hop dong: ${recalcError.message}`);
     }
 
     const { error: reservationError } = await supabase.from("dress_reservations").insert({
@@ -550,7 +551,8 @@ export async function releaseReservation(reservationId: string) {
         .update({ deleted_at: now, updated_at: now })
         .eq("id", reservation.contract_item_id)
         .eq("is_addon", true);
-      await supabase.rpc("recalc_contract_totals", { p_contract_id: reservation.contract_id });
+      const { error: recalcError } = await supabase.rpc("recalc_contract_totals", { p_contract_id: reservation.contract_id });
+      if (recalcError) throw new Error(`Loi tinh lai tong hop dong: ${recalcError.message}`);
     }
 
     await fallbackRefreshDressStatus(supabase, reservation.dress_id, userId);

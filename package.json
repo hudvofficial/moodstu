@@ -27,6 +27,7 @@
     "verify:payment-plans-sync": "node scripts/verify-payment-plans-sync.mjs",
     "verify:db-refs": "node scripts/verify-db-function-refs.mjs",
     "verify:void-payment": "node scripts/verify-void-payment.mjs",
+    "verify:recalc-totals": "node scripts/verify-recalc-totals.mjs",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:e2e": "playwright test",
     "test:e2e:setup": "playwright test --project=setup",

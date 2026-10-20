@@ -1,6 +1,6 @@
 # T-20261020-fix-recalc-totals — `recalc_contract_totals` chạy được và tính ĐÚNG (net giảm giá, bỏ hạng mục xoá mềm)
 
-**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 1 file TS → commit ngay) · **Trạng thái:** 📄 SPEC — chờ chủ duyệt, CHƯA code, CHƯA áp · **Mức:** 🟡 trung bình, chưa phát tác (đường dùng: thêm/bỏ phụ kiện váy kiểu phát sinh; dữ liệu hiện 0 đặt váy) · **DB:** `CREATE OR REPLACE` 1 hàm, 0 bảng, 0 dữ liệu · **Code:** `app/actions/dress-mutations.ts` (kiểm lỗi RPC, 2 chỗ) · **ADR:** không cần — đưa hàm về đúng bất biến đã có `total_amount = Σ hạng mục sống − discount_amount` (đo 73/73 HĐ) · **Revert:** `agent/HANDOFFS/T-20261020-fix-recalc-totals.revert.sql` (soạn khi làm) · **Nguồn:** `docs/reports/audit_2026-10-20_luong-hop-dong.md` mục "Hai LỖI RIÊNG".
+**Owner:** claude (spec → chủ duyệt → claude áp DB + sửa 1 file TS → commit ngay) · **Trạng thái:** ✅ chủ duyệt + ĐÃ ÁP DB prod 20/10/2026 (md5 `0e6b014d…`, ACL giữ nguyên, `verify:db-refs` prod 0 vi phạm) · phần code `dress-mutations.ts` (throw khi recalc lỗi) **đã sửa, commit local, CHƯA push** → có hiệu lực ở app sau khi push · **Mức:** 🟡 trung bình, chưa phát tác (đường dùng: thêm/bỏ phụ kiện váy kiểu phát sinh; dữ liệu hiện 0 đặt váy) · **DB:** `CREATE OR REPLACE` 1 hàm, 0 bảng, 0 dữ liệu · **Code:** `app/actions/dress-mutations.ts` (kiểm lỗi RPC, 2 chỗ) · **ADR:** không cần — đưa hàm về đúng bất biến đã có `total_amount = Σ hạng mục sống − discount_amount` (đo 73/73 HĐ) · **Revert:** `agent/HANDOFFS/T-20261020-fix-recalc-totals.revert.sql` (soạn khi làm) · **Nguồn:** `docs/reports/audit_2026-10-20_luong-hop-dong.md` mục "Hai LỖI RIÊNG".
 
 > ⚠️ Chưa có bước trong `agent/GOALS.yaml` — xem §7. Bộ spec đi cùng: `T-20261020-fix-void-payment` (🔴, làm trước), `T-20261020-plan-card-next-hide` (🟢).
 
@@ -64,3 +64,9 @@ _(điền sau khi làm)_
 1. Thêm vào `agent/GOALS.yaml` hay chạy ngoài sổ? Không tự sửa sổ.
 2. Có muốn throw khi recalc lỗi (đề xuất) hay chỉ ghi log và tiếp tục như hiện nay?
 3. Thứ tự: nên áp **sau** ADR-020 để recalc được trigger kéo lịch thu theo; nếu áp trước vẫn đúng, chỉ là đợt `final` lệch tới khi ADR-020 lên.
+
+## 8. Kết quả (20/10/2026)
+- `supabase/migrations/20261020120000_fix_recalc_contract_totals.sql` + revert (`SET LOCAL check_function_bodies = false` — thân sống tham chiếu kiểu không tồn tại nên PostgreSQL chỉ cho tạo khi tắt kiểm thân hàm, giống `pg_dump`; sau revert local `md5` = `d437dae8…` khớp prod) + `scripts/verify-recalc-totals.mjs` (`npm run verify:recalc-totals`).
+- Cục bộ (bản sao prod 20/10): trước migration **1/9 PASS** (lỗi `payment_status_enum`); sau **13/13** (15/15 khi có ADR-020: thêm phụ kiện 300k → đợt Tất toán +300k, Σ đợt = total); gọi trên **toàn bộ 75 HĐ → HĐ sống đổi 0 (73), HĐ xoá mềm đổi 0 (2)**; có giảm giá + hạng mục xoá mềm (kiểu HĐ-0046) → 6,0tr; giảm giá ≥ tổng hạng mục → 0; tổng mới < số đã thu → `remaining 0`, `da_thanh_toan`; gọi 2 lần y nguyên.
+- Prod: áp xong, `verify:db-refs` 0 vi phạm, 10/10 health check = 0, tổng 73 HĐ không đổi. Không gọi recalc trên HĐ thật.
+- Code: `app/actions/dress-mutations.ts:437,553` nhận `{ error }` của RPC và `throw new Error("Loi tinh lai tong hop dong: …")` (diff 4 dòng thêm / 2 dòng bớt); `eslint` exit 0, `tsc --noEmit` exit 0.

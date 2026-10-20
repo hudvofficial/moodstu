@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — he-thong"
 tags: [sinh-tu-dong, db, ham, he-thong]
-cap-nhat: 2026-09-11
+cap-nhat: 2026-10-20
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---

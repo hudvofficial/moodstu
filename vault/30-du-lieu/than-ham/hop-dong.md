@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — hop-dong"
 tags: [sinh-tu-dong, db, ham, hop-dong]
-cap-nhat: 2026-09-11
+cap-nhat: 2026-10-20
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -10,7 +10,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Thân hàm DB — hop-dong
 
-32 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
+33 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
@@ -44,6 +44,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | [`restore_inventory_on_contract_payment_void`](#restore_inventory_on_contract_payment_void) | `—` | `trigger` | invoker | plpgsql |
 | [`save_contract_atomic`](#save_contract_atomic) | `p_contract jsonb, p_customer jsonb, p_items jsonb, p_actor_id uuid, p_existing_contract_id uuid, p_expected_updated_at timestamp with time zone, p_initial_payment jsonb` | `json` | **DEFINER** | plpgsql |
 | [`trg_contract_payment_status_v2`](#trg_contract_payment_status_v2) | `—` | `trigger` | invoker | plpgsql |
+| [`trg_contract_total_resync_plans_v2`](#trg_contract_total_resync_plans_v2) | `—` | `trigger` | **DEFINER** | plpgsql |
 | [`update_contract_checklists_updated_at`](#update_contract_checklists_updated_at) | `—` | `trigger` | invoker | plpgsql |
 | [`vendor_cost_report`](#vendor_cost_report) | `p_month integer, p_year integer` | `TABLE(vendor_id uuid, vendor_name text, vendor_phone text, service_type text, job_count bigint, total_cost numeric, contracts text[])` | **DEFINER** | sql |
 
@@ -1963,47 +1964,35 @@ END;
 
 ```sql
 DECLARE
-  v_total DECIMAL(15,2);
-  v_paid DECIMAL(15,2);
-  v_remaining DECIMAL(15,2);
-  v_payment_status payment_status_enum;
-  v_discount DECIMAL(15,2);
+  v_total numeric;
+  v_paid numeric;
+  v_remaining numeric;
+  v_discount numeric;
 BEGIN
-  -- Sum items
+  -- Hạng mục SỐNG (bỏ xoá mềm): total_amount = Σ hạng mục − discount_amount (bất biến đo 73/73 HĐ).
   SELECT COALESCE(SUM(total_amount), 0) INTO v_total
-  FROM contract_items WHERE contract_id = p_contract_id;
+  FROM public.contract_items
+  WHERE contract_id = p_contract_id AND deleted_at IS NULL;
 
-  -- Sum payments
   SELECT COALESCE(SUM(amount), 0) INTO v_paid
-  FROM payments WHERE contract_id = p_contract_id AND deleted_at IS NULL;
+  FROM public.payments
+  WHERE contract_id = p_contract_id AND deleted_at IS NULL;
 
-  -- Get discount
   SELECT COALESCE(discount_amount, 0) INTO v_discount
-  FROM contracts WHERE id = p_contract_id;
+  FROM public.contracts
+  WHERE id = p_contract_id;
 
-  -- Calculate remaining
-  v_remaining := v_total - v_discount - v_paid;
-  IF v_remaining < 0 THEN v_remaining := 0; END IF;
+  v_total := GREATEST(0, v_total - v_discount);
+  v_remaining := GREATEST(0, v_total - v_paid);
 
-  -- Determine payment status
-  IF v_paid = 0 THEN
-    v_payment_status := 'chua_thanh_toan';
-  ELSIF v_paid >= (v_total - v_discount) THEN
-    v_payment_status := 'da_thanh_toan';
-  ELSIF v_paid > 0 AND v_paid < (v_total - v_discount) * 0.3 THEN
-    v_payment_status := 'da_coc';
-  ELSE
-    v_payment_status := 'thanh_toan_mot_phan';
-  END IF;
-
-  -- Atomic update
-  UPDATE contracts SET
+  -- HĐ đã xoá mềm: không đụng (xoá cascade đã xoá mềm hết hạng mục -> tổng sẽ về 0 oan).
+  UPDATE public.contracts SET
     total_amount = v_total,
     paid_amount = v_paid,
     remaining_amount = v_remaining,
-    payment_status = v_payment_status,
-    updated_at = NOW()
-  WHERE id = p_contract_id;
+    payment_status = public.contract_payment_status_v2(v_paid, v_remaining),
+    updated_at = now()
+  WHERE id = p_contract_id AND deleted_at IS NULL;
 END;
 ```
 
@@ -2020,7 +2009,7 @@ BEGIN
       'contract_addon_sale',
       NEW.id,
       'Hoan kho do huy phieu ban them hop dong',
-      COALESCE(NEW.voided_by, NEW.updated_by, NEW.created_by)
+      COALESCE(NEW.voided_by, NEW.created_by)
     );
   END IF;
 
@@ -2328,6 +2317,19 @@ BEGIN
   NEW.remaining_amount := GREATEST(0, COALESCE(NEW.total_amount, 0) - NEW.paid_amount);
   NEW.payment_status := public.contract_payment_status_v2(NEW.paid_amount, NEW.remaining_amount);
   RETURN NEW;
+END;
+```
+
+---
+
+## trg_contract_total_resync_plans_v2
+
+`trg_contract_total_resync_plans_v2()` → `trigger` · **SECURITY DEFINER — bỏ qua RLS** · plpgsql · VOLATILE
+
+```sql
+BEGIN
+  PERFORM public.resync_payment_plan_amounts_v2(NEW.id);
+  RETURN NULL;
 END;
 ```
 

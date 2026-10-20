@@ -1,7 +1,7 @@
 ---
 title: "Thân hàm DB — tai-chinh"
 tags: [sinh-tu-dong, db, ham, tai-chinh]
-cap-nhat: 2026-09-11
+cap-nhat: 2026-10-20
 trang-thai: sinh-tu-dong
 nguon: pg_proc · pg_policies · information_schema.role_table_grants
 ---
@@ -10,7 +10,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 
 # Thân hàm DB — tai-chinh
 
-43 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
+44 hàm. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → hàm loại này phải tự kiểm quyền bên trong.
 
 | Hàm | Tham số | Trả về | Quyền | Ngôn ngữ |
 |---|---|---|---|---|
@@ -51,6 +51,7 @@ nguon: pg_proc · pg_policies · information_schema.role_table_grants
 | [`record_payee_payment_atomic`](#record_payee_payment_atomic) | `p_payee_type text, p_payee_id uuid, p_amount numeric, p_payment_method text, p_payment_date date, p_note text, p_allocations jsonb, p_actor_id uuid` | `jsonb` | **DEFINER** | plpgsql |
 | [`resolve_printing_expense_category_id`](#resolve_printing_expense_category_id) | `—` | `uuid` | **DEFINER** | plpgsql |
 | [`restore_inventory_on_receipt_void`](#restore_inventory_on_receipt_void) | `—` | `trigger` | invoker | plpgsql |
+| [`resync_payment_plan_amounts_v2`](#resync_payment_plan_amounts_v2) | `p_contract_id uuid` | `void` | **DEFINER** | plpgsql |
 | [`run_integrity_scan`](#run_integrity_scan) | `—` | `void` | **DEFINER** | plpgsql |
 | [`sync_employee_salary_paid`](#sync_employee_salary_paid) | `p_salary_id uuid` | `void` | invoker | sql |
 | [`sync_payment_plan_statuses_v2`](#sync_payment_plan_statuses_v2) | `p_contract_id uuid` | `void` | **DEFINER** | plpgsql |
@@ -468,7 +469,54 @@ WITH payment_sums AS (
   FROM public.contracts c
   LEFT JOIN payment_sums p ON p.contract_id = c.id
   WHERE c.deleted_at IS NULL
-    AND ABS(COALESCE(c.paid_amount, 0) - COALESCE(p.paid_sum, 0)) > 0.01;
+    AND ABS(COALESCE(c.paid_amount, 0) - COALESCE(p.paid_sum, 0)) > 0.01
+
+  UNION ALL
+
+  -- ADR-020: đợt nhận phân bổ vượt số tiền kế hoạch (loại 'outside': đợt thu ngoài lịch có amount 0 theo thiết kế)
+  SELECT
+    'plan_allocation_exceeds_amount'::text AS check_name,
+    COUNT(DISTINCT pp.contract_id)::bigint AS issue_count
+  FROM public.payment_plans pp
+  JOIN public.contracts c ON c.id = pp.contract_id AND c.deleted_at IS NULL
+  JOIN (
+    SELECT ppa.payment_plan_id, SUM(ppa.amount) AS allocated
+    FROM public.payment_plan_allocations ppa
+    JOIN public.payments pay ON pay.id = ppa.payment_id AND pay.deleted_at IS NULL
+    GROUP BY ppa.payment_plan_id
+  ) s ON s.payment_plan_id = pp.id
+  WHERE COALESCE(pp.status, 'pending') <> 'cancelled'
+    AND COALESCE(pp.stage_key, '') <> 'outside'
+    AND s.allocated > COALESCE(pp.amount, 0) + 0.01
+
+  UNION ALL
+
+  -- ADR-020: Σ đợt (không huỷ, không outside) + Σ phiếu phát sinh sống phải bằng total_amount
+  SELECT
+    'plan_amount_sum_mismatch'::text AS check_name,
+    COUNT(*)::bigint AS issue_count
+  FROM public.contracts c
+  WHERE c.deleted_at IS NULL
+    AND COALESCE(c.status, '') <> 'da_huy'
+    AND EXISTS (
+      SELECT 1 FROM public.payment_plans x
+      WHERE x.contract_id = c.id AND COALESCE(x.status, 'pending') <> 'cancelled'
+    )
+    AND ABS(
+      COALESCE((
+        SELECT SUM(x.amount) FROM public.payment_plans x
+        WHERE x.contract_id = c.id
+          AND COALESCE(x.status, 'pending') <> 'cancelled'
+          AND COALESCE(x.stage_key, '') <> 'outside'
+      ), 0)
+      + COALESCE((
+        SELECT SUM(pay.amount) FROM public.payments pay
+        WHERE pay.contract_id = c.id
+          AND pay.deleted_at IS NULL
+          AND COALESCE(pay.is_contract_adjustment, false)
+      ), 0)
+      - COALESCE(c.total_amount, 0)
+    ) > 0.01;
 ```
 
 ---
@@ -576,10 +624,10 @@ BEGIN
       AND stage_key = 'final'
       AND COALESCE(status, 'pending') <> 'cancelled'
   );
-  v_target_stage_key := CASE
-    WHEN v_initial_amount >= v_total THEN 'final'
-    ELSE COALESCE(v_initial_stage_key, 'deposit')
-  END;
+  -- ADR-020: đích phân bổ = chính đợt đã nhận số tiền ở trên. Trước đây ép 'final' khi initial >= total
+  -- trong khi đợt Cọc đã mang số tiền (dòng INSERT 'deposit' phía trên) -> phân bổ rơi vào Tất toán 0đ,
+  -- Cọc kẹt 'pending' (7 HĐ: 0013, 0020, 0043, 0044, 0050, 0055, 0067).
+  v_target_stage_key := COALESCE(v_initial_stage_key, 'deposit');
   IF v_target_stage_key NOT IN ('deposit', 'final') THEN
     v_target_stage_key := 'deposit';
   END IF;
@@ -2844,6 +2892,66 @@ BEGIN
   END IF;
 
   RETURN NEW;
+END;
+```
+
+---
+
+## resync_payment_plan_amounts_v2
+
+`resync_payment_plan_amounts_v2(p_contract_id uuid)` → `void` · **SECURITY DEFINER — bỏ qua RLS** · plpgsql · VOLATILE
+
+```sql
+DECLARE
+  v_total numeric;
+  v_final_id uuid;
+  v_final_amount numeric;
+  v_others numeric;
+  v_adjustments numeric;
+  v_new_amount numeric;
+BEGIN
+  IF p_contract_id IS NULL THEN
+    RAISE EXCEPTION 'Contract id is required';
+  END IF;
+
+  SELECT COALESCE(total_amount, 0) INTO v_total
+  FROM public.contracts
+  WHERE id = p_contract_id;
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  SELECT id, COALESCE(amount, 0)
+  INTO v_final_id, v_final_amount
+  FROM public.payment_plans
+  WHERE contract_id = p_contract_id
+    AND stage_key = 'final'
+    AND COALESCE(status, 'pending') <> 'cancelled'
+  ORDER BY sort_order, created_at
+  LIMIT 1;
+  IF v_final_id IS NULL THEN
+    RETURN; -- không có Tất toán để chỉnh; health check sẽ báo nếu Σ lệch
+  END IF;
+
+  SELECT COALESCE(SUM(amount), 0) INTO v_others
+  FROM public.payment_plans
+  WHERE contract_id = p_contract_id
+    AND id <> v_final_id
+    AND COALESCE(status, 'pending') <> 'cancelled'
+    AND COALESCE(stage_key, '') <> 'outside';
+
+  SELECT COALESCE(SUM(amount), 0) INTO v_adjustments
+  FROM public.payments
+  WHERE contract_id = p_contract_id
+    AND deleted_at IS NULL
+    AND COALESCE(is_contract_adjustment, false);
+
+  v_new_amount := GREATEST(0, v_total - v_others - v_adjustments);
+
+  IF v_new_amount IS DISTINCT FROM v_final_amount THEN
+    UPDATE public.payment_plans SET amount = v_new_amount WHERE id = v_final_id;
+    PERFORM public.sync_payment_plan_statuses_v2(p_contract_id);
+  END IF;
 END;
 ```
 

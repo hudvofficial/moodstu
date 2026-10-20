@@ -130,6 +130,7 @@ export function DesktopLayout({
                 <PaymentPlanCard
                   paymentPlans={paymentPlans}
                   onCollectPlan={(planId) => onCollectPlan?.(planId)}
+                  contractRemaining={contract.remaining_amount}
                 />
 
                 <PaymentReceiptsCard payments={payments} />
@@ -302,6 +303,7 @@ export function MobileLayout({
           <PaymentPlanCard
             paymentPlans={paymentPlans}
             onCollectPlan={(planId) => onCollectPlan?.(planId)}
+            contractRemaining={contract.remaining_amount}
           />
 
           <PaymentReceiptsCard payments={payments} />

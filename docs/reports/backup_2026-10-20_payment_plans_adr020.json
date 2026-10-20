@@ -1,0 +1,282 @@
+{
+  "created_at": "2026-10-20T04:03:16.721Z",
+  "note": "Backup payment_plans của các HĐ bị cleanup-payment-plans-adr020 đụng tới. Khôi phục: --restore <file>.",
+  "contracts": [
+    {
+      "id": "c08d82c3-92ee-4a31-9669-ab67a62a110b",
+      "contract_code": "HĐ-2026-0006"
+    },
+    {
+      "id": "bd8008c8-ce62-4ab2-a384-07f5ffbe908d",
+      "contract_code": "HĐ-2026-0008"
+    },
+    {
+      "id": "53ff555e-39eb-4203-af35-caab9a60549a",
+      "contract_code": "HĐ-2026-0013"
+    },
+    {
+      "id": "0de6f1ed-2de5-4d5c-94fe-6cf656dd7a1e",
+      "contract_code": "HĐ-2026-0020"
+    },
+    {
+      "id": "c85deed0-c082-492d-9244-e838063be69c",
+      "contract_code": "HĐ-2026-0043"
+    },
+    {
+      "id": "b8499946-2284-4ea2-a972-b28fe60edbde",
+      "contract_code": "HĐ-2026-0044"
+    },
+    {
+      "id": "687db180-6959-4315-a021-78507b5c8c35",
+      "contract_code": "HĐ-2026-0046"
+    },
+    {
+      "id": "5914081c-8c5b-4b37-aa60-c580719f8a90",
+      "contract_code": "HĐ-2026-0050"
+    },
+    {
+      "id": "92ac0d6b-e4b1-48af-ac1a-05d6585b7e9c",
+      "contract_code": "HĐ-2026-0055"
+    },
+    {
+      "id": "88b4245a-e9a1-49de-853f-eda95ad943ea",
+      "contract_code": "HĐ-2026-0065"
+    },
+    {
+      "id": "9f8f177a-59f1-4ea1-8676-dd561a4e4f53",
+      "contract_code": "HĐ-2026-0067"
+    }
+  ],
+  "plans": [
+    {
+      "id": "2a5c02eb-db63-4b6d-9cb1-ff0f7924dcfb",
+      "contract_id": "c08d82c3-92ee-4a31-9669-ab67a62a110b",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 500000,
+      "status": "paid",
+      "receipt_id": "3eb06f8d-b19e-4e8f-8671-f84a3e42f20d",
+      "sort_order": 10
+    },
+    {
+      "id": "cbbff7f3-98af-4ea4-9fbb-4e9b53ad0c75",
+      "contract_id": "c08d82c3-92ee-4a31-9669-ab67a62a110b",
+      "stage_name": "Đợt 2",
+      "stage_key": "installment_2",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 30
+    },
+    {
+      "id": "52bb71d1-2292-4067-8612-634a67b90a9f",
+      "contract_id": "c08d82c3-92ee-4a31-9669-ab67a62a110b",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 3000000,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "75c209db-7db7-43c8-92e9-b51116d94d0e",
+      "contract_id": "bd8008c8-ce62-4ab2-a384-07f5ffbe908d",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "558bfdd5-bc8c-4893-a82c-de5180116021",
+      "contract_id": "bd8008c8-ce62-4ab2-a384-07f5ffbe908d",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 3500000,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "51a9eb75-07c4-442b-9a93-04062896654c",
+      "contract_id": "53ff555e-39eb-4203-af35-caab9a60549a",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 1600000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "77a277bb-1d2b-4a07-ad57-f6c7017d7d2a",
+      "contract_id": "53ff555e-39eb-4203-af35-caab9a60549a",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "913aa0c5-5755-4689-8526-269da461e4d3",
+      "contract_id": "0de6f1ed-2de5-4d5c-94fe-6cf656dd7a1e",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 3300000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "2c5edbec-133f-463f-8169-3dbdd2f6640c",
+      "contract_id": "0de6f1ed-2de5-4d5c-94fe-6cf656dd7a1e",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "f70a2980-1675-44be-a251-93edd6a7df33",
+      "contract_id": "c85deed0-c082-492d-9244-e838063be69c",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 1700000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "a7af20f8-3276-420e-a6ee-18c82d698fa1",
+      "contract_id": "c85deed0-c082-492d-9244-e838063be69c",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "0157b162-5e6b-40a9-9ee4-b659b590484e",
+      "contract_id": "b8499946-2284-4ea2-a972-b28fe60edbde",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 1700000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "5e43395f-dffe-4ede-873b-e7dfe73e6018",
+      "contract_id": "b8499946-2284-4ea2-a972-b28fe60edbde",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "cc43468a-0c9d-42df-ad4e-ee147b8fa1f7",
+      "contract_id": "687db180-6959-4315-a021-78507b5c8c35",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 0,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "df0655ae-94ed-40ec-b269-91056abd26d6",
+      "contract_id": "687db180-6959-4315-a021-78507b5c8c35",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 6900000,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "42b76633-2761-4fbc-bb65-7485861f841c",
+      "contract_id": "5914081c-8c5b-4b37-aa60-c580719f8a90",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 3500000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "70748e8b-5a3a-4845-bf7d-722d3680b694",
+      "contract_id": "5914081c-8c5b-4b37-aa60-c580719f8a90",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "d9f8bf57-dc61-45c4-9dcd-7de9c418dc66",
+      "contract_id": "92ac0d6b-e4b1-48af-ac1a-05d6585b7e9c",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 3500000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "044a9f39-2e1e-4002-8180-dddcd509b7b1",
+      "contract_id": "92ac0d6b-e4b1-48af-ac1a-05d6585b7e9c",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "c959c630-6636-4185-88b1-57796656f342",
+      "contract_id": "88b4245a-e9a1-49de-853f-eda95ad943ea",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 0,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "09afd886-09ae-4f90-83f3-249511da3641",
+      "contract_id": "88b4245a-e9a1-49de-853f-eda95ad943ea",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 1200000,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    },
+    {
+      "id": "8c2aab00-f69e-4fad-bdea-0a1c35fad4b0",
+      "contract_id": "9f8f177a-59f1-4ea1-8676-dd561a4e4f53",
+      "stage_name": "Cọc",
+      "stage_key": "deposit",
+      "amount": 1700000,
+      "status": "pending",
+      "receipt_id": null,
+      "sort_order": 10
+    },
+    {
+      "id": "d5ccd7d5-c25c-481c-a79d-65f3efcf81c0",
+      "contract_id": "9f8f177a-59f1-4ea1-8676-dd561a4e4f53",
+      "stage_name": "Tất toán",
+      "stage_key": "final",
+      "amount": 0,
+      "status": "partial",
+      "receipt_id": null,
+      "sort_order": 40
+    }
+  ]
+}

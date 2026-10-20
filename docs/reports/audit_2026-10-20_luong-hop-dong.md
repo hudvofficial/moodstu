@@ -68,7 +68,9 @@ Lịch Google (`google_sync_queue`), checklist, đặt váy, quyền (RLS) của
 ## Đề xuất ban đầu
 Đã thay bằng mục "Sửa nhóm A + B" bên dưới (nguyên nhân đã chốt, hướng đã chọn). Hai việc còn lại từ bản đầu: chủ rà 7 HĐ chưa thu tiền (mục 1) và chủ xác nhận 5 HĐ giảm giá lớn + task 350đ của HĐ-0027 (mục 5).
 
-## Sửa nhóm A + B — hướng đã chốt, migration đã soạn, CHƯA áp prod
+## Sửa nhóm A + B — ĐÃ ÁP PROD 20/10/2026
+
+> ✅ **Cập nhật 20/10 (chủ "duyệt và áp dụng"):** ADR-020 + script dọn 11 HĐ + fix huỷ phiếu thu + fix `recalc_contract_totals` **đã áp prod và xác nhận bằng catalog**; chi tiết số đo ở `agent/DB-CHANGELOG.md`. Các mục bên dưới giữ nguyên làm hồ sơ lúc soạn (câu "CHƯA áp" trong đó là trạng thái cũ).
 
 > ✅ **B1 đã được chủ xác nhận lại (20/10)** sau khi có bản báo cáo đầy đủ. Lưu ý lịch sử: lần chọn đầu diễn ra khi file này còn là bản đề xuất đầu (ghi *"Không dùng trigger"*) vì lệnh ghi bản sửa bị lỗi; lý do chọn trigger (8 đường ghi `total_amount`) nằm ở mục này và ADR-020.
 

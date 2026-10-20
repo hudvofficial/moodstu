@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { cn, formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
 import type { PaymentPlan } from "@/types/contract";
 import { getPaymentStageLabel } from "@/types/contract-constants";
+import { hasCollectableBalance } from "@/lib/contracts/payment-plans";
 
 interface Props {
   paymentPlans: PaymentPlan[];
   onCollectPlan?: (planId: string) => void;
+  /** Số còn nợ của HĐ; ≤ 0 → ẩn "Tiếp theo … Thu" (HĐ đã thu đủ). Bỏ trống = hành vi cũ. */
+  contractRemaining?: number | null;
 }
 
 type PlanState = "paid" | "partial" | "pending" | "cancelled";
@@ -63,7 +66,7 @@ function getAmountLabel(plan: PaymentPlan) {
   return "Nhập khi thu";
 }
 
-export default function PaymentPlanCard({ paymentPlans, onCollectPlan }: Props) {
+export default function PaymentPlanCard({ paymentPlans, onCollectPlan, contractRemaining }: Props) {
   const sortedPlans = [...paymentPlans].sort((a, b) => {
     if ((a.sort_order || 0) !== (b.sort_order || 0)) return (a.sort_order || 0) - (b.sort_order || 0);
     return String(a.created_at || "").localeCompare(String(b.created_at || ""));
@@ -74,7 +77,7 @@ export default function PaymentPlanCard({ paymentPlans, onCollectPlan }: Props) 
   const progress = totalPlanned > 0
     ? Math.min(100, Math.round((totalPaid / totalPlanned) * 100))
     : 0;
-  const nextPlan = getNextPlan(sortedPlans);
+  const nextPlan = hasCollectableBalance(contractRemaining) ? getNextPlan(sortedPlans) : null;
   const nextState = nextPlan ? getPlanState(nextPlan) : "paid";
   const openPlanCount = sortedPlans.filter((plan) => {
     const state = getPlanState(plan);
@@ -162,7 +165,7 @@ export default function PaymentPlanCard({ paymentPlans, onCollectPlan }: Props) 
           </div>
         )}
 
-        {openPlanCount > 1 && (
+        {nextPlan && openPlanCount > 1 && (
           <div className="mt-3 flex items-center gap-2 px-1 text-caption text-text-secondary">
             <Circle className="h-3 w-3 text-text-muted" />
             <span>Còn {openPlanCount - 1} đợt sau mốc này</span>
