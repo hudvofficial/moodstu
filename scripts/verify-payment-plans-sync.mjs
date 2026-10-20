@@ -6,130 +6,12 @@
  * Dùng:  LOCAL_PG_URL=... node scripts/verify-payment-plans-sync.mjs
  * Trước migration 20261020100000: A1/B1/B2 FAIL (tái hiện lỗi). Sau migration: tất cả PASS, exit 0.
  */
-import pg from "pg";
+import { createHarness, num } from "./lib/local-contract-harness.mjs";
 
-const url = process.env.LOCAL_PG_URL || "postgres://postgres@127.0.0.1:5433/mood_restore";
-const host = new URL(url).hostname;
-if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host)) {
-  console.error(`❌ Từ chối: ${host} không phải DB cục bộ. Script này chỉ chạy trên Postgres cục bộ.`);
-  process.exit(2);
-}
+const { q, check, fixtures, createContract, editContract, pay, plans, invariant, scenario, client, finish } = await createHarness({
+  itemLabel: "Gói test ADR-020",
+});
 
-const client = new pg.Client({ connectionString: url });
-await client.connect();
-
-const results = [];
-let currentScenario = "";
-function check(name, ok, detail = "") {
-  results.push({ scenario: currentScenario, name, ok: Boolean(ok), detail });
-}
-
-async function q(sql, params = []) {
-  return (await client.query(sql, params)).rows;
-}
-
-const fixtures = {
-  customerId: (await q("select id from customers limit 1"))[0].id,
-  actorId: (await q("select id from auth.users limit 1"))[0].id,
-  serviceType: (await q("select service_type from contracts where deleted_at is null limit 1"))[0].service_type,
-};
-const TODAY = new Date().toISOString().slice(0, 10);
-let seq = 0;
-
-async function createContract({ total, discount = 0, initial = 0, stage = null }) {
-  seq += 1;
-  const code = `HĐ-2099-${String(seq).padStart(4, "0")}`;
-  const gross = total + discount;
-  const payload = {
-    p_contract: {
-      contract_code: code,
-      customer_id: fixtures.customerId,
-      service_type: fixtures.serviceType,
-      transaction_type: "hop_dong",
-      contract_date: TODAY,
-      work_date: TODAY,
-      status: "cho_xu_ly",
-      total_amount: total,
-      discount_amount: discount,
-    },
-    p_customer: { customer_id: fixtures.customerId },
-    p_items: [
-      {
-        type: "dich_vu", item_name: "Gói test ADR-020", quantity: 1,
-        unit_price: gross, original_price: gross, discount_amount: 0, total_amount: gross, is_addon: false,
-      },
-    ],
-    p_actor_id: fixtures.actorId,
-    p_initial_payment:
-      initial > 0
-        ? { amount: initial, payment_method: "tien_mat", payment_stage: stage, payment_date: TODAY }
-        : null,
-  };
-  const r = (await q("select public.save_contract_atomic($1::jsonb,$2::jsonb,$3::jsonb,$4::uuid,null,null,$5::jsonb) as r", [
-    JSON.stringify(payload.p_contract), JSON.stringify(payload.p_customer), JSON.stringify(payload.p_items),
-    payload.p_actor_id, payload.p_initial_payment ? JSON.stringify(payload.p_initial_payment) : null,
-  ]))[0].r;
-  return r.id;
-}
-
-async function editContract(contractId, { total, discount }) {
-  const gross = total + discount;
-  const contract = (await q("select * from contracts where id=$1", [contractId]))[0];
-  const p_contract = {
-    contract_code: contract.contract_code, customer_id: contract.customer_id, service_type: contract.service_type,
-    transaction_type: "hop_dong", contract_date: TODAY, work_date: TODAY, status: contract.status,
-    total_amount: total, discount_amount: discount,
-  };
-  const items = [{
-    type: "dich_vu", item_name: "Gói test ADR-020", quantity: 1,
-    unit_price: gross, original_price: gross, discount_amount: 0, total_amount: gross, is_addon: false,
-  }];
-  await q("select public.save_contract_atomic($1::jsonb,$2::jsonb,$3::jsonb,$4::uuid,$5::uuid,null,null)", [
-    JSON.stringify(p_contract), JSON.stringify({ customer_id: contract.customer_id }), JSON.stringify(items),
-    fixtures.actorId, contractId,
-  ]);
-}
-
-async function pay(contractId, amount, stage, { adjustment = false, notes = null } = {}) {
-  return (await q(
-    "select public.process_contract_payment_v2($1,$2,'tien_mat'::payment_method_enum,$3::date,$4,null,$5,null,$6,$7::uuid) as r",
-    [contractId, amount, TODAY, stage, notes, adjustment, fixtures.actorId],
-  ))[0].r;
-}
-
-async function plans(contractId) {
-  return q(
-    `select pp.stage_key, pp.amount::numeric as amount, pp.status,
-            coalesce((select sum(a.amount) from payment_plan_allocations a join payments p on p.id=a.payment_id and p.deleted_at is null where a.payment_plan_id=pp.id),0)::numeric as alloc
-       from payment_plans pp where pp.contract_id=$1 and coalesce(pp.status,'pending')<>'cancelled' order by pp.sort_order, pp.created_at`,
-    [contractId],
-  );
-}
-
-async function invariant(contractId) {
-  const r = (await q(
-    `select c.total_amount::numeric as total,
-       coalesce((select sum(x.amount) from payment_plans x where x.contract_id=c.id and coalesce(x.status,'pending')<>'cancelled' and coalesce(x.stage_key,'')<>'outside'),0)::numeric as plan_sum,
-       coalesce((select sum(p.amount) from payments p where p.contract_id=c.id and p.deleted_at is null and coalesce(p.is_contract_adjustment,false)),0)::numeric as adj
-     from contracts c where c.id=$1`,
-    [contractId],
-  ))[0];
-  return { ...r, ok: Math.abs(Number(r.plan_sum) + Number(r.adj) - Number(r.total)) < 0.01 };
-}
-
-async function scenario(name, fn) {
-  currentScenario = name;
-  await client.query("BEGIN");
-  try {
-    await fn();
-  } catch (e) {
-    check("không lỗi RPC", false, e.message);
-  } finally {
-    await client.query("ROLLBACK");
-  }
-}
-
-const num = (v) => Number(v);
 const openPositive = (rows) => rows.filter((p) => num(p.amount) > 0 && !["paid", "cancelled"].includes(p.status));
 
 // A1 — trả đủ lúc ký, nhãn Cọc (bug nhóm A)
@@ -197,10 +79,10 @@ await scenario("B3 phát sinh + huỷ phát sinh", async () => {
   let rows = await plans(id);
   check("sau phát sinh: không đợt >0 mở", openPositive(rows).length === 0, JSON.stringify(rows));
   check("sau phát sinh: Σ đợt + phát sinh = total", (await invariant(id)).ok, JSON.stringify(await invariant(id)));
-  // LỖI RIÊNG (ngoài ADR-020, đã đo 20/10): trigger trg_restore_inventory_on_contract_payment_void đọc NEW.updated_by nhưng bảng
-  // payments không có cột này -> mọi lần huỷ phiếu thu (void_contract_payment_v2) văng "record new has no field updated_by".
-  // Tắt trigger đó TRONG transaction thử (ROLLBACK sau cùng) để kiểm riêng phần lịch thu.
-  await client.query("ALTER TABLE public.payments DISABLE TRIGGER trg_restore_inventory_on_contract_payment_void");
+  // Lỗi riêng (T-20261020-fix-void-payment): trước khi migration sửa trigger lên, huỷ phiếu thu luôn văng
+  // `record "new" has no field "updated_by"`. Chỉ khi hàm sống còn đọc NEW.updated_by mới tắt trigger TRONG transaction thử.
+  const voidTriggerBroken = (await q("select prosrc ilike '%new.updated_by%' as bad from pg_proc where proname='restore_inventory_on_contract_payment_void'"))[0]?.bad;
+  if (voidTriggerBroken) await client.query("ALTER TABLE public.payments DISABLE TRIGGER trg_restore_inventory_on_contract_payment_void");
   await q("select public.void_contract_payment_v2($1::uuid,$2,$3::uuid)", [adj.payment_id, "huy phat sinh test ADR-020", fixtures.actorId]);
   rows = await plans(id);
   check("sau huỷ phát sinh: không đợt >0 mở", openPositive(rows).length === 0, JSON.stringify(rows));
@@ -245,14 +127,4 @@ await scenario("C health check hiệu chuẩn trên dữ liệu restore", async 
   check("check cũ không báo thêm", others.length === 0, JSON.stringify(others));
 });
 
-await client.end();
-
-let failed = 0;
-let last = "";
-for (const r of results) {
-  if (r.scenario !== last) { console.log(`\n▶ ${r.scenario}`); last = r.scenario; }
-  console.log(`  ${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.ok || !r.detail ? "" : `\n        ${r.detail}`}`);
-  if (!r.ok) failed += 1;
-}
-console.log(`\n${failed === 0 ? "✅" : "❌"} ${results.length - failed}/${results.length} PASS`);
-process.exit(failed === 0 ? 0 : 1);
+await finish();
