@@ -1,6 +1,6 @@
 # T-20261020-plan-card-next-hide — Thẻ "Kế hoạch thanh toán" thôi hiện "Tiếp theo … Thu" khi HĐ đã thu đủ (Sửa C của ADR-020)
 
-**Owner:** claude (spec → chủ duyệt → claude code → verify render → chủ xem diff → push) · **Trạng thái:** ✅ chủ duyệt 20/10 · code + unit test **xong, commit local, CHƯA push** · **render @375/768/1023 CHƯA xác nhận** — trang cần đăng nhập (quyền riêng của chủ) · **Mức:** 🟡 thấp (nút "Thu" trên HĐ đã thu đủ dẫn tới form **phát sinh** — đổi tổng HĐ nếu người dùng cố ý nhập; không xảy ra im lặng) · **DB:** không · **ADR:** không (UI, không đổi data-flow/state pattern) · **Nguồn:** `docs/reports/audit_2026-10-20_luong-hop-dong.md` mục "Mức khẩn"/"Sửa C"; ADR-020 phần "Ngoài phạm vi (b)".
+**Owner:** claude (spec → chủ duyệt → claude code → verify render → chủ xem diff → push) · **Trạng thái:** ✅ chủ duyệt 20/10 · code + unit test xong, commit local, **CHƯA push** · ✅ **render @375/768/1023 đã xác nhận 20/10** (xem §7b) · **Mức:** 🟡 thấp (nút "Thu" trên HĐ đã thu đủ dẫn tới form **phát sinh** — đổi tổng HĐ nếu người dùng cố ý nhập; không xảy ra im lặng) · **DB:** không · **ADR:** không (UI, không đổi data-flow/state pattern) · **Nguồn:** `docs/reports/audit_2026-10-20_luong-hop-dong.md` mục "Mức khẩn"/"Sửa C"; ADR-020 phần "Ngoài phạm vi (b)".
 
 > ⚠️ Chưa có bước trong `agent/GOALS.yaml` — xem §6. Nên làm **cùng cửa sổ** hoặc ngay sau khi áp ADR-020 + script dọn 11 HĐ (bước dọn sửa dữ liệu nhưng **không** bỏ được triệu chứng này).
 
@@ -61,3 +61,14 @@ _(điền sau khi làm: ảnh chụp 3 viewport, kết quả jest/lint/build)_
 - Code (đúng §1): `lib/contracts/payment-plans.ts` (+`hasCollectableBalance`), `components/contracts/detail/payment-plan-card.tsx` (prop `contractRemaining`, ẩn "Tiếp theo" + dòng "Còn N đợt…" khi hết nợ), `components/contracts/detail/detail-layout-sections.tsx` (2 chỗ truyền `contract.remaining_amount`), `tests/unit/payment-plans-collectable.test.ts` (mới).
 - Đo: `jest tests/unit/payment-plans-collectable.test.ts tests/unit/contract-logic.test.ts` **49/49 pass**; `eslint` 5 file **exit 0, 0 vấn đề**; `tsc --noEmit` exit 0.
 - **Chưa làm:** render chrome-devtools @375/768/1023 trên HĐ-0061 (đã thu đủ), HĐ-0013, HĐ-0046 (phải ra "Đã hoàn tất kế hoạch", không nút Thu) và HĐ-0075 + HĐ-0074 (còn nợ — phải vẫn có "Tiếp theo" + Thu). Dev server chạy được (`next-dev`, cổng 3000) nhưng `/contracts` chuyển về `/login`; đăng nhập là quyền riêng của chủ. Không push khi chưa render.
+
+## 7b. Render đã xác nhận (20/10/2026, dev server + pane có phiên đăng nhập của chủ; dữ liệu prod chỉ đọc)
+| HĐ | Còn nợ | Thẻ hiển thị | Nút Thu |
+|---|---:|---|---|
+| HĐ-2026-0061 | 0 | "Đã hoàn tất kế hoạch · Không còn đợt cần thu" (@1023, @768, @375) | không |
+| HĐ-2026-0013 | 0 | "Đã hoàn tất kế hoạch" (@375) · "Đã thu 1.600.000 / 1.600.000" | không |
+| HĐ-2026-0046 | 0 | "Đã hoàn tất kế hoạch" (@375) · "Đã thu 6.000.000 / 6.000.000" (hết lệch sau dọn ADR-020) | không |
+| HĐ-2026-0075 | 1,5tr | "TIẾP THEO · Tất toán · Hạn thu 15/11/2026 · 1.500.000 VND · Chưa thu" (@375) | **có** |
+| HĐ-2026-0074 | 10tr | "TIẾP THEO · Cọc · Nhập khi thu · Chưa thu · Còn 1 đợt sau mốc này" (@375) | **có** |
+
+Ở @375 không tràn ngang (`scrollWidth` 375). Hồi quy HĐ còn nợ: giữ nguyên.

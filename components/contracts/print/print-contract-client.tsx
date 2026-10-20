@@ -1,12 +1,16 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Printer, Download, ArrowLeft } from "lucide-react";
+import { Printer, Download, ArrowLeft, Share2 } from "lucide-react";
 import Link from "next/link";
 import type { Contract, ContractEvent, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
 import type { Customer } from "@/types/crm";
 import ContractTemplate from "./contract-template";
 import { Button } from "@/components/ui/button";
+import { deliverPdf, isCoarsePointer, PDF_SCALE, renderContractPdfBlob, shouldDeliverAfterPrepare } from "@/lib/contracts/pdf-export";
+
+// Bề rộng thật của tờ in (96dpi): A5 148mm, A4 ngang 297mm. Trên điện thoại thu nhỏ bản xem trước cho vừa khung (không đổi PDF).
+const MM_TO_PX = 96 / 25.4;
 
 const DEFAULT_LOGO_URL = "/logo.png";
 const PRINT_LOGO_TINT = "#2E5C46";
@@ -34,6 +38,15 @@ export default function PrintContractClient({
   const autoDownloadStartedRef = useRef(false);
   const [logoUrl, setLogoUrl] = useState(studio.logo_url || DEFAULT_LOGO_URL);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfReady, setPdfReady] = useState(false);
+  const [deliverNote, setDeliverNote] = useState<string | null>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [isTouch, setIsTouch] = useState(false);
+  const pdfBlobRef = useRef<Blob | null>(null);
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const pdfFilename = `HOP-DONG-${contract.contract_code}.pdf`;
+  const sheetWidthPx = (isExportMode ? 148 : 297) * MM_TO_PX;
 
   useEffect(() => {
     const sourceLogo = studio.logo_url || DEFAULT_LOGO_URL;
@@ -86,52 +99,77 @@ export default function PrintContractClient({
     window.print();
   }, []);
 
-  const handleDownload = useCallback(async () => {
-    if (!templateRef.current || isGenerating) return;
+  // Dựng PDF thành Blob (chưa tải). Điện thoại: bấm nút sau đó mới chia sẻ/lưu (cần thao tác chạm).
+  const preparePdf = useCallback(async (): Promise<Blob | null> => {
+    if (pdfBlobRef.current) return pdfBlobRef.current;
+    if (!templateRef.current) return null;
     setIsGenerating(true);
-
+    setPdfError(null);
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
-      const opt = {
-        margin: 0,
-        filename: `HOP-DONG-${contract.contract_code}.pdf`,
-        image: { type: "jpeg" as const, quality: 1 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-          scrollY: 0,
-          scrollX: 0,
-          windowWidth: 559,
-          windowHeight: 750,
-        },
-        jsPDF: {
-          unit: "mm",
-          format: "a5",
-          orientation: "portrait" as const,
-          compress: true,
-        },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-      };
-
-      await html2pdf().set(opt).from(templateRef.current).save();
+      const blob = await renderContractPdfBlob(templateRef.current, {
+        filename: pdfFilename,
+        scale: PDF_SCALE,
+      });
+      pdfBlobRef.current = blob;
+      setPdfReady(true);
+      return blob;
     } catch (err) {
       console.error("PDF generation error:", err);
+      setPdfError(err instanceof Error && err.message ? err.message : "Không rõ nguyên nhân");
+      return null;
     } finally {
       setIsGenerating(false);
     }
-  }, [contract.contract_code, isGenerating]);
+  }, [pdfFilename]);
 
+  const handleDownload = useCallback(async () => {
+    if (isGenerating) return;
+    const touch = isCoarsePointer();
+    const hadBlobBeforeTap = Boolean(pdfBlobRef.current);
+    const blob = await preparePdf();
+    if (!blob) return;
+    if (!shouldDeliverAfterPrepare({ touch, hadBlobBeforeTap })) {
+      setDeliverNote('PDF đã sẵn sàng — bấm "Lưu / chia sẻ PDF" để lưu hoặc gửi.');
+      return;
+    }
+    try {
+      const result = await deliverPdf(blob, pdfFilename, { preferShare: isCoarsePointer() });
+      setDeliverNote(result === "shared" ? "Đã mở bảng chia sẻ/lưu file" : result === "downloaded" ? "Đã tải file PDF" : null);
+    } catch (err) {
+      console.error("PDF deliver error:", err);
+      setPdfError(err instanceof Error && err.message ? err.message : "Không tải được file");
+    }
+  }, [isGenerating, preparePdf, pdfFilename]);
+
+  // Xuất file: máy tính tự tải như cũ; điện thoại chỉ dựng sẵn PDF rồi chờ người dùng bấm (trình duyệt di động chặn tải ngầm).
   useEffect(() => {
-    if (!isExportMode || autoDownloadStartedRef.current) return;
+    if (!isExportMode) return;
 
-    autoDownloadStartedRef.current = true;
     const timer = setTimeout(() => {
-      void handleDownload();
+      // Đánh dấu "đã bắt đầu" ngay lúc chạy (không phải lúc đặt hẹn): StrictMode dev gắn-gỡ-gắn effect sẽ huỷ hẹn lần đầu,
+      // nếu đánh dấu sớm thì lần gắn lại bị bỏ qua và PDF không bao giờ được dựng.
+      if (autoDownloadStartedRef.current) return;
+      autoDownloadStartedRef.current = true;
+      if (isCoarsePointer()) void preparePdf();
+      else void handleDownload();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [handleDownload, isExportMode]);
+  }, [handleDownload, preparePdf, isExportMode]);
+
+  // Thu nhỏ bản xem trước cho vừa chiều ngang màn hình (chỉ giao diện; PDF dựng từ bản gốc nên không đổi).
+  useEffect(() => {
+    const wrap = previewWrapRef.current;
+    if (!wrap || typeof ResizeObserver === "undefined") return;
+    const update = () => {
+      const available = wrap.clientWidth - 32; // trừ padding ngang 16px × 2
+      setPreviewScale(available > 0 ? Math.min(1, available / sheetWidthPx) : 1);
+      setIsTouch(isCoarsePointer());
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [sheetWidthPx]);
 
   const templateProps = { contract, customer, items, paymentPlans, events, studio, logoUrl };
 
@@ -156,8 +194,10 @@ export default function PrintContractClient({
                 disabled={isGenerating}
                 className="btn btn-primary disabled:opacity-50"
               >
-                <Download size={16} />
-                <span>{isGenerating ? "Đang tạo..." : "Tải PDF (A5)"}</span>
+                {isTouch && pdfReady ? <Share2 size={16} /> : <Download size={16} />}
+                <span>
+                  {isGenerating ? "Đang tạo PDF..." : isTouch && pdfReady ? "Lưu / chia sẻ PDF" : isTouch ? "Tạo & lưu PDF" : "Tải PDF (A5)"}
+                </span>
               </Button>
             ) : (
               <Button unstyled onClick={handlePrint} className="btn btn-primary">
@@ -169,7 +209,23 @@ export default function PrintContractClient({
         </div>
       </div>
 
-      <div className="contract-preview-wrap max-w-none mx-auto py-8 px-4 overflow-x-auto">
+      {isExportMode && (pdfError || deliverNote || isGenerating) && (
+        <div className="contract-print-controls max-w-4xl mx-auto px-4 pt-3 text-caption" role="status" aria-live="polite">
+          {pdfError ? (
+            <div className="flex items-center justify-between gap-3 rounded-md bg-danger/10 p-3 text-danger">
+              <span>Không tạo được file PDF: {pdfError}</span>
+              <Button unstyled onClick={handleDownload} className="btn btn-outline shrink-0">Thử lại</Button>
+            </div>
+          ) : isGenerating ? (
+            <p className="text-text-secondary">Đang dựng file PDF, vài giây nữa là xong…</p>
+          ) : (
+            <p className="text-text-secondary">{deliverNote}</p>
+          )}
+        </div>
+      )}
+
+      <div ref={previewWrapRef} className="contract-preview-wrap max-w-none mx-auto py-8 px-4 overflow-x-auto">
+        <div className="contract-zoom mx-auto" style={{ zoom: previewScale, width: "fit-content" }}>
         <div
           id="contract-print-area"
           ref={templateRef}
@@ -221,6 +277,7 @@ export default function PrintContractClient({
             </>
           )}
         </div>
+        </div>
       </div>
 
       <style jsx global>{`
@@ -246,6 +303,10 @@ export default function PrintContractClient({
           .contract-print-page {
             min-height: auto !important;
             background: #ffffff !important;
+          }
+
+          .contract-zoom {
+            zoom: 1 !important;
           }
 
           .contract-preview-wrap {

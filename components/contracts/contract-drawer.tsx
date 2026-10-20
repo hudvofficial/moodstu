@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import {
   Printer,
   Pencil,
+  Download,
 } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -164,6 +165,16 @@ export function ContractDrawer({
         title="In hợp đồng"
       >
         <Printer className="w-4 h-4 text-text-secondary" />
+      </a>
+      <a
+        href={`/contracts/${contractId}/print?isExportMode=true`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-icon"
+        title="Xuất file PDF"
+        aria-label="Xuất file PDF"
+      >
+        <Download className="w-4 h-4 text-text-secondary" />
       </a>
     </>
   ) : null;

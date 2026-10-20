@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { Download } from "lucide-react";
 import SummaryCard from "./summary-card";
 import CustomerInfoBlock from "./customer-info-block";
 import FinancialDashboard from "./financial-dashboard";
@@ -349,6 +351,15 @@ export function MobileLayout({
             paymentLabel={contract.remaining_amount > 0 ? "Thu tiền" : "Phát sinh"}
           />
         </div>
+
+        {/* Mobile/tablet: header TopActionBar bị ẩn dưới lg nên nút Xuất file hợp đồng phải nằm trong trang. */}
+        <Link
+          href={`/contracts/${contract.id}/print?isExportMode=true`}
+          className="btn btn-primary w-full justify-center mb-4"
+        >
+          <Download size={16} />
+          <span>Xuất file hợp đồng (PDF)</span>
+        </Link>
 
         {/* ⚡ Lazy load gallery - mobile */}
         <div id="section-drive-mobile">
