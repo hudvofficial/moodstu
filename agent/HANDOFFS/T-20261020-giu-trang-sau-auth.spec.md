@@ -88,3 +88,6 @@ Cả hai cùng một điểm hỏng: **mỗi lần đi qua `/login`, đích đ�
 ### Chưa kiểm được
 - Luồng **đăng nhập bằng form rồi quay về `next`** trên trình duyệt thật: cần đăng xuất phiên của chủ trong pane — không làm; phủ bằng unit test (`toSafeReturnPath` + mã 3 dòng ở `login-page-client.tsx`).
 - iPhone thật (app cài màn hình chính): chỉ kiểm được sau khi push.
+
+### Đã lên prod (20/10/2026) — commit `e8943aff`
+curl không đăng nhập vào `https://stu.moodwedding.com` sau deploy: `/contracts/<id>` → `307 /login?next=%2Fcontracts%2F<id>` (trước push: `/login` trần) · `/contracts?tab=all`, `/finance/receipts`, RSC `/contracts` đều mang `next` · trang in và `POST` → `/login` trần · `/login` (kể cả `?source=pwa`, `?next=//evil…`) → 200 · `/manifest.json`, `/sw.js` → 200 · không vòng lặp (1 redirect rồi 200). Chưa kiểm: hành vi khi đã đăng nhập trên prod, iPhone thật. Lùi: `git revert e8943aff` rồi push.
