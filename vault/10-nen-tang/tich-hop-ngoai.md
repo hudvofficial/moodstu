@@ -44,6 +44,8 @@ Cấu hình provider lưu trong DB, sửa qua `api/moodie/provider/config`. → 
 `@sentry/nextjs`. Ba điểm khởi tạo: `instrumentation-client.ts` (**client — không có `sentry.client.config.ts`**), `sentry.server.config.ts`, `sentry.edge.config.ts`.
 Biến: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
 
+**Client chỉ bắt lỗi, không đo hiệu năng (ADR-022, 2026-10-20):** mã tracing bị gỡ khỏi gói trình duyệt bằng `DefinePlugin({ __SENTRY_TRACING__: false })` trong `next.config.ts` (chỉ build client; đừng dùng `bundleSizeOptimizations.excludeTracing` — cờ đó áp cả server/edge). Server/edge vẫn tracing (`sentry.server.config.ts` 0,2, edge 0,1). App chỉ gọi `Sentry.captureException`, không dùng API tracing.
+
 **Nhiễu đã lọc:** lỗi `Rejected` từ `ServiceWorkerContainer.register` — do `next-pwa` gọi `workbox.register()` không `.catch()`, in-app browser từ chối đăng ký SW. Không phải bug app. Lọc bằng regex neo hai đầu `/^Rejected$/` (chuỗi trần `"Rejected"` sẽ nuốt nhầm lỗi khác vì `ignoreErrors` match theo substring).
 
 ## Web Push

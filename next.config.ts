@@ -202,9 +202,13 @@ const nextConfig: NextConfig = {
   },
 
   // 🖼️ Sharp — webpack config for Vercel deployment
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (isServer) {
       config.externals.push('sharp');
+    } else {
+      // ⚡ Gỡ mã tracing của Sentry khỏi gói trình duyệt (ADR-022). Chỉ client:
+      // `bundleSizeOptimizations.excludeTracing` của Sentry áp cả server/edge.
+      config.plugins.push(new webpack.DefinePlugin({ __SENTRY_TRACING__: false }));
     }
     return config;
   },
@@ -337,6 +341,7 @@ export default withSentryConfig(
       excludeDebugStatements: true,
       excludeReplayIframe: true,
       excludeReplayShadowDom: true,
+      excludeReplayWorker: true,
     },
   },
 );

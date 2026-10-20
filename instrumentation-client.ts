@@ -6,8 +6,10 @@ Sentry.init({
   // Only send errors in production
   enabled: process.env.NODE_ENV === "production",
 
-  // Performance: sample 10% of transactions
-  tracesSampleRate: 0.1,
+  // Không đo hiệu năng phía trình duyệt: mã tracing bị gỡ khỏi gói client lúc build
+  // (`__SENTRY_TRACING__: false` trong next.config.ts) để giảm JS tải về — ADR-022.
+  // Bắt lỗi giữ nguyên. Số trải nghiệm thật còn lại: Vercel Speed Insights (gói Hobby
+  // chỉ cho điểm tổng, không có LCP/INP/TTFB theo route).
 
   // Disable Session Replay (free tier)
   replaysSessionSampleRate: 0,
@@ -52,5 +54,3 @@ Sentry.init({
     return event;
   },
 });
-
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
