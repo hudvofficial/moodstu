@@ -14,6 +14,7 @@ import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast-manager";
 import { TOAST_MESSAGES } from "@/lib/toast-messages";
 import { cn } from "@/lib/utils";
+import { toSafeReturnPath } from "@/lib/navigation/safe-return-path";
 
 type LoginState = "idle" | "transitioning" | "navigating";
 
@@ -58,7 +59,9 @@ export default function LoginPageClient() {
       toast.error(result.error);
     } else {
       setLoginState("navigating");
-      router.replace("/dashboard");
+      // ADR-021: bị đẩy về /login giữa chừng thì đăng nhập xong quay lại đúng trang đang mở.
+      const next = new URL(window.location.href).searchParams.get("next");
+      router.replace(toSafeReturnPath(next, window.location.origin) ?? "/dashboard");
     }
   };
 

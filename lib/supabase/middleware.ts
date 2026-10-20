@@ -8,6 +8,7 @@ import {
   AUTH_PROXY_ROLE_HEADER,
   AUTH_PROXY_FULL_NAME_HEADER,
 } from "@/lib/auth-proxy-headers";
+import { decideAuthRedirect, isRetryableAuthError, LAST_PATH_COOKIE } from "@/lib/navigation/auth-redirect";
 
 const DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS = 700;
 
@@ -111,14 +112,25 @@ export async function updateSession(request: NextRequest) {
   let isAuthenticated = false;
   let claims: Record<string, unknown> | null = null;
 
+  const readClaims = async (): Promise<{ claims: Record<string, unknown> | null; error: unknown }> => {
+    try {
+      const { data, error } = await supabase.auth.getClaims();
+      return { claims: !error && data?.claims?.sub ? data.claims : null, error };
+    } catch (error) {
+      return { claims: null, error };
+    }
+  };
+
   const claimsStartedAt = performance.now();
   try {
-    const { data, error } = await supabase.auth.getClaims();
-    claims = !error && data?.claims?.sub ? data.claims : null;
+    let result = await readClaims();
+    // ADR-021: refresh lỗi thoáng qua (mạng di động, app vừa thức dậy) không được coi là "chưa đăng nhập" ngay.
+    // Gọi lại ngay, không chờ — vẫn trong khoảng cho phép dùng lại refresh token nếu lần đầu đã tới Supabase.
+    if (!result.claims && isRetryableAuthError(result.error)) {
+      result = await readClaims();
+    }
+    claims = result.claims;
     isAuthenticated = !!claims;
-  } catch {
-    isAuthenticated = false;
-    claims = null;
   } finally {
     logAuthShellTiming(
       "middleware.claims",
@@ -152,14 +164,23 @@ export async function updateSession(request: NextRequest) {
     if (role) requestHeaders.set(AUTH_PROXY_ROLE_HEADER, role);
     if (fullName) requestHeaders.set(AUTH_PROXY_FULL_NAME_HEADER, fullName);
     
-    // Remake response to include newly set headers in downstream requests
+    // Remake response to include newly set headers in downstream requests.
+    // Phải mang theo cookie phiên vừa refresh (setAll ở trên ghi vào response cũ): tạo response mới mà bỏ cookie
+    // thì trình duyệt giữ refresh token đã bị xoay vòng → lần refresh sau "Already Used" → bị đăng xuất/đá về /login
+    // (cảnh báo chính thức của @supabase/ssr). Request đi xuống cũng phải mang cookie mới, không phải bản chụp lúc đầu.
+    const refreshedCookies = supabaseResponse.cookies.getAll();
+    if (refreshedCookies.length > 0) {
+      requestHeaders.set("cookie", request.cookies.toString());
+    }
     supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+    refreshedCookies.forEach((cookie) => supabaseResponse.cookies.set(cookie));
   }
 
-  const redirectWithCookies = (targetPathname: string) => {
+  const redirectWithCookies = (target: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = targetPathname;
-    url.search = "";
+    const parsedTarget = new URL(target, url.origin);
+    url.pathname = parsedTarget.pathname;
+    url.search = parsedTarget.search;
 
     const response = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {
@@ -169,12 +190,21 @@ export async function updateSession(request: NextRequest) {
     return noStore(response);
   };
 
-  if (!isAuthenticated && !isPublicRoute) {
-    return redirectWithCookies("/login");
-  }
-
-  if (isAuthenticated && isLoginRoute) {
-    return redirectWithCookies("/dashboard");
+  // ADR-021: đi qua /login thì quay về đúng trang đang mở (next / trang cuối khi mở lại app), không cứng /dashboard.
+  const redirectTarget = decideAuthRedirect({
+    isAuthenticated,
+    isPublicRoute,
+    isLoginRoute,
+    method: request.method,
+    pathname,
+    search: request.nextUrl.search,
+    nextParam: request.nextUrl.searchParams.get("next"),
+    sourceParam: request.nextUrl.searchParams.get("source"),
+    lastPathCookie: request.cookies.get(LAST_PATH_COOKIE)?.value ?? null,
+    appOrigin: request.nextUrl.origin,
+  });
+  if (redirectTarget) {
+    return redirectWithCookies(redirectTarget);
   }
 
   return noStore(supabaseResponse);

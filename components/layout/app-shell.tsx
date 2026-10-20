@@ -18,6 +18,7 @@ import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
 import { getAppShellRouteMode } from "@/lib/app-shell-route-mode";
 import { FinanceRealtimeRefresh } from "@/components/finance/finance-realtime-refresh";
 import { FinanceNavGuard } from "@/components/finance/finance-nav-guard";
+import { LastPathCookie } from "./last-path-cookie";
 
 const NavigationWarmup = dynamic(
   () => import("./navigation-warmup").then((mod) => mod.NavigationWarmup),
@@ -81,6 +82,8 @@ export function AppShell({ children, role, userName }: AppShellProps) {
       <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
       {enableNavigationWarmup && <NavigationWarmup role={role} />}
       <NavigationProgress />
+      {/* ADR-021: nhớ trang đang mở để mở lại app (iOS) không bị đá về /dashboard. */}
+      <LastPathCookie />
       {/* T-20260825: mount ở đây (AppShell — client component, mount đúng 1 lần) thay vì trong
           finance/layout.tsx (Server Component re-render mỗi lần điều hướng vì các trang con
           force-dynamic) — tránh kênh realtime bị đóng/mở lại giữa các trang con /finance/*,
