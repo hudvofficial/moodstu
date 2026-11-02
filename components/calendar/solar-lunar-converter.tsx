@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Sun, Moon, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UnifiedModal } from "@/components/ui/unified-modal";
@@ -14,8 +13,7 @@ import {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onNavigateDate?: (date: Date) => void;
-  onOpenDayDetail?: (date: Date) => void;
+  onOpenDayDetail: (date: Date) => void;
 }
 
 type Mode = "SolarToLunar" | "LunarToSolar";
@@ -31,94 +29,101 @@ interface ConversionResult {
   originalDate: Date;
 }
 
-export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, onOpenDayDetail }: Props) {
-  const router = useRouter();
+export default function SolarLunarConverter({ isOpen, onClose, onOpenDayDetail }: Props) {
   const [mode, setMode] = useState<Mode>("SolarToLunar");
-  const [day, setDay] = useState(new Date().getDate());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [dayInput, setDayInput] = useState(() => String(new Date().getDate()));
+  const [monthInput, setMonthInput] = useState(() => String(new Date().getMonth() + 1));
+  const [yearInput, setYearInput] = useState(() => String(new Date().getFullYear()));
   const [isLeap, setIsLeap] = useState(false);
-  const [result, setResult] = useState<ConversionResult | null>(null);
+  const dayInputRef = useRef<HTMLInputElement>(null);
 
   // Reset khi mở modal
   useEffect(() => {
     if (!isOpen) return;
     const id = requestAnimationFrame(() => {
       const now = new Date();
-      setDay(now.getDate());
-      setMonth(now.getMonth() + 1);
-      setYear(now.getFullYear());
+      setDayInput(String(now.getDate()));
+      setMonthInput(String(now.getMonth() + 1));
+      setYearInput(String(now.getFullYear()));
       setIsLeap(false);
       setMode("SolarToLunar");
+      dayInputRef.current?.focus();
     });
     return () => cancelAnimationFrame(id);
   }, [isOpen]);
 
-  // Debounced calculation
-  useEffect(() => {
-    if (!isOpen) return;
-    const timer = setTimeout(() => {
-      if (mode === "SolarToLunar") {
-        if (month < 1 || month > 12) { setResult(null); return; }
-        const d = new Date(year, month - 1, day);
-        if (d.getMonth() + 1 !== month || d.getDate() !== day) { setResult(null); return; }
-        const details = getLunarDetails(d);
-        setResult({
-          type: "Âm Lịch",
-          day: details.lunarDay, month: details.lunarMonth, year: details.lunarYear,
-          leap: details.leap,
-          canChi: `${details.ngayCanChi}, Tháng ${details.thangCanChi}, Năm ${details.namCanChi}`,
-          weekday: details.weekday,
-          originalDate: d,
-        });
-      } else {
-        if (month < 1 || month > 12 || day < 1 || day > 30) { setResult(null); return; }
-        const solarDate = lunarToSolar(day, month, year, isLeap);
-        if (!solarDate) { setResult(null); return; }
-        const details = getLunarDetails(solarDate);
-        setResult({
-          type: "Dương Lịch",
-          day: solarDate.getDate(), month: solarDate.getMonth() + 1, year: solarDate.getFullYear(),
-          leap: false,
-          canChi: `${details.ngayCanChi}, Tháng ${details.thangCanChi}, Năm ${details.namCanChi}`,
-          weekday: details.weekday,
-          originalDate: solarDate,
-        });
+  // Derived from the current inputs: a click can never use a stale 300ms result.
+  const result = useMemo<ConversionResult | null>(() => {
+    if (!isOpen || ![dayInput, monthInput, yearInput].every((value) => /^\d+$/.test(value))) {
+      return null;
+    }
+
+    const day = Number(dayInput);
+    const month = Number(monthInput);
+    const year = Number(yearInput);
+    if (
+      ![day, month, year].every(Number.isInteger) ||
+      year < 100 || month < 1 || month > 12 || day < 1 || day > 31
+    ) {
+      return null;
+    }
+
+    if (mode === "SolarToLunar") {
+      const solarDate = new Date(year, month - 1, day);
+      if (
+        Number.isNaN(solarDate.getTime()) ||
+        solarDate.getFullYear() !== year ||
+        solarDate.getMonth() + 1 !== month ||
+        solarDate.getDate() !== day
+      ) {
+        return null;
       }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [mode, day, month, year, isLeap, isOpen]);
+      const details = getLunarDetails(solarDate);
+      return {
+        type: "Âm Lịch",
+        day: details.lunarDay, month: details.lunarMonth, year: details.lunarYear,
+        leap: details.leap,
+        canChi: `${details.ngayCanChi}, Tháng ${details.thangCanChi}, Năm ${details.namCanChi}`,
+        weekday: details.weekday,
+        originalDate: solarDate,
+      };
+    }
+
+    if (day > 30) return null;
+    const solarDate = lunarToSolar(day, month, year, isLeap);
+    if (!solarDate) return null;
+    const details = getLunarDetails(solarDate);
+    return {
+      type: "Dương Lịch",
+      day: solarDate.getDate(), month: solarDate.getMonth() + 1, year: solarDate.getFullYear(),
+      leap: false,
+      canChi: `${details.ngayCanChi}, Tháng ${details.thangCanChi}, Năm ${details.namCanChi}`,
+      weekday: details.weekday,
+      originalDate: solarDate,
+    };
+  }, [isOpen, dayInput, monthInput, yearInput, mode, isLeap]);
 
   const switchMode = useCallback((newMode: Mode) => {
     setMode(newMode);
-    setResult(null);
     const now = new Date();
     if (newMode === "SolarToLunar") {
-      setDay(now.getDate()); setMonth(now.getMonth() + 1); setYear(now.getFullYear());
+      setDayInput(String(now.getDate())); setMonthInput(String(now.getMonth() + 1)); setYearInput(String(now.getFullYear()));
       setIsLeap(false);
     } else {
       const lunar = getLunarDate(now.getDate(), now.getMonth() + 1, now.getFullYear());
-      setDay(lunar.day); setMonth(lunar.month); setYear(lunar.year);
+      setDayInput(String(lunar.day)); setMonthInput(String(lunar.month)); setYearInput(String(lunar.year));
       setIsLeap(lunar.leap);
     }
   }, []);
 
   const handleNavigate = useCallback(() => {
     if (!result) return;
-    const d = result.originalDate;
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    if (onOpenDayDetail) {
-      onOpenDayDetail(d);
-    } else if (onNavigateDate) {
-      onNavigateDate(d);
-    } else {
-      router.push(`/calendar?date=${iso}&drawer=lunar`);
-    }
+    onOpenDayDetail(result.originalDate);
     onClose();
-  }, [result, router, onClose, onNavigateDate, onOpenDayDetail]);
+  }, [result, onClose, onOpenDayDetail]);
 
   return (
-    <UnifiedModal isOpen={isOpen} onClose={onClose} size="sm" showCloseButton={false}>
+    <UnifiedModal isOpen={isOpen} onClose={onClose} title="Đổi Âm/Dương lịch" size="sm">
       {/* Tab Switcher */}
       <div className="bg-bg-hover rounded-lg p-1 flex relative mb-6 mt-4 lg:mt-6">
         <div
@@ -130,6 +135,7 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
           type="button"
           className={`flex-1 py-2.5 text-body-sm font-semibold relative z-10 transition-colors flex items-center justify-center gap-2 ${mode === "SolarToLunar" ? "text-text-primary" : "text-text-muted"}`}
           onClick={() => switchMode("SolarToLunar")}
+          aria-pressed={mode === "SolarToLunar"}
         >
           <Sun className="w-4 h-4 text-warning" />
           Dương → Âm
@@ -139,6 +145,7 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
           type="button"
           className={`flex-1 py-2.5 text-body-sm font-semibold relative z-10 transition-colors flex items-center justify-center gap-2 ${mode === "LunarToSolar" ? "text-text-primary" : "text-text-muted"}`}
           onClick={() => switchMode("LunarToSolar")}
+          aria-pressed={mode === "LunarToSolar"}
         >
           <Moon className="w-4 h-4 text-info" />
           Âm → Dương
@@ -154,9 +161,11 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
           {/* eslint-disable-next-line react/forbid-elements */}
           <input
             type="number"
-            value={day}
+            ref={dayInputRef}
+            aria-label={mode === "SolarToLunar" ? "Ngày dương lịch" : "Ngày âm lịch"}
+            value={dayInput}
             onClick={(e) => e.currentTarget.select()}
-            onChange={(e) => setDay(Number(e.target.value))}
+            onChange={(e) => setDayInput(e.target.value)}
             className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
           />
           <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Ngày</span>
@@ -165,9 +174,10 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
           {/* eslint-disable-next-line react/forbid-elements */}
           <input
             type="number"
-            value={month}
+            aria-label={mode === "SolarToLunar" ? "Tháng dương lịch" : "Tháng âm lịch"}
+            value={monthInput}
             onClick={(e) => e.currentTarget.select()}
-            onChange={(e) => setMonth(Number(e.target.value))}
+            onChange={(e) => setMonthInput(e.target.value)}
             className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
           />
           <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Tháng</span>
@@ -176,9 +186,10 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
           {/* eslint-disable-next-line react/forbid-elements */}
           <input
             type="number"
-            value={year}
+            aria-label={mode === "SolarToLunar" ? "Năm dương lịch" : "Năm âm lịch"}
+            value={yearInput}
             onClick={(e) => e.currentTarget.select()}
-            onChange={(e) => setYear(Number(e.target.value))}
+            onChange={(e) => setYearInput(e.target.value)}
             className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
           />
           <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Năm</span>
@@ -241,14 +252,14 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, o
               </div>
             </div>
             <Button onClick={handleNavigate} className="mt-4 w-full uppercase tracking-widest text-caption">
-              Xem Lịch Ngày Này
+              Xem chi tiết ngày
             </Button>
           </>
         ) : (
           <div className="py-10 flex flex-col items-center justify-center">
             <Moon className="w-8 h-8 text-text-muted mb-2 opacity-40" />
             <p className="text-body-sm text-text-muted">
-              {day && month && year ? "Ngày không hợp lệ" : "Nhập ngày để xem kết quả"}
+              {dayInput && monthInput && yearInput ? "Ngày không hợp lệ" : "Nhập ngày để xem kết quả"}
             </p>
           </div>
         )}

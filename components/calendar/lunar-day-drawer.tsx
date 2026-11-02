@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { CalendarDays, Clock3, Compass, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, Clock3, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { getLunarDaySummary, type LunarDaySummary } from "@/lib/lunar-calendar";
@@ -20,15 +20,6 @@ function DetailItem({ label, value }: { label: string; value: string | null }) {
     <div className="rounded-lg border border-border bg-bg-card px-3 py-2.5">
       <div className="text-tiny font-semibold uppercase tracking-wider text-text-muted">{label}</div>
       <div className="mt-1 text-sm font-semibold text-text-primary">{value}</div>
-    </div>
-  );
-}
-
-function UnknownItem({ label }: { label: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-bg-hover/50 px-3 py-2.5">
-      <div className="text-tiny font-semibold uppercase tracking-wider text-text-muted">{label}</div>
-      <div className="mt-1 text-sm font-medium text-text-muted">Chưa có dữ liệu xác thực</div>
     </div>
   );
 }
@@ -92,6 +83,27 @@ export function LunarDayDrawer({ date, onClose, onCreateEvent, onGoToCalendar }:
             </div>
           </section>
 
+          <div className="flex flex-col gap-2 rounded-lg bg-bg-base pb-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full min-h-11 justify-center gap-2"
+              onClick={() => onGoToCalendar(summary.solarDate)}
+            >
+              <CalendarDays className="size-4" />
+              Xem lịch studio ngày này
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-11 justify-center gap-2"
+              onClick={() => onCreateEvent(summary.solarDate)}
+            >
+              <Plus className="size-4" />
+              Tạo lịch trình
+            </Button>
+          </div>
+
           <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <DetailItem label="Dương lịch" value={title} />
             <DetailItem label="Âm lịch" value={`${summary.lunarDay}/${summary.lunarMonth}/${summary.lunarYear}${summary.leap ? " nhuận" : ""}`} />
@@ -102,43 +114,6 @@ export function LunarDayDrawer({ date, onClose, onCreateEvent, onGoToCalendar }:
           </section>
 
           <AuspiciousHours summary={summary} />
-
-          <section className="rounded-lg border border-border bg-bg-card p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Compass className="size-4 text-primary" />
-              <h3 className="text-sm font-bold text-text-primary">Thông tin mở rộng</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <UnknownItem label="Tuổi xung" />
-              <UnknownItem label="Hỷ thần" />
-              <UnknownItem label="Tài thần" />
-              <UnknownItem label="Cát hung công việc" />
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-text-muted">
-              Các mục mở rộng sẽ chỉ hiển thị khi có bộ quy tắc xác thực, tránh đưa dữ liệu phong thủy không chắc chắn vào nghiệp vụ.
-            </p>
-          </section>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-2 border-t border-border bg-bg-base pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row">
-          <Button
-            type="button"
-            variant="primary"
-            className="w-full justify-center gap-2"
-            onClick={() => onCreateEvent(summary.solarDate)}
-          >
-            <Plus className="size-4" />
-            Tạo lịch trình
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-center gap-2"
-            onClick={() => onGoToCalendar(summary.solarDate)}
-          >
-            <CalendarDays className="size-4" />
-            Đi tới lịch
-          </Button>
         </div>
       </div>
     </Drawer>

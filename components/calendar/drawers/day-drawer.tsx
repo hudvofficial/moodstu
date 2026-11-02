@@ -13,12 +13,14 @@ import { getLunarDaySummary } from "@/lib/lunar-calendar";
 interface DayDrawerProps {
   date: Date | null;
   events: UnifiedCalendarEvent[];
+  isLoading?: boolean;
+  googleError?: boolean;
   onClose: () => void;
   onEventClick?: (event: UnifiedCalendarEvent) => void;
   onCreateEvent?: (date: Date) => void;
 }
 
-export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }: DayDrawerProps) {
+export function DayDrawer({ date, events, isLoading = false, googleError = false, onClose, onEventClick, onCreateEvent }: DayDrawerProps) {
   const dateIso = date ? format(date, "yyyy-MM-dd") : "";
   const eventsForDay = date ? events.filter((e) => eventOccursOnDate(e, dateIso)) : [];
   const dayName = date ? format(date, "EEEE", { locale: vi }) : "";
@@ -30,7 +32,7 @@ export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }
     <Drawer
       isOpen={!!date}
       onClose={onClose}
-      title={`${dayName}, ${formattedDate} — ${eventCount} sự kiện`}
+      title={`${dayName}, ${formattedDate} — ${isLoading ? "đang tải lịch trình" : `${eventCount} sự kiện`}`}
     >
       <div className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {lunar && (
@@ -56,12 +58,22 @@ export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }
             )}
           </div>
         )}
-        {eventCount === 0 ? (
+        {googleError && (
+          <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-text-secondary">
+            Không tải được sự kiện Google Calendar. Danh sách chỉ hiển thị lịch studio đang có dữ liệu.
+          </p>
+        )}
+        {isLoading && (
+          <p role="status" aria-live="polite" className="py-3 text-center text-sm text-text-muted">
+            Đang tải lịch trình…
+          </p>
+        )}
+        {!isLoading && eventCount === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
             <div className="w-12 h-12 rounded-full bg-bg-input flex items-center justify-center">
               <FileText className="w-5 h-5 text-text-muted" />
             </div>
-            <p className="text-sm">Không có lịch trình ngày này</p>
+            <p className="text-sm">Không có lịch trình đang hiển thị</p>
             {date && (
               <Button
                 variant="primary"

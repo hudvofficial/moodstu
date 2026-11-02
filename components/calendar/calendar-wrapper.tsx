@@ -9,8 +9,10 @@ import { WeekGrid } from "./views/week-grid";
 import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
+import { LunarDayDrawer } from "./lunar-day-drawer";
 import { EventFormDrawer } from "./drawers/event-form-drawer";
 import { FAB } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
 import { useIsSmallMobile } from "@/hooks/use-mobile";
 import { CalendarViewMode, UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
@@ -38,18 +40,24 @@ export function CalendarWrapper({
   const {
     currentDate,
     setCurrentDate,
+    navigateToCalendarDate,
     events,
     eventsByDate,
     viewMode,
     setViewMode,
     isLoading,
+    isDayEventsLoading,
     error,
+    googleError,
+    retryGoogleEvents,
     filters,
     mutate,
   } = useCalendarData();
   const [selectedMobileDate, setSelectedMobileDate] = useState<Date | null>(
     null,
   );
+  const [selectedLunarDate, setSelectedLunarDate] = useState<Date | null>(null);
+  const lunarTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Swipe navigation for mobile
   const touchStartX = useRef<number | null>(null);
@@ -104,6 +112,17 @@ export function CalendarWrapper({
     setIsFormOpen(true);
   };
 
+  const handleCloseLunarDay = useCallback(() => {
+    setSelectedLunarDate(null);
+    // The converter's CTA has unmounted; restore focus to its visible toolbar trigger.
+    requestAnimationFrame(() => lunarTriggerRef.current?.focus());
+  }, []);
+
+  const handleCreateFromLunarDay = (date: Date) => {
+    setSelectedLunarDate(null);
+    openCreateForm(date);
+  };
+
   const openEditForm = (event: UnifiedCalendarEvent) => {
     setEditingEvent(event);
     setIsFormOpen(true);
@@ -119,6 +138,12 @@ export function CalendarWrapper({
   // MobileMonthGrid chỉ dùng cho phone portrait thực sự (<640px) — cell hẹp, tap → drawer.
   const isSmallMobile = useIsSmallMobile();
   const isSmallScreen = isSmallMobile;
+
+  const handleGoToCalendarDay = (date: Date) => {
+    navigateToCalendarDate(date, isSmallScreen ? "month" : "day");
+    if (isSmallScreen) setSelectedMobileDate(date);
+    setSelectedLunarDate(null);
+  };
 
   const handleViewModeChange = useCallback(
     (mode: CalendarViewMode) => {
@@ -199,12 +224,36 @@ export function CalendarWrapper({
       <CalendarToolbar
         currentDate={currentDate}
         onDateChange={setCurrentDate}
+        onOpenLunarDay={setSelectedLunarDate}
+        onConverterTriggerOpen={(trigger) => { lunarTriggerRef.current = trigger; }}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         filters={filters}
         onNewEvent={() => openCreateForm(currentDate)}
         isMobileMonthOnly={isSmallScreen}
       />
+      {googleError && (
+        <div
+          role="alert"
+          className="mx-3 my-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-text-primary sm:mx-0"
+        >
+          <span className="flex-1 min-w-40">
+            Không tải được sự kiện Google Calendar. Lịch studio vẫn được hiển thị.
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="font-semibold underline underline-offset-2"
+            onClick={() => { void retryGoogleEvents(); }}
+          >
+            Thử lại
+          </Button>
+          <a href="/settings/studio" className="font-semibold underline underline-offset-2">
+            Kiểm tra kết nối
+          </a>
+        </div>
+      )}
       <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
         {(!mounted || isLoading) && (
           <div className="absolute inset-0 z-20 flex flex-col gap-4 p-4 bg-bg-base/80 backdrop-blur-sm">
@@ -231,9 +280,17 @@ export function CalendarWrapper({
         </div>
       </div>
 
+      <LunarDayDrawer
+        date={selectedLunarDate}
+        onClose={handleCloseLunarDay}
+        onCreateEvent={handleCreateFromLunarDay}
+        onGoToCalendar={handleGoToCalendarDay}
+      />
       <DayDrawer
         date={selectedMobileDate}
         events={events}
+        isLoading={isDayEventsLoading}
+        googleError={googleError}
         onClose={() => setSelectedMobileDate(null)}
         onEventClick={openEditForm}
         onCreateEvent={openCreateForm}

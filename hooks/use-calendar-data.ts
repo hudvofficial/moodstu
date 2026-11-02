@@ -92,19 +92,21 @@ export function useCalendarData() {
     }
   );
 
-  const { data: isGoogleConnected } = useSWR(
+  const { data: isGoogleConnected, isLoading: isGoogleStatusLoading, error: googleStatusError, mutate: mutateGoogleStatus } = useSWR(
     "calendar-google-connected",
     async () => {
       const res = await checkGoogleCalendarStatus();
-      return res.success ? res.data : false;
+      if (!res.success) throw new Error("Không thể kiểm tra trạng thái kết nối Google Calendar.");
+      return res.data;
     }
   );
 
-  const { data: googleData, mutate: mutateGoogle } = useSWR(
+  const { data: googleData, isLoading: isGoogleLoading, error: googleError, mutate: mutateGoogle } = useSWR(
     isGoogleConnected ? cacheKeys.calendarGoogle(month, year, viewMode) : null,
     async () => {
       const res = await fetchCalendarGoogleEvents(month, year, viewMode);
-      return res.success ? res.data : [];
+      if (!res.success) throw new Error(res.error || "Không thể tải Google Calendar.");
+      return res.data;
     },
   );
 
@@ -124,9 +126,12 @@ export function useCalendarData() {
   });
 
   const rawEvents = useMemo(() => {
-    const internalEvents = data?.success ? data.data : [];
-    return [...internalEvents, ...(googleData || [])];
-  }, [data, googleData]);
+    // Global SWR keepPreviousData may return events from the *previous* month/view.
+    // Don't expose those while the requested key is loading or has failed.
+    const internalEvents = !isLoading && !error && data?.success ? data.data : [];
+    const googleEvents = isGoogleConnected && !isGoogleLoading && !googleError ? (googleData || []) : [];
+    return [...internalEvents, ...googleEvents];
+  }, [data, googleData, isLoading, isGoogleLoading, isGoogleConnected, error, googleError]);
   const serverError = data && !data.success ? data.error : null;
   const employeeNameById = useMemo(() => {
     return new Map((employeesData || []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]));
@@ -208,6 +213,13 @@ export function useCalendarData() {
     return `${pathname}?date=${dateKey}&view=${mode}`;
   }, [pathname]);
 
+  // Navigate date + view together to avoid two competing router.replace() calls.
+  const navigateToCalendarDate = useCallback((date: Date, mode: CalendarViewMode) => {
+    setCurrentDateState(date);
+    setViewModeState(mode);
+    router.replace(buildCalendarUrl(date, mode), { scroll: false });
+  }, [router, buildCalendarUrl]);
+
   const handleSetCurrentDate = useCallback((date: Date) => {
     setCurrentDateState(date);
     router.replace(buildCalendarUrl(date, viewMode), { scroll: false });
@@ -229,6 +241,7 @@ export function useCalendarData() {
   return {
     currentDate,
     setCurrentDate: handleSetCurrentDate,
+    navigateToCalendarDate,
     month,
     year,
     events: filteredEvents,
@@ -238,8 +251,14 @@ export function useCalendarData() {
     viewMode,
     setViewMode: handleSetViewMode,
     isLoading,
+    isDayEventsLoading: isLoading || (!data && !error) || isGoogleStatusLoading || (isGoogleConnected === true && isGoogleLoading),
     isInitialLoading: isLoading && !data,
     isRefreshing: isValidating && !!data,
+    googleError: Boolean(googleError || googleStatusError),
+    retryGoogleEvents: async () => {
+      await mutateGoogleStatus();
+      await mutateGoogle();
+    },
     error: error?.message || serverError,
     mutate: async () => {
       await mutate();

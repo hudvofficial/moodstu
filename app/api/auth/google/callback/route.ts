@@ -11,6 +11,7 @@ import {
   safeCompareSecret,
 } from "@/lib/settings-secrets";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { resolveGoogleOAuthRedirectUri } from "@/lib/google-oauth-redirect";
 
 const GOOGLE_OAUTH_STATE_COOKIE = "mood_google_oauth_state";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -71,14 +72,11 @@ export async function GET(request: Request) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-    // Auto-detect base URL from request or fallback to env
-    const requestUrl = new URL(request.url);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                    `${requestUrl.protocol}//${requestUrl.host}`;
-
-    const redirectUri =
-      process.env.GOOGLE_REDIRECT_URI ||
-      `${baseUrl}/api/auth/google/callback`;
+    const redirectUri = resolveGoogleOAuthRedirectUri(
+      request.url,
+      process.env.GOOGLE_REDIRECT_URI,
+      process.env.NEXT_PUBLIC_SITE_URL,
+    );
 
     if (!clientId || !clientSecret) {
       return NextResponse.json(
@@ -116,7 +114,10 @@ export async function GET(request: Request) {
     if (!tokenResponse.ok || tokens.error) {
       const tokenError =
         typeof tokens.error === "string" ? tokens.error : "token_error";
-      console.error("Google Token Error:", tokens);
+      console.error("Google OAuth token exchange failed:", {
+        status: tokenResponse.status,
+        code: tokenError,
+      });
       return redirectTo(
         `/settings/studio?google_error=${encodeURIComponent(tokenError)}`,
         request,
@@ -145,6 +146,15 @@ export async function GET(request: Request) {
           : existingAuth?.granted_scopes,
       updated_at: new Date().toISOString(),
     };
+    // A short-lived access token without a refresh token is not a usable
+    // Calendar integration. Fail before persisting a misleading "connected" state.
+    if (typeof tokens.access_token !== "string" || !tokens.access_token) {
+      return redirectTo("/settings/studio?google_error=missing_access_token", request);
+    }
+    if (typeof mergedAuth.refresh_token !== "string" || !mergedAuth.refresh_token) {
+      return redirectTo("/settings/studio?google_error=missing_refresh_token", request);
+    }
+
     const encryptedAuth = encryptGoogleOAuth(mergedAuth);
 
     if (studioInfo) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -15,6 +15,8 @@ import type { CalendarViewMode } from "@/types/calendar.types";
 interface CalendarToolbarProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
+  onOpenLunarDay: (date: Date) => void;
+  onConverterTriggerOpen: (trigger: HTMLButtonElement) => void;
   viewMode: CalendarViewMode;
   onViewModeChange: (mode: CalendarViewMode) => void;
   filters: {
@@ -38,6 +40,8 @@ const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
 export function CalendarToolbar({
   currentDate,
   onDateChange,
+  onOpenLunarDay,
+  onConverterTriggerOpen,
   viewMode,
   onViewModeChange,
   filters,
@@ -48,6 +52,7 @@ export function CalendarToolbar({
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
+  const converterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
 
   const hasActiveFilter =
@@ -55,6 +60,17 @@ export function CalendarToolbar({
   const mobileViewModeOptions = isMobileMonthOnly
     ? VIEW_MODE_OPTIONS.filter((opt) => opt.value === "month")
     : VIEW_MODE_OPTIONS;
+
+  const openConverter = (trigger: HTMLButtonElement) => {
+    converterTriggerRef.current = trigger;
+    onConverterTriggerOpen(trigger);
+    setIsConverterOpen(true);
+  };
+
+  const closeConverter = () => {
+    setIsConverterOpen(false);
+    requestAnimationFrame(() => converterTriggerRef.current?.focus());
+  };
 
   const handlePrev = () => {
     if (viewMode === "month") {
@@ -191,7 +207,7 @@ export function CalendarToolbar({
             </div>
             <Button
               variant="ghost"
-              onClick={() => setIsConverterOpen(true)}
+              onClick={(event) => openConverter(event.currentTarget)}
               className="gap-1.5 text-warning hover:bg-warning/10"
               title="Đổi Âm lịch / Dương lịch"
             >
@@ -292,7 +308,7 @@ export function CalendarToolbar({
             </Button>
             <Button
               variant="ghost"
-              onClick={() => setIsConverterOpen(true)}
+              onClick={(event) => openConverter(event.currentTarget)}
               className="w-10 h-10 p-0 rounded-full bg-bg-card shadow-sm border border-warning/20 text-warning hover:bg-warning/10"
               aria-label="Đổi Âm/Dương"
             >
@@ -358,8 +374,8 @@ export function CalendarToolbar({
       </div>
       <SolarLunarConverter
         isOpen={isConverterOpen}
-        onClose={() => setIsConverterOpen(false)}
-        onNavigateDate={onDateChange}
+        onClose={closeConverter}
+        onOpenDayDetail={onOpenLunarDay}
       />
       <CalendarMonthYearPicker
         open={isMonthYearPickerOpen}

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireSettingsAdminAccess } from "@/lib/auth_utils";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { resolveGoogleOAuthRedirectUri } from "@/lib/google-oauth-redirect";
 
 const GOOGLE_OAUTH_STATE_COOKIE = "mood_google_oauth_state";
 
@@ -11,14 +12,11 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
-  // Auto-detect base URL from request or fallback to env
-  const requestUrl = new URL(request.url);
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                  `${requestUrl.protocol}//${requestUrl.host}`;
-
-  const redirectUri =
-    process.env.GOOGLE_REDIRECT_URI ||
-    `${baseUrl}/api/auth/google/callback`;
+  const redirectUri = resolveGoogleOAuthRedirectUri(
+    request.url,
+    process.env.GOOGLE_REDIRECT_URI,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  );
   const appBaseUrl = new URL(redirectUri).origin;
 
   const supabase = await createClient();

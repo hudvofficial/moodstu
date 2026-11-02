@@ -1,6 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import { getGoogleOAuthFeedback } from "@/lib/google-oauth-feedback";
 import { toast } from "@/lib/toast-manager";
 import { Calendar, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,12 @@ export default function GoogleCalendarCard({
   onDisconnected,
 }: GoogleCalendarCardProps) {
   const [isPending, startTransition] = useTransition();
+  const params = useSearchParams();
+  const oauthFeedback = getGoogleOAuthFeedback(
+    params.get("google_error"),
+    params.get("google_connected"),
+    isConnected,
+  );
 
   const handleDisconnect = () => {
     startTransition(async () => {
@@ -83,6 +91,20 @@ export default function GoogleCalendarCard({
           </a>
         )}
       </div>
+
+      {oauthFeedback && (
+        <div
+          role={oauthFeedback.tone === "success" ? "status" : "alert"}
+          className={`rounded-lg border p-3 text-sm ${
+            oauthFeedback.tone === "success"
+              ? "border-green-500/25 bg-green-500/5 text-text-primary"
+              : "border-amber-500/30 bg-amber-500/5 text-text-primary"
+          }`}
+        >
+          <p className="font-semibold">{oauthFeedback.message}</p>
+          <p className="mt-1 text-xs text-text-secondary">{oauthFeedback.detail}</p>
+        </div>
+      )}
 
       {isConnected && (
         <div className="bg-surface-elevated rounded-md p-3 flex flex-col gap-2 border border-border-subtle">

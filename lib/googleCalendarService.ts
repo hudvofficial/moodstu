@@ -78,12 +78,13 @@ export async function getGoogleCalendarEvents(
   try {
     const supabase = await createAdminClient();
 
-    const { data: studioInfo } = await supabase
+    const { data: studioInfo, error: studioError } = await supabase
       .from("studio_info")
       .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
+    if (studioError) throw new Error("Không thể kiểm tra kết nối Google Calendar.");
     if (!studioInfo?.google_oauth) return [];
 
     const authData = await getValidGoogleToken(supabase, studioInfo);
@@ -129,8 +130,10 @@ export async function getGoogleCalendarEvents(
       moodSource: item.extendedProperties?.private?.mood_source || null,
     }));
   } catch (error) {
+    // Do not disguise a failed Google fetch as a genuinely empty calendar.
+    // Preserve the detailed exception only in server logs.
     console.error("getGoogleCalendarEvents Error:", error);
-    return [];
+    throw new Error("Google Calendar không thể tải sự kiện. Kiểm tra kết nối Google trong Cài đặt studio.");
   }
 }
 

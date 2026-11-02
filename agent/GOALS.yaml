@@ -416,3 +416,31 @@ buoc:
   - { id: 31, gd: 3, tuan: 10, ten: "Module Nền tảng (C): luật audit thành văn · bộ lọc nhật ký · bucket avatars · 3 cache tag", hinh_thuc: spec, gate: [G2], status: todo }
   - { id: 32a, gd: 3, tuan: 11, ten: "Module CRM (C+): ownership + ma trận mọi đường ghi · nhắc lead đến hạn · warnings→việc tồn (C2)", hinh_thuc: spec, gate: [G2], status: todo }
   - { id: 32b, gd: 3, tuan: 12, ten: "Module Nhân sự + In ấn: gỡ khối lương/cố định (C7) · luật ngày · recompute khi huỷ đơn · nhắc lab trong checklist chốt sổ (C5) → kiểm CỔNG G3", hinh_thuc: spec, gate: [G2], status: todo }
+
+  # ── Bugfix Calendar riêng PO duyệt 02/11/2026 (không gộp với #30/G2)
+  - id: fix-calendar-lunar-20261102
+    gd: 2
+    ten: "Sửa đổi Âm/Dương → tra cứu ngày → lịch studio đúng dữ liệu"
+    hinh_thuc: spec
+    gate: []
+    status: cho-xem-diff
+    ngay_spec: 2026-11-02
+    ngay_duyet: 2026-11-02
+    ngay_code: 2026-11-02
+    spec: agent/HANDOFFS/T-20261102-calendar-am-duong-tra-cuu-ngay.spec.md
+    bang_chung: "Jest lunar 6/6 (192 round-trip) · eslint 7 file 0 lỗi · tsc exit 0 · verify:calendar tĩnh PASS (remote DB probes skipped) · npm run build exit 0 (40/40 static + PWA verified) · browser harness offline component 5/5 (Chromium+WebKit), Wrapper mock 3/3 · diff --check sạch; chưa thử authenticated /calendar; chưa commit/push."
+    can_cu: "PO duyệt spec trong hội thoại 02/11/2026; chỉ Calendar UI, không DB, không commit/push trước xem diff."
+
+  # ── Google OAuth / Calendar reliability 02-11-2026 (không gộp #30)
+  - id: google-oauth-20261102
+    gd: 2
+    ten: "Hoàn thiện OAuth Google Calendar: báo lỗi đúng và không giấu lỗi tải"
+    hinh_thuc: spec
+    gate: []
+    status: verify
+    ngay_spec: 2026-11-02
+    ngay_duyet: 2026-11-02
+    ngay_code: 2026-11-02
+    spec: agent/HANDOFFS/T-20261102-google-oauth-calendar-reliability.spec.md
+    bang_chung: "Prod GET /api/auth/google unauth HTTP307 -> http://localhost:3000/login (ROOT CAUSE). Shared redirect resolver fixes trusted stu.moodwedding.com and local port/state cookies; Jest 32/32 incl Google API403 + OAuth redirect; tsc/eslint/verify:settings/verify:calendar static/diff --check PASS; production build exit 0, 40/40 pages, PWA verified. PO uy quyen full technical fix/push 02/11; con can production endpoint postdeploy + Google account consent/live read."
+    can_cu: "PO 'tiến hành triển khai cho hoàn thiện' rồi 'PO giao full quyền cho bạn để fix tối ưu mà' 02/11/2026. Giữ giới hạn Google consent do chủ tài khoản quyết định."
