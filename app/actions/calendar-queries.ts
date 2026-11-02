@@ -488,7 +488,9 @@ export async function fetchCalendarGoogleEvents(
     const result: UnifiedCalendarEvent[] = [];
 
     for (const googleEvent of googleEvents) {
-      if (syncedGoogleIds.has(googleEvent.id)) continue;
+      // Studio events are synced OUT only to Google Primary. Do not suppress
+      // a different calendar's event just because Google IDs happen to match.
+      if (googleEvent.calendarPrimary && syncedGoogleIds.has(googleEvent.originalId)) continue;
       if (googleEvent.moodSource === "contract_event") continue;
 
       result.push({
@@ -508,10 +510,10 @@ export async function fetchCalendarGoogleEvents(
         groupLabel: null,
         colorToken: getEventColorToken("google"),
         backgroundColor: googleEvent.backgroundColor || null,
-        googleEventId: googleEvent.id,
+        googleEventId: googleEvent.originalId,
         originalDateField: "event_date",
         originalGoogleEvent: {
-          id: googleEvent.id,
+          id: googleEvent.originalId,
           htmlLink: googleEvent.htmlLink,
           colorId: googleEvent.colorId,
         },

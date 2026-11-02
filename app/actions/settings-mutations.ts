@@ -2,10 +2,12 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { withAdmin } from "@/lib/auth_utils";
+import { getValidGoogleToken } from "@/lib/google-auth";
+import { listGoogleCalendarSources, validateGoogleCalendarSelection } from "@/lib/google-calendar-sources";
 import { writeAuditLog } from "@/lib/audit";
 import { verifyMoodieGeminiModel } from "@/lib/moodie/gemini-models";
 import { isCuratedMoodieGeminiModelSetting } from "@/lib/moodie/model-options";
-import { encryptSecret, redactGoogleOAuth } from "@/lib/settings-secrets";
+import { decryptGoogleOAuth, encryptSecret, redactGoogleOAuth } from "@/lib/settings-secrets";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
   getMoodieGeminiStoredApiKey,
@@ -261,5 +263,80 @@ export async function disconnectGoogleOAuth() {
     revalidatePath("/settings/studio");
     revalidateTag("studio-info", { expire: 0 });
     return null;
+  });
+}
+
+/**
+ * Set which of the connected account's readable Google calendars appear in
+ * Mood Studio. This never changes Google Calendar visibility/settings or
+ * writes events. IDs are validated against Google, not trusted from the client.
+ */
+export async function updateGoogleCalendarSourceSelection(calendarIds: string[]) {
+  return withAdmin(async (adminClient) => {
+    const { data: studio, error: studioError } = await adminClient
+      .from("studio_info")
+      .select("id, google_oauth")
+      .limit(1)
+      .maybeSingle();
+    if (studioError || !studio?.google_oauth) {
+      throw new Error("Studio chưa kết nối Google Calendar.");
+    }
+
+    const token = await getValidGoogleToken(adminClient, studio);
+    const sources = await listGoogleCalendarSources(token.access_token);
+    const verifiedIds = validateGoogleCalendarSelection(sources, calendarIds);
+
+    // Refreshing an access token may update the stored OAuth JSON. Reload
+    // before mutating preferences so we don't restore an expired token.
+    const { data: latest, error: latestError } = await adminClient
+      .from("studio_info")
+      .select("google_oauth")
+      .eq("id", studio.id)
+      .maybeSingle();
+    if (latestError || !latest?.google_oauth) {
+      throw new Error("Kết nối Google đã thay đổi. Vui lòng tải lại trang.");
+    }
+    const currentAuth = latest.google_oauth as Record<string, unknown>;
+    // AES-GCM uses a new IV on every refresh: ciphertext comparisons would
+    // falsely reject legitimate token refreshes. Compare only in memory.
+    const originalRefreshToken = decryptGoogleOAuth(studio.google_oauth)?.refresh_token;
+    const currentRefreshToken = decryptGoogleOAuth(latest.google_oauth)?.refresh_token;
+    if (
+      typeof originalRefreshToken !== "string" ||
+      !originalRefreshToken ||
+      originalRefreshToken !== currentRefreshToken
+    ) {
+      throw new Error("Kết nối Google vừa thay đổi. Hãy tải lại nguồn lịch.");
+    }
+
+    const previousIds = currentAuth.selected_calendar_ids;
+    const { error: updateError } = await adminClient
+      .from("studio_info")
+      .update({
+        google_oauth: {
+          ...currentAuth,
+          selected_calendar_ids: verifiedIds,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", studio.id);
+    if (updateError) throw new Error("Không thể lưu nguồn lịch Google.");
+
+    await writeAuditLog({
+      action: "UPDATE",
+      tableName: "studio_info",
+      recordId: studio.id,
+      description: "Cập nhật nguồn lịch Google hiển thị trong Mood Studio",
+      oldData: {
+        google_calendar_source_count: Array.isArray(previousIds) ? previousIds.length : null,
+      },
+      newData: { google_calendar_source_count: verifiedIds.length },
+      source: "server_action",
+    });
+
+    revalidatePath("/settings/studio");
+    revalidatePath("/calendar");
+    revalidateTag("studio-info", { expire: 0 });
+    return { count: verifiedIds.length };
   });
 }

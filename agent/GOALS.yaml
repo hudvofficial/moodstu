@@ -444,3 +444,19 @@ buoc:
     spec: agent/HANDOFFS/T-20261102-google-oauth-calendar-reliability.spec.md
     bang_chung: "Prod GET /api/auth/google unauth HTTP307 -> http://localhost:3000/login (ROOT CAUSE). Shared redirect resolver fixes trusted stu.moodwedding.com and local port/state cookies; Jest 32/32 incl Google API403 + OAuth redirect; tsc/eslint/verify:settings/verify:calendar static/diff --check PASS; production build exit 0, 40/40 pages, PWA verified. PO uy quyen full technical fix/push 02/11; con can production endpoint postdeploy + Google account consent/live read."
     can_cu: "PO 'tiến hành triển khai cho hoàn thiện' rồi 'PO giao full quyền cho bạn để fix tối ưu mà' 02/11/2026. Giữ giới hạn Google consent do chủ tài khoản quyết định."
+
+
+  # ── Google Calendar nhiều nguồn — chẩn đoán API live 02-11-2026
+  - id: google-calendar-sources-20261102
+    gd: 2
+    ten: "Đọc nhiều lịch Google và chọn nguồn hiển thị an toàn"
+    hinh_thuc: spec
+    gate: []
+    status: verify
+    ngay_spec: 2026-11-02
+    ngay_duyet: 2026-11-02
+    ngay_code: 2026-11-02
+    spec: agent/HANDOFFS/T-20261102-google-calendar-multi-source.spec.md
+    adr: ADR-023
+    bang_chung: "Live Google Calendar API read-only: OAuth decrypt OK, calendarList 3 nguồn (primary 0, selected secondary 0, unselected reader 1 sự kiện tháng 11). Jest 44/44 (gồm admin save/refresh token/forbidden ID), tsc/eslint, verify:settings, verify:calendar static, diff --check PASS; npm run build LẦN CUỐI sau patch lưu token exit 0 (40/40 static pages, PWA verified). Offline Playwright GoogleCalendarCard 6/6 Chromium/WebKit 375-1366px (mock save 3 sources, 0 JS errors, 0 network). Không tự bật source selected=false trong DB; admin sẽ chọn tại Settings."
+    can_cu: "PO full quyền xử lý Google Calendar, nhưng quyền chọn chia sẻ nguồn unselected trong studio dành cho admin tại Settings. Không tự bật lịch chưa chọn."

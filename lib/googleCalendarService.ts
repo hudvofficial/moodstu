@@ -10,14 +10,13 @@ import {
   encryptGoogleOAuth,
 } from "@/lib/settings-secrets";
 import { getValidGoogleToken } from "@/lib/google-auth";
+import { getGoogleCalendarSourceOptions, listGoogleCalendarSources } from "@/lib/google-calendar-sources";
 
 
 const GOOGLE_CALENDAR_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const GOOGLE_CALENDAR_EVENT_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-const GOOGLE_PRIMARY_CALENDAR_LIST_API =
-  "https://www.googleapis.com/calendar/v3/users/me/calendarList/primary";
 const GOOGLE_DEFAULT_CALENDAR_COLOR = "#039be5";
 
 // Google Calendar Standard Colors Mapping
@@ -51,25 +50,11 @@ export type GoogleCalendarEventPayload = {
 
 // ─── INTERNAL HELPERS ─────────────────────────────
 
-async function getPrimaryCalendarDefaultColor(accessToken: string) {
-  try {
-    const res = await fetch(GOOGLE_PRIMARY_CALENDAR_LIST_API, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-
-    if (!res.ok) return GOOGLE_DEFAULT_CALENDAR_COLOR;
-
-    const data = await res.json();
-    return typeof data.backgroundColor === "string" && data.backgroundColor
-      ? data.backgroundColor
-      : GOOGLE_DEFAULT_CALENDAR_COLOR;
-  } catch {
-    return GOOGLE_DEFAULT_CALENDAR_COLOR;
-  }
-}
-
 // ─── MAIN SERVICES ────────────────────────────────
+
+// Keep page limits bounded: never silently hide events beyond the first page.
+const GOOGLE_EVENT_PAGE_SIZE = 250;
+const GOOGLE_MAX_EVENT_PAGES = 10;
 
 export async function getGoogleCalendarEvents(
   timeMin: string,
@@ -88,50 +73,88 @@ export async function getGoogleCalendarEvents(
     if (!studioInfo?.google_oauth) return [];
 
     const authData = await getValidGoogleToken(supabase, studioInfo);
+    const sources = await listGoogleCalendarSources(authData.access_token);
+    const selected = getGoogleCalendarSourceOptions(
+      sources,
+      (studioInfo.google_oauth as Record<string, unknown>).selected_calendar_ids,
+    ).filter((source) => source.included);
 
-    // Fetch Events
-    const calendarUrl = new URL(GOOGLE_CALENDAR_API);
-    calendarUrl.searchParams.append("timeMin", timeMin);
-    calendarUrl.searchParams.append("timeMax", timeMax);
-    calendarUrl.searchParams.append("singleEvents", "true");
-    calendarUrl.searchParams.append("orderBy", "startTime");
+    const loadEventsFromSource = async (source: (typeof selected)[number]) => {
+      const items: Array<Record<string, any>> = [];
+      let nextPageToken: string | undefined;
 
-    const res = await fetch(calendarUrl.toString(), {
-      headers: { Authorization: `Bearer ${authData.access_token}` },
-      cache: "no-store",
-    });
+      for (let page = 0; page < GOOGLE_MAX_EVENT_PAGES; page++) {
+        const url = new URL(
+          "https://www.googleapis.com/calendar/v3/calendars/" +
+          encodeURIComponent(source.id) + "/events",
+        );
+        url.searchParams.set("timeMin", timeMin);
+        url.searchParams.set("timeMax", timeMax);
+        url.searchParams.set("singleEvents", "true");
+        url.searchParams.set("orderBy", "startTime");
+        url.searchParams.set("maxResults", String(GOOGLE_EVENT_PAGE_SIZE));
+        if (nextPageToken) url.searchParams.set("pageToken", nextPageToken);
 
-    if (!res.ok) throw new Error(`Google Calendar API ${res.status}`);
+        const response = await fetch(url, {
+          headers: { Authorization: "Bearer " + authData.access_token },
+          cache: "no-store",
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) {
+          throw new Error("Google Calendar API " + response.status);
+        }
+        const pageResult = await response.json();
+        items.push(...(Array.isArray(pageResult.items) ? pageResult.items : []));
+        nextPageToken = pageResult.nextPageToken;
+        if (!nextPageToken) {
+          return items
+            .filter((item) =>
+              item.status !== "cancelled" &&
+              typeof item.id === "string" &&
+              (item.start?.dateTime || item.start?.date),
+            )
+            .map((item) => {
+              const start = item.start.dateTime || item.start.date;
+              const end = item.end?.dateTime || item.end?.date || start;
+              return {
+                // Google event IDs can collide across calendars. Preserve
+                // primary IDs for existing Mood Studio sync deduplication.
+                id: source.primary ? item.id : source.id + "::" + item.id,
+                originalId: item.id as string,
+                calendarId: source.id,
+                calendarPrimary: source.primary,
+                title: item.summary || "(Không tiêu đề)",
+                start,
+                end,
+                description: item.description,
+                location: item.location,
+                status: "Google",
+                category: "Google",
+                isGoogleEvent: true,
+                htmlLink: item.htmlLink,
+                colorId: item.colorId,
+                backgroundColor: GOOGLE_COLORS[item.colorId] ||
+                  source.backgroundColor || GOOGLE_DEFAULT_CALENDAR_COLOR,
+                extendedProperties: item.extendedProperties || null,
+                moodSource: item.extendedProperties?.private?.mood_source || null,
+              };
+            });
+        }
+      }
 
-    const data = await res.json();
-    const items = data.items || [];
-    const needsCalendarDefaultColor = items.some(
-      (item: Record<string, unknown>) => !item.colorId,
-    );
-    const calendarDefaultColor = needsCalendarDefaultColor
-      ? await getPrimaryCalendarDefaultColor(authData.access_token)
-      : GOOGLE_DEFAULT_CALENDAR_COLOR;
+      throw new Error("Lịch Google có quá nhiều sự kiện; chưa tải hết các trang.");
+    };
 
-     
-    return items.map((item: Record<string, any>) => ({
-      id: item.id,
-      title: item.summary || "(Không tiêu đề)",
-      start: item.start.dateTime || item.start.date,
-      end: item.end.dateTime || item.end.date,
-      description: item.description,
-      location: item.location,
-      status: "Google",
-      category: "Google",
-      isGoogleEvent: true,
-      htmlLink: item.htmlLink,
-      colorId: item.colorId,
-      backgroundColor: GOOGLE_COLORS[item.colorId] || calendarDefaultColor,
-      extendedProperties: item.extendedProperties || null,
-      moodSource: item.extendedProperties?.private?.mood_source || null,
-    }));
+    // Batch concurrent requests to avoid unnecessary Google API bursts.
+    const events: Awaited<ReturnType<typeof loadEventsFromSource>> = [];
+    for (let i = 0; i < selected.length; i += 5) {
+      const batches = await Promise.all(selected.slice(i, i + 5).map(loadEventsFromSource));
+      for (const batch of batches) events.push(...batch);
+    }
+    return events;
   } catch (error) {
-    // Do not disguise a failed Google fetch as a genuinely empty calendar.
-    // Preserve the detailed exception only in server logs.
+    // Never treat a Google API failure as "no events" in the studio calendar.
+    // Logs keep details server-side; client receives a safe generic message.
     console.error("getGoogleCalendarEvents Error:", error);
     throw new Error("Google Calendar không thể tải sự kiện. Kiểm tra kết nối Google trong Cài đặt studio.");
   }

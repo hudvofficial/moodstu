@@ -1,5 +1,9 @@
 "use server";
 
+import { getValidGoogleToken } from "@/lib/google-auth";
+import { getGoogleCalendarSourceOptions, listGoogleCalendarSources } from "@/lib/google-calendar-sources";
+
+
 import { createAdminClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
@@ -126,6 +130,28 @@ async function getInitialAuthUsers(
 
 export async function getStudioInfoAdmin() {
   return withAdmin(loadStudioSettingsAdminData);
+}
+
+/** Admin-only list of readable calendars for the connected Google account.
+ * This returns source names/IDs, never OAuth tokens. It does not change the
+ * Google Calendar UI's "selected" property.
+ */
+export async function getGoogleCalendarSourceOptionsAdmin() {
+  return withAdmin(async (adminClient) => {
+    const { data: studio, error } = await adminClient
+      .from("studio_info")
+      .select("id, google_oauth")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error("Không thể tải kết nối Google studio.");
+    if (!studio?.google_oauth) return [];
+
+    const authData = await getValidGoogleToken(adminClient, studio);
+    const sources = await listGoogleCalendarSources(authData.access_token);
+    const configuredIds = (studio.google_oauth as Record<string, unknown>).selected_calendar_ids;
+    return getGoogleCalendarSourceOptions(sources, configuredIds);
+  });
 }
 
 export async function getMoodieGeminiModelOptions(
