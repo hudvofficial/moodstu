@@ -36,6 +36,52 @@ describe("stale Server Action recovery", () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
+  it("dọn cache/SW trước rồi mới reload (PWA trả chunk cũ)", async () => {
+    const values = new Map<string, string>();
+    const order: string[] = [];
+    const environment = {
+      storage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          values.set(key, value);
+        },
+      },
+      reload: () => order.push("reload"),
+    };
+
+    const beforeReload = jest.fn(async () => {
+      order.push("purge");
+    });
+
+    expect(reloadCurrentBuildOnce("purge-build", environment, beforeReload)).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(beforeReload).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["purge", "reload"]);
+  });
+
+  it("vẫn reload khi purge lỗi", async () => {
+    const values = new Map<string, string>();
+    const order: string[] = [];
+    const environment = {
+      storage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          values.set(key, value);
+        },
+      },
+      reload: () => order.push("reload"),
+    };
+
+    reloadCurrentBuildOnce("purge-fail-build", environment, async () => {
+      order.push("purge-failed");
+      throw new Error("cache blocked");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(order).toEqual(["purge-failed", "reload"]);
+  });
+
   it("still reloads when session storage is unavailable", () => {
     const reload = jest.fn();
     const environment = {

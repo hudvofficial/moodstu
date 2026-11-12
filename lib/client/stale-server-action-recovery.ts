@@ -54,6 +54,7 @@ function browserEnvironment(): ReloadEnvironment | null {
 export function reloadCurrentBuildOnce(
   key: string,
   environment: ReloadEnvironment | null = browserEnvironment(),
+  beforeReload?: () => Promise<void>,
 ): boolean {
   if (!environment) return false;
 
@@ -67,13 +68,53 @@ export function reloadCurrentBuildOnce(
   }
 
   reloadedKeys.add(key);
-  environment.reload();
+
+  if (!beforeReload) {
+    environment.reload();
+    return true;
+  }
+
+  // PWA (next-pwa) có thể trả lại đúng chunk cũ sau reload → reload thường
+  // không cứu được. Dọn cache + SW trước, rồi mới reload.
+  beforeReload()
+    .catch(() => {})
+    .finally(() => environment.reload());
   return true;
+}
+
+/**
+ * Xoá Workbox cache + unregister service worker để lần reload sau chắc chắn
+ * lấy JS/HTML mới từ network. SW sẽ tự đăng ký lại ở lần load kế tiếp.
+ */
+async function purgeStaleClientCaches(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  try {
+    if ("caches" in window) {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((key) => window.caches.delete(key)));
+    }
+  } catch {
+    // Cache API bị chặn (private mode) — bỏ qua, reload vẫn chạy.
+  }
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } catch {
+    // Không unregister được thì vẫn reload.
+  }
 }
 
 export function recoverFromStaleServerAction(error: unknown): boolean {
   if (!isStaleServerActionError(error)) return false;
-  reloadCurrentBuildOnce(STALE_SERVER_ACTION_RELOAD_KEY);
+  reloadCurrentBuildOnce(
+    STALE_SERVER_ACTION_RELOAD_KEY,
+    browserEnvironment(),
+    purgeStaleClientCaches,
+  );
   return true;
 }
 
