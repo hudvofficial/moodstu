@@ -3194,6 +3194,8 @@ export type Database = {
           id: string
           item_name: string
           lab_id: string
+          product_id: string | null
+          selling_price_override: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3202,6 +3204,8 @@ export type Database = {
           id?: string
           item_name: string
           lab_id: string
+          product_id?: string | null
+          selling_price_override?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3210,6 +3214,8 @@ export type Database = {
           id?: string
           item_name?: string
           lab_id?: string
+          product_id?: string | null
+          selling_price_override?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3218,6 +3224,13 @@ export type Database = {
             columns: ["lab_id"]
             isOneToOne: false
             referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_services_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "print_products"
             referencedColumns: ["id"]
           },
         ]
@@ -4482,6 +4495,54 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           priority?: number | null
+        }
+        Relationships: []
+      }
+      print_products: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          created_by: string | null
+          default_selling_price: number
+          deleted_at: string | null
+          id: string
+          name: string
+          sku: string
+          specification: string | null
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_selling_price?: number
+          deleted_at?: string | null
+          id?: string
+          name: string
+          sku: string
+          specification?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_selling_price?: number
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          sku?: string
+          specification?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -6666,6 +6727,10 @@ export type Database = {
           p_source_id: string
           p_source_type: string
         }
+        Returns: undefined
+      }
+      resync_payment_plan_amounts_v2: {
+        Args: { p_contract_id: string }
         Returns: undefined
       }
       retry_moodie_agent_run: {

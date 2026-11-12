@@ -20,6 +20,7 @@ import {
   WalletCards,
   Wrench,
   Layers,
+  Tags,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -51,6 +52,14 @@ const LabPaymentModal = dynamic(
 
 const LabDetailDrawer = dynamic(
   () => import("@/components/printing/labs/lab-detail-drawer").then(mod => ({ default: mod.LabDetailDrawer })),
+  { ssr: false },
+);
+
+const LabPriceLookup = dynamic(
+  () =>
+    import("@/components/printing/labs/lab-price-lookup").then((mod) => ({
+      default: mod.LabPriceLookup,
+    })),
   { ssr: false },
 );
 
@@ -244,6 +253,9 @@ function LabListInner({ initialLabs }: Props) {
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedLabForDetail, setSelectedLabForDetail] = useState<Lab | null>(null);
 
+  // Price lookup state (T-20261112)
+  const [lookupOpen, setLookupOpen] = useState(false);
+
   const {
     data: labsResult,
     isLoading: isLabsLoading,
@@ -425,14 +437,27 @@ function LabListInner({ initialLabs }: Props) {
             ]}
           />
 
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
-            <Link href="/printing" className="btn btn-outline">
-              Quay lại đơn in
-            </Link>
-            <Button onClick={openCreate} className="gap-2">
-              <Plus className="w-4 h-4" />
-              <span>Thêm lab</span>
-            </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {process.env.NEXT_PUBLIC_LAB_CATALOG !== "0" && (
+              <Button
+                variant="outline"
+                onClick={() => setLookupOpen(true)}
+                className="gap-2"
+                aria-label="Tra giá xưởng in"
+              >
+                <Tags className="w-4 h-4" />
+                <span className="hidden sm:inline">Tra giá</span>
+              </Button>
+            )}
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
+              <Link href="/printing" className="btn btn-outline">
+                Quay lại đơn in
+              </Link>
+              <Button onClick={openCreate} className="gap-2">
+                <Plus className="w-4 h-4" />
+                <span>Thêm lab</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -548,6 +573,12 @@ function LabListInner({ initialLabs }: Props) {
         }}
         lab={selectedLabForDetail}
         debt={selectedLabForDetail ? (selectedLabForDetail.outstandingDebt ?? 0) : 0}
+      />
+
+      <LabPriceLookup
+        isOpen={lookupOpen}
+        onClose={() => setLookupOpen(false)}
+        labs={labs.map((lab) => ({ id: lab.id, lab_name: lab.lab_name }))}
       />
 
       <ConfirmDialog

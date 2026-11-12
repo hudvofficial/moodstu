@@ -51,11 +51,21 @@ Trả lab = **phiếu chi thật**: `record_lab_payment_atomic` (wrapper giữ c
 
 ## Bảng
 
-[[luoc-do-in-an-lab]] — `printing_orders` · `printing_order_status_history` · `labs` · `lab_services` (phiếu chi trả lab nằm ở `expenses`/`expense_allocations` — [[tai-chinh]])
+[[luoc-do-in-an-lab]] — `printing_orders` · `printing_order_status_history` · `labs` · `lab_services` · `print_products` (phiếu chi trả lab nằm ở `expenses`/`expense_allocations` — [[tai-chinh]])
 
 ## Từ vựng phương thức thanh toán — ĐÃ THỐNG NHẤT 08/08
 
 UI module In ấn dùng `cash | transfer | card | other` (`types/printing.ts` `PaymentMethod`) làm từ vựng nội bộ của modal trả lab; DB chỉ nhận `tien_mat | chuyen_khoan` (`expenses.payment_method`, `receipts.payment_type`) → **quy đổi trước khi ghi**. Điểm ghi tiền in ấn duy nhất còn lại là phiếu chi trả lab (`record_lab_payment_atomic` → `expenses`); `order_payments` + `toPaymentMethodEnum()` (printing-workflow-mutations) đã drop/xoá ở ADR-017. **Thêm điểm ghi mới → nhớ quy đổi.**
+
+## Catalog SKU + giá bán (T-20261112, 12/11/2026)
+
+`print_products` là catalog SKU in dùng chung: `sku` (unique trên `lower(btrim(sku))` khi `deleted_at IS NULL`), `name`, `category`, `specification`, `unit`, `default_selling_price`, `active`. Xoá mềm bằng `deleted_at`; `active=false` chỉ là cờ ngừng bán, không giải phóng SKU.
+
+`lab_services` nối vào catalog qua `product_id` (FK `ON DELETE SET NULL`) + `selling_price_override` (nullable). **Giá bán hiệu lực = override khi override KHÁC NULL, ngược lại = `default_selling_price`**. Override `0` là giá hợp lệ, khác hẳn `NULL` — cấm mọi truthy check; logic duy nhất nằm ở `lib/printing/lab-pricing.ts` (`resolveLabPrice`, `mapLabPriceRow`). Unique `(lab_id, product_id)` chặn map trùng 1 SKU cho cùng Lab. Dòng chưa map (`product_id IS NULL`) giữ `cost_price` cũ và hiện "chưa map SKU", không tự suy giá.
+
+Đọc/ghi giá: `getPrintProducts`, `getLabProductPrices` (queries) và `upsertPrintProduct`, `upsertLabProductPrice` (mutations) — gate `withPrintingAccess`; lớp siết cuối là RLS `admin|manager` của `labs`/`lab_services`/`print_products`. Ghi giá dùng `updated_at` làm token lạc quan, 0 dòng cập nhật → báo xung đột. Audit do trigger DB (`audit_print_products`, `audit_lab_services`) ghi `old_data`/`new_data` nguyên dòng nên phân biệt được `0` và `NULL`.
+
+**Không** snapshot giá bán vào `printing_orders.items`, không đổi `total_amount`, không tự tạo phiếu thu. `total_amount` vẫn là cam kết trả Lab (ADR-014). Rollback flag: `NEXT_PUBLIC_LAB_CATALOG=0` (ẩn UI + chặn 2 action ghi), dữ liệu catalog giữ nguyên.
 
 ## Kỹ thuật
 

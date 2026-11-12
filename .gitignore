@@ -71,6 +71,8 @@ public/swe-worker-*.js.map
 
 # supabase
 /supabase/.temp/
+# Backup dữ liệu production trước migration — chứa PII (SĐT, địa chỉ), không commit
+/supabase/backups/
 supabase_update_*.sql
 
 # temporary data

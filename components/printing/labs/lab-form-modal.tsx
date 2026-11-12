@@ -61,6 +61,12 @@ function getInitialServices(lab: Lab | null): EditableLabService[] {
     ...service,
     tempId: service.id || buildTempId(),
     cost_price: Number(service.cost_price ?? 0),
+    product_id: service.product_id ?? null,
+    selling_price_override:
+      service.selling_price_override === null ||
+      service.selling_price_override === undefined
+        ? null
+        : Number(service.selling_price_override),
   }));
 }
 
@@ -90,7 +96,11 @@ async function syncServices(params: {
     if (!oldService) return false;
     return (
       oldService.item_name !== service.item_name ||
-      Number(oldService.cost_price) !== Number(service.cost_price)
+      Number(oldService.cost_price) !== Number(service.cost_price) ||
+      (oldService.product_id ?? null) !== (service.product_id ?? null) ||
+      // NULL khác 0 — so sánh trực tiếp, không dùng truthy (spec §9.7)
+      (oldService.selling_price_override ?? null) !==
+        (service.selling_price_override ?? null)
     );
   });
   const toDelete = params.initialServices.filter(
@@ -103,12 +113,17 @@ async function syncServices(params: {
         lab_id: params.labId,
         item_name: service.item_name.trim(),
         cost_price: Number(service.cost_price || 0),
+        product_id: service.product_id ?? null,
+        selling_price_override: service.selling_price_override ?? null,
       }),
     ),
     ...toUpdate.map((service) =>
       updateLabService(service.id as string, {
         item_name: service.item_name.trim(),
         cost_price: Number(service.cost_price || 0),
+        product_id: service.product_id ?? null,
+        selling_price_override: service.selling_price_override ?? null,
+        expected_updated_at: service.updated_at ?? undefined,
       }),
     ),
     ...toDelete.map((service) => deleteLabService(service.id as string)),
@@ -158,6 +173,12 @@ export default function LabFormModal({
           ...service,
           tempId: service.id || buildTempId(),
           cost_price: Number(service.cost_price ?? 0),
+          product_id: service.product_id ?? null,
+          selling_price_override:
+            service.selling_price_override === null ||
+            service.selling_price_override === undefined
+              ? null
+              : Number(service.selling_price_override),
         }));
         setServices(fetchedServices);
         setBaselineServices(fetchedServices);

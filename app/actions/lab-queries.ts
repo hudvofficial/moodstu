@@ -8,12 +8,15 @@ import type {
   LabDetail,
   LabOption,
   LabPayment,
+  LabProductPrice,
   LabService,
   LabUnpaidOrder,
   LabPaymentHistoryItem,
   LabPaymentHistoryPage,
   LabPaymentAllocation,
+  PrintProduct,
 } from "@/types/printing";
+import { mapLabPriceRow, type LabPriceRowInput } from "@/lib/printing/lab-pricing";
 import { normalizeLabStatus, normalizePrintingOrderStatus } from "@/types/printing-constants";
 import { getLabDebts } from "./printing-reference-queries";
 
@@ -130,7 +133,7 @@ export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>>
           .single(),
         supabase
           .from("lab_services")
-          .select("id, lab_id, item_name, cost_price, created_at, updated_at")
+          .select("id, lab_id, item_name, cost_price, product_id, selling_price_override, created_at, updated_at")
           .eq("lab_id", id)
           .order("item_name"),
         // ADR-016 M2: phiếu chi trả lab đọc thẳng expenses (không qua view lab_payments)
@@ -201,9 +204,11 @@ export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
 
 export async function getLabServices(labId: string): Promise<ActionResult<LabService[]>> {
   return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from("lab_services")
-      .select("id, lab_id, item_name, cost_price, created_at, updated_at")
+      .select(
+        "id, lab_id, item_name, cost_price, product_id, selling_price_override, created_at, updated_at",
+      )
       .eq("lab_id", labId)
       .order("item_name");
 
@@ -211,7 +216,128 @@ export async function getLabServices(labId: string): Promise<ActionResult<LabSer
       throw new Error(`Khong the tai dich vu lab: ${error.message}`);
     }
 
-    return (data ?? []) as LabService[];
+    return ((data ?? []) as LabService[]).map((row) => ({
+      ...row,
+      cost_price: Number(row.cost_price ?? 0),
+      product_id: row.product_id ?? null,
+      selling_price_override:
+        row.selling_price_override === null || row.selling_price_override === undefined
+          ? null
+          : Number(row.selling_price_override),
+    }));
+  });
+}
+
+// ─── LAB CATALOG PRICING (T-20261112) ───
+
+export async function getPrintProducts(params?: {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  includeInactive?: boolean;
+}): Promise<
+  ActionResult<{ items: PrintProduct[]; total: number; page: number; pageSize: number }>
+> {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
+    const page = Math.max(1, params?.page ?? 1);
+    const pageSize = Math.min(200, Math.max(1, params?.pageSize ?? 50));
+    const from = (page - 1) * pageSize;
+    const search = params?.search?.trim();
+
+    let query = supabase
+      .from("print_products")
+      .select(
+        "id, sku, name, category, specification, unit, default_selling_price, active, created_at, updated_at",
+        { count: "exact" },
+      )
+      .is("deleted_at", null)
+      .order("sku")
+      .range(from, from + pageSize - 1);
+
+    if (!params?.includeInactive) query = query.eq("active", true);
+    if (search) {
+      // Tìm theo SKU hoặc tên; escape ký tự wildcard của PostgREST.
+      const safe = search.replace(/[%,()]/g, " ").trim();
+      if (safe) query = query.or(`sku.ilike.%${safe}%,name.ilike.%${safe}%`);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw new Error(`Khong the tai danh muc san pham: ${error.message}`);
+    }
+
+    const items = ((data ?? []) as PrintProduct[]).map((row) => ({
+      ...row,
+      default_selling_price: Number(row.default_selling_price ?? 0),
+    }));
+
+    return { items, total: count ?? items.length, page, pageSize };
+  });
+}
+
+/**
+ * Bảng giá 1 Lab: cost, giá bán mặc định, override và giá hiệu lực.
+ * Dòng chưa map SKU → priceSource='unmapped', giữ nguyên cost cũ (spec §4).
+ */
+export async function getLabProductPrices(params: {
+  labId: string;
+  search?: string;
+}): Promise<ActionResult<LabProductPrice[]>> {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
+    if (!params.labId?.trim()) {
+      throw new Error("Lab ID is required");
+    }
+
+    const search = params.search?.trim();
+
+    // PostgREST không lọc được cột của bảng join ngoài trong `or()` → tra SKU trước
+    // rồi lọc lab_services theo item_name HOẶC product_id thuộc danh sách khớp.
+    let matchedProductIds: string[] = [];
+    if (search) {
+      const safe = search.replace(/[%,()]/g, " ").trim();
+      if (safe) {
+        const { data: productMatches, error: productError } = await supabase
+          .from("print_products")
+          .select("id")
+          .is("deleted_at", null)
+          .or(`sku.ilike.%${safe}%,name.ilike.%${safe}%`)
+          .limit(200);
+
+        if (productError) {
+          throw new Error(`Khong the tim san pham: ${productError.message}`);
+        }
+
+        matchedProductIds = (productMatches ?? []).map((row) => row.id);
+      }
+    }
+
+    let query = supabase
+      .from("lab_services")
+      .select(
+        "id, lab_id, item_name, cost_price, product_id, selling_price_override, updated_at, print_products!lab_services_product_id_fkey(sku, name, default_selling_price, active)",
+      )
+      .eq("lab_id", params.labId)
+      .order("item_name");
+
+    if (search) {
+      const safe = search.replace(/[%,()]/g, " ").trim();
+      if (safe) {
+        const filters = [`item_name.ilike.%${safe}%`];
+        if (matchedProductIds.length > 0) {
+          filters.push(`product_id.in.(${matchedProductIds.join(",")})`);
+        }
+        query = query.or(filters.join(","));
+      }
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Khong the tai bang gia lab: ${error.message}`);
+    }
+
+    return ((data ?? []) as LabPriceRowInput[]).map(mapLabPriceRow);
   });
 }
 

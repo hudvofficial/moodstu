@@ -88,8 +88,50 @@ export interface LabService {
   lab_id?: string;
   item_name: string;
   cost_price: number;
+  /** SKU chung đã map (null = dịch vụ chưa map, giữ cost cũ) */
+  product_id?: string | null;
+  /** NULL = dùng giá bán mặc định của SKU. 0 là giá hợp lệ, KHÔNG phải "chưa set". */
+  selling_price_override?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+// ─── LAB CATALOG PRICING (T-20261112) ───
+
+export type PriceSource = "override" | "default" | "unmapped";
+
+/** Catalog SKU in ảnh dùng chung toàn studio */
+export interface PrintProduct {
+  id: string;
+  sku: string;
+  name: string;
+  category: string | null;
+  specification: string | null;
+  unit: string | null;
+  default_selling_price: number;
+  active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+  deleted_at?: string | null;
+}
+
+/** Một dòng bảng giá Lab × SKU, đã quy về giá bán hiệu lực */
+export interface LabProductPrice {
+  labServiceId: string;
+  labId: string;
+  itemName: string;
+  productId: string | null;
+  sku: string | null;
+  productName: string | null;
+  costPrice: number;
+  defaultSellingPrice: number | null;
+  sellingPriceOverride: number | null;
+  effectiveSellingPrice: number | null;
+  priceSource: PriceSource;
+  /** giá bán hiệu lực − cost. null khi chưa có giá bán. */
+  margin: number | null;
+  productActive: boolean | null;
+  updatedAt: string | null;
 }
 
 export interface LabPayment {

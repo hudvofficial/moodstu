@@ -12,9 +12,12 @@ import {
   labStatusSchema,
   updateLabSchema,
   updateLabServiceSchema,
+  upsertLabProductPriceSchema,
+  upsertPrintProductSchema,
 } from "@/lib/validations/lab.schema";
 import type { Lab } from "@/types/printing";
 import { normalizeLabStatus } from "@/types/printing-constants";
+
 
 type ActionResult<T = null> =
   | { success: true; data: T }
@@ -214,11 +217,16 @@ export async function createLabService(
     const now = new Date().toISOString();
     const { error } = await supabase.from("lab_services").insert({
       ...parsed.data,
+      product_id: parsed.data.product_id ?? null,
+      selling_price_override: parsed.data.selling_price_override ?? null,
       created_at: now,
       updated_at: now,
     });
 
     if (error) {
+      if (error.code === "23505") {
+        throw new Error("Dich vu nay da duoc map vao san pham trong lab");
+      }
       throw new Error(`Khong the tao dich vu lab: ${error.message}`);
     }
 
@@ -248,16 +256,37 @@ export async function updateLabService(
   }
 
   return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
-    const { error } = await supabase
+    // expected_updated_at là token so sánh, không phải cột được ghi.
+    const { expected_updated_at, ...patch } = parsed.data;
+    const nextUpdatedAt = new Date().toISOString();
+    let query = supabase
       .from("lab_services")
       .update({
-        ...parsed.data,
-        updated_at: new Date().toISOString(),
+        ...patch,
+        product_id: patch.product_id ?? null,
+        selling_price_override: patch.selling_price_override ?? null,
+        updated_at: nextUpdatedAt,
       })
       .eq("id", id);
 
+    // Spec §9.5: chặn ghi đè âm thầm khi có người khác vừa sửa giá.
+    if (expected_updated_at) {
+      query = query.eq("updated_at", expected_updated_at);
+    }
+
+    const { data, error } = await query.select("id");
+
     if (error) {
+      if (error.code === "23505") {
+        throw new Error("Dich vu nay da duoc map vao san pham trong lab");
+      }
       throw new Error(`Khong the cap nhat dich vu lab: ${error.message}`);
+    }
+
+    if (expected_updated_at && (data ?? []).length === 0) {
+      throw new Error(
+        "Bang gia da bi nguoi khac thay doi. Vui long tai lai roi sua lai.",
+      );
     }
 
     fireAuditLog({
@@ -346,5 +375,188 @@ export async function recordLabPayment(
     // See lab-payment-modal.tsx line 263-269 for client-side invalidation
 
     return null;
+  });
+}
+
+// ─── CATALOG SKU + GIÁ BÁN LAB (T-20261112) ───
+// Audit giá do trigger DB (audit_print_products / audit_lab_services) ghi
+// old_data/new_data đầy đủ, phân biệt được override 0 và NULL (spec §9.2).
+
+type UpsertResult = ActionResult<{ id: string; updated_at: string | null }>;
+
+// Rollback flag (spec §7): đặt NEXT_PUBLIC_LAB_CATALOG=0 để tắt UI + API ghi giá
+// mà KHÔNG xóa SKU/override đã nhập.
+function isLabCatalogDisabled() {
+  return process.env.NEXT_PUBLIC_LAB_CATALOG === "0";
+}
+
+const LAB_CATALOG_DISABLED: UpsertResult = {
+  success: false,
+  error: "Tinh nang tra gia dang tat",
+};
+
+export async function upsertPrintProduct(rawData: unknown): Promise<UpsertResult> {
+  if (isLabCatalogDisabled()) return LAB_CATALOG_DISABLED;
+  const parsed = upsertPrintProductSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || "Du lieu khong hop le",
+    };
+  }
+
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
+    const now = new Date().toISOString();
+    const payload = {
+      sku: parsed.data.sku,
+      name: parsed.data.name,
+      category: parsed.data.category,
+      specification: parsed.data.specification,
+      unit: parsed.data.unit,
+      default_selling_price: parsed.data.default_selling_price,
+      active: parsed.data.active,
+      updated_at: now,
+      updated_by: userId,
+    };
+
+    if (parsed.data.id) {
+      let query = supabase
+        .from("print_products")
+        .update(payload)
+        .eq("id", parsed.data.id)
+        .is("deleted_at", null);
+
+      // Optimistic token (spec §9.5)
+      if (parsed.data.expected_updated_at) {
+        query = query.eq("updated_at", parsed.data.expected_updated_at);
+      }
+
+      const { data, error } = await query.select("id, updated_at");
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error("Ma SKU nay da ton tai");
+        }
+        throw new Error(`Khong the cap nhat san pham: ${error.message}`);
+      }
+
+      const row = (data ?? [])[0] as
+        | { id: string; updated_at: string | null }
+        | undefined;
+
+      if (!row) {
+        throw new Error(
+          parsed.data.expected_updated_at
+            ? "San pham da bi nguoi khac thay doi. Vui long tai lai roi sua lai."
+            : "Khong tim thay san pham",
+        );
+      }
+
+      revalidatePath("/printing/labs");
+      return { id: row.id, updated_at: row.updated_at };
+    }
+
+    const { data, error } = await supabase
+      .from("print_products")
+      .insert({ ...payload, created_at: now, created_by: userId })
+      .select("id, updated_at")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("Ma SKU nay da ton tai");
+      }
+      throw new Error(`Khong the tao san pham: ${error.message}`);
+    }
+
+    revalidatePath("/printing/labs");
+    return data as { id: string; updated_at: string | null };
+  });
+}
+
+/**
+ * Ghi cost + selling override của 1 Lab cho 1 SKU.
+ * selling_price_override = null → reset về giá mặc định (spec §4). 0 là giá hợp lệ.
+ */
+export async function upsertLabProductPrice(rawData: unknown): Promise<UpsertResult> {
+  if (isLabCatalogDisabled()) return LAB_CATALOG_DISABLED;
+  const parsed = upsertLabProductPriceSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || "Du lieu khong hop le",
+    };
+  }
+
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
+    const now = new Date().toISOString();
+    const payload = {
+      cost_price: parsed.data.cost_price,
+      selling_price_override: parsed.data.selling_price_override,
+      updated_at: now,
+    };
+
+    if (parsed.data.id) {
+      let query = supabase
+        .from("lab_services")
+        .update(payload)
+        .eq("id", parsed.data.id);
+
+      if (parsed.data.expected_updated_at) {
+        query = query.eq("updated_at", parsed.data.expected_updated_at);
+      }
+
+      const { data, error } = await query.select("id, updated_at");
+
+      if (error) {
+        throw new Error(`Khong the cap nhat gia lab: ${error.message}`);
+      }
+
+      const row = (data ?? [])[0] as
+        | { id: string; updated_at: string | null }
+        | undefined;
+
+      if (!row) {
+        throw new Error(
+          parsed.data.expected_updated_at
+            ? "Gia da bi nguoi khac thay doi. Vui long tai lai roi sua lai."
+            : "Khong tim thay dong gia cua lab",
+        );
+      }
+
+      revalidatePath("/printing/labs");
+      return { id: row.id, updated_at: row.updated_at };
+    }
+
+    // Dòng giá mới: item_name giữ tên SKU để báo cáo cũ và service_preview
+    // (printing_lab_overview) không bị trống.
+    const { data: product } = await supabase
+      .from("print_products")
+      .select("name")
+      .eq("id", parsed.data.product_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    const { data, error } = await supabase
+      .from("lab_services")
+      .insert({
+        lab_id: parsed.data.lab_id,
+        product_id: parsed.data.product_id,
+        item_name: (product as { name?: string } | null)?.name ?? "SKU",
+        ...payload,
+        created_at: now,
+      })
+      .select("id, updated_at")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("San pham nay da co gia trong lab");
+      }
+      throw new Error(`Khong the them gia lab: ${error.message}`);
+    }
+
+    revalidatePath("/printing/labs");
+    return data as { id: string; updated_at: string | null };
   });
 }
