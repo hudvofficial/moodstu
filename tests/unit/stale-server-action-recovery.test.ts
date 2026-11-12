@@ -1,4 +1,5 @@
 import {
+  guardStaleServerActionToasts,
   isStaleServerActionError,
   reloadCurrentBuildOnce,
 } from "@/lib/client/stale-server-action-recovery";
@@ -50,5 +51,65 @@ describe("stale Server Action recovery", () => {
     expect(reloadCurrentBuildOnce("blocked-storage-build", environment)).toBe(true);
     expect(reloadCurrentBuildOnce("blocked-storage-build", environment)).toBe(false);
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("guardStaleServerActionToasts", () => {
+  function makeToast() {
+    const calls: string[] = [];
+    const warnings: string[] = [];
+    const target = {
+      error: (message: unknown) => calls.push(String(message)),
+      warning: (message: unknown) => warnings.push(String(message)),
+      success: (message: unknown) => calls.push(`ok:${String(message)}`),
+    };
+    return { target, calls, warnings };
+  }
+
+  it("chạy recovery trước khi hiện toast lỗi và vẫn hiện toast", () => {
+    const seen: unknown[] = [];
+    const { target, calls } = makeToast();
+    guardStaleServerActionToasts(target, ["error", "warning"], (error) => {
+      seen.push(error);
+      return true;
+    });
+
+    target.error("Server Action \"abc\" was not found on the server.");
+
+    expect(seen).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("không đụng tới toast.success", () => {
+    const seen: unknown[] = [];
+    const { target, calls } = makeToast();
+    guardStaleServerActionToasts(target, ["error", "warning"], (error) => {
+      seen.push(error);
+      return false;
+    });
+
+    target.success("Đã lưu");
+
+    expect(seen).toHaveLength(0);
+    expect(calls).toEqual(["ok:Đã lưu"]);
+  });
+
+  it("idempotent: mount lại không bọc chồng", () => {
+    const seen: unknown[] = [];
+    const { target, calls } = makeToast();
+    const onStale = (error: unknown) => {
+      seen.push(error);
+      return false;
+    };
+
+    guardStaleServerActionToasts(target, ["error"], onStale);
+    const patched = target.error;
+    guardStaleServerActionToasts(target, ["error"], onStale);
+
+    expect(target.error).toBe(patched);
+
+    target.error("x");
+    expect(seen).toHaveLength(1);
+    expect(calls).toHaveLength(1);
   });
 });

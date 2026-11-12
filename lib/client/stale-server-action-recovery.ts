@@ -76,3 +76,32 @@ export function recoverFromStaleServerAction(error: unknown): boolean {
   reloadCurrentBuildOnce(STALE_SERVER_ACTION_RELOAD_KEY);
   return true;
 }
+
+/**
+ * Bọc các hàm toast để mọi lỗi hiển thị cho user đều chạy qua recovery.
+ *
+ * Cần vì ~100 component import `toast` THẲNG từ `sonner`, bỏ qua
+ * `lib/toast-manager` (nơi đã gọi recoverFromStaleServerAction). Không sửa 100
+ * chỗ; patch một lần tại chỗ mount toaster.
+ */
+export function guardStaleServerActionToasts(
+  target: Record<string, unknown>,
+  levels: readonly string[] = ["error", "warning"],
+  onStale: (error: unknown) => boolean = recoverFromStaleServerAction,
+): Record<string, unknown> {
+  const flags = target as Record<string, unknown> & { __staleGuarded?: boolean };
+  if (flags.__staleGuarded) return target;
+  flags.__staleGuarded = true;
+
+  for (const level of levels) {
+    const original = target[level];
+    if (typeof original !== "function") continue;
+
+    target[level] = function guardedToast(this: unknown, ...args: unknown[]) {
+      onStale(args[0]);
+      return (original as (...rest: unknown[]) => unknown).apply(this, args);
+    };
+  }
+
+  return target;
+}
